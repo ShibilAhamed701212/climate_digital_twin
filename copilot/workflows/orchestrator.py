@@ -5,6 +5,7 @@ from typing import Any
 
 from copilot.agent.intent_agent import IntentAgent
 from copilot.config_loader import load_copilot_config
+from copilot.llm.ollama_client import OllamaClient
 from copilot.memory.conversation_memory import ConversationMemory
 from copilot.models import ConversationTurn, CopilotResponse
 from copilot.planner.planner import PlanningAgent
@@ -23,7 +24,13 @@ class CopilotOrchestrator:
         self.intent_agent = IntentAgent()
         self.planner = PlanningAgent(self.registry)
         self.executor = Executor(self.registry)
-        self.generator = ResponseGenerator()
+        llm_cfg = config.get("llm", {})
+        self.llm_client = OllamaClient(
+            model=llm_cfg.get("primary_model", "qwen:4b"),
+            temperature=llm_cfg.get("temperature", 0.1),
+            max_tokens=llm_cfg.get("max_tokens", 1024),
+        )
+        self.generator = ResponseGenerator(llm_client=self.llm_client)
         mem_cfg = config.get("memory", {})
         self.memory = ConversationMemory(
             window_size=mem_cfg.get("window_size", 10),

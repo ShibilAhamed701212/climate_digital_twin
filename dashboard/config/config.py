@@ -23,6 +23,7 @@ DASHBOARD_ICON = "🌍"
 PAGE_ICON = "🌤"
 
 API_BASE_URL = "http://localhost:8001/api/v1"
+COPILOT_API_URL = "http://localhost:8005"
 API_TIMEOUT = 10
 
 KARNATAKA_BOUNDS = {"min_lat": 11.5, "max_lat": 18.5, "min_lon": 74.0, "max_lon": 78.5}
@@ -73,6 +74,7 @@ PAGES = [
     {"title": "Scenario Simulator", "file": "04_scenario_simulator", "icon": "🔮"},
     {"title": "Climate Risk", "file": "05_climate_risk", "icon": "⚠️"},
     {"title": "Reports & Insights", "file": "06_reports", "icon": "📊"},
+    {"title": "AI Copilot", "file": "07_copilot_chat", "icon": "🤖"},
 ]
 
 HORIZONS = {"1-Day": 1, "3-Day": 3, "7-Day": 7}

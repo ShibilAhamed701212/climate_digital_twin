@@ -1,4 +1,5 @@
 llm:
+  host: "${OLLAMA_HOST:-http://localhost:11434}"
   primary_model: "qwen:4b"
   temperature: 0.1
   max_tokens: 1024

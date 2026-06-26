@@ -25,7 +25,7 @@ class TestDashboardConfig:
         assert API_BASE_URL == "http://localhost:8001/api/v1"
         assert KARNATAKA_BOUNDS["min_lat"] == 11.5
         assert PAGE_CONFIG["layout"] == "wide"
-        assert len(PAGES) == 6
+        assert len(PAGES) == 7
         assert len(PILOT_DISTRICTS) == 5
         assert len(SAMPLE_LOCATIONS) == 10
 
@@ -40,6 +40,7 @@ class TestDashboardConfig:
             "Scenario Simulator",
             "Climate Risk",
             "Reports & Insights",
+            "AI Copilot",
         ]
 
     def test_config_color_schemes(self):

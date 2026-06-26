@@ -1,12 +1,20 @@
 from __future__ import annotations
 
+import json
+import os
 from typing import Any
 
+from copilot.llm.ollama_client import OllamaClient
 from copilot.models import IntentResult, IntentType, Plan, ToolResult
+
+PROMPT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts")
 
 
 class ResponseGenerator:
-    def generate(self, intent: IntentResult, _plan: Plan, results: list[ToolResult]) -> str:
+    def __init__(self, llm_client: OllamaClient | None = None) -> None:
+        self._llm = llm_client
+
+    def generate(self, intent: IntentResult, plan: Plan, results: list[ToolResult]) -> str:
         if intent.intent == IntentType.UNKNOWN:
             return "I'm not sure how to help with that. Try asking about forecasts, risks, scenarios, or twin state."
 
@@ -21,8 +29,29 @@ class ResponseGenerator:
             msgs = [f"  - {r.tool_name}: {r.error}" for r in failures]
             return "Some tools encountered errors:\n" + "\n".join(msgs)
 
+        llm_response = self._try_llm(intent, plan, results)
+        if llm_response is not None:
+            return llm_response
+
         generator = self._get_generator(intent.intent)
         return generator(intent, results)
+
+    def _try_llm(self, intent: IntentResult, plan: Plan, results: list[ToolResult]) -> str | None:
+        if self._llm is None:
+            return None
+        prompt_path = os.path.join(PROMPT_DIR, "generator.txt")
+        results_data = []
+        for r in results:
+            entry = {"tool": r.tool_name, "success": r.success, "data": r.data}
+            if r.error:
+                entry["error"] = r.error
+            results_data.append(entry)
+        return self._llm.generate_with_prompt_file(
+            prompt_path,
+            query=intent.raw_query,
+            intent=intent.intent.value,
+            results=json.dumps(results_data, indent=2, default=str),
+        )
 
     def _get_generator(self, intent: IntentType) -> Any:
         generators = {
