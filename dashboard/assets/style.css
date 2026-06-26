@@ -1,0 +1,63 @@
+/* Dashboard Custom Styles */
+
+.stApp {
+    background-color: #f8f9fa;
+}
+
+.main .block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+h1, h2, h3 {
+    color: #1a1a2e;
+}
+
+.stMetric {
+    background: white;
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stExpander {
+    background: white;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+}
+
+div[data-testid="stSidebar"] {
+    background: #1a1a2e;
+    color: #ffffff;
+}
+
+div[data-testid="stSidebar"] .stSelectbox label {
+    color: #e0e0e0;
+}
+
+div[data-testid="stSidebar"] h1 {
+    color: #ffffff;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 4px 4px 0 0;
+    padding: 0.5rem 1rem;
+}
+
+.stDataFrame {
+    background: white;
+    border-radius: 8px;
+}
+
+.element-container {
+    margin-bottom: 0.5rem;
+}
+
+.stButton button {
+    border-radius: 8px;
+    font-weight: 500;
+}

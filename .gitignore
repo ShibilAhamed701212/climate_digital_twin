@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+virtualenv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files
+data/external/*
+data/interim/*
+data/processed/*
+!data/external/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# Model files
+models/checkpoints/*
+models/exported/*
+models/evaluation/*
+!models/checkpoints/.gitkeep
+!models/exported/.gitkeep
+!models/evaluation/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Docker
+.env
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Reports
+*.html
+output/
+simulator/outputs/*
+risk/outputs/*
+knowledge/reports/*
+copilot/reports/*
+deployment/docs/*
+
+# Ruff
+.ruff_cache/
+
+# Mypy
+.mypy_cache/
+
+# Pytest
+.pytest_cache/
+
+# Vector stores
+*.index
+*.faiss

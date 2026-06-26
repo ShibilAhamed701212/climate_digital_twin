@@ -1,0 +1,40 @@
+scenarios:
+  temperature:
+    min_delta: -5.0
+    max_delta: 5.0
+    step: 0.5
+    default_increases: [1.0, 2.0, 3.0]
+    default_decreases: [-1.0, -2.0]
+
+  rainfall:
+    min_percent_change: -100.0
+    max_percent_change: 500.0
+    step: 5.0
+    default_increases: [10, 20, 40]
+    default_decreases: [-10, -25, -50]
+
+  monsoon:
+    max_delay_days: 30
+    max_advance_days: 15
+    intensity_reduction_range: [0, 50]
+
+  extreme_events:
+    enabled: true
+    types:
+      - "flood"
+      - "heatwave"
+      - "drought"
+
+validation:
+  max_combined_scenarios: 5
+  require_date_range: true
+  default_duration_days: 30
+
+simulation:
+  max_execution_ms: 3000
+  deterministic: true
+  random_seed: 42
+
+output:
+  formats: ["json", "csv", "markdown"]
+  output_dir: "simulator/outputs"

@@ -1,0 +1,123 @@
+"""Report generator for climate risk assessments.
+
+Produces JSON and Markdown reports from RiskReport objects.
+"""
+
+import json
+import logging
+from pathlib import Path
+
+from risk.models.risk_models import RiskReport, categorize_risk
+
+logger = logging.getLogger(__name__)
+
+
+def generate_report(
+    location_id: str,
+    district: str,
+    report: RiskReport,
+    output_dir: str = "risk/outputs",
+    formats: list[str] | None = None,
+) -> dict[str, str]:
+    """Generate risk report in specified formats.
+
+    Args:
+        location_id: Unique location identifier.
+        district: District name.
+        report: RiskReport to serialize.
+        output_dir: Directory to write output files.
+        formats: List of output formats (e.g., ["json", "markdown"]).
+
+    Returns:
+        Dict mapping format to output file path.
+    """
+    fmt = formats or ["json", "markdown"]
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    result: dict[str, str] = {}
+
+    for f in fmt:
+        if f == "json":
+            filepath = out_path / f"{location_id}_risk_report.json"
+            _write_json(filepath, report)
+            result["json"] = str(filepath)
+        elif f == "markdown":
+            filepath = out_path / f"{location_id}_risk_report.md"
+            _write_markdown(filepath, report, location_id, district)
+            result["markdown"] = str(filepath)
+
+    logger.info("Reports generated for %s: %s", location_id, ", ".join(result.values()))
+    return result
+
+
+def _write_json(filepath: Path, report: RiskReport) -> None:
+    """Write risk report as JSON."""
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(report.to_dict(), f, indent=2, default=str)
+
+
+def _write_markdown(filepath: Path, report: RiskReport, location_id: str, district: str) -> None:
+    """Write risk report as Markdown."""
+    lines: list[str] = []
+    lines.append(f"# Climate Risk Report: {location_id} ({district})")
+    lines.append(f"**Generated:** {report.timestamp}")
+    lines.append("")
+
+    if report.composite_risk:
+        cat = categorize_risk(report.composite_risk.score)
+        lines.append("## Composite Climate Risk Index")
+        lines.append(f"- **Score:** {report.composite_risk.score:.1f} / 100")
+        lines.append(f"- **Category:** {cat.value}")
+        lines.append(f"- Heat contribution: {report.composite_risk.heat_score:.1f}")
+        lines.append(f"- Flood contribution: {report.composite_risk.flood_score:.1f}")
+        lines.append(f"- Drought contribution: {report.composite_risk.drought_score:.1f}")
+        lines.append("")
+
+    if report.heat_risk:
+        lines.append("## Heat Risk")
+        lines.append(f"- **Score:** {report.heat_risk.score:.1f}")
+        lines.append(f"- Max temperature contribution: {report.heat_risk.max_temperature_contribution:.1f}")
+        lines.append(f"- Consecutive hot days: {report.heat_risk.consecutive_hot_days} days")
+        lines.append(f"- Seasonal anomaly: {report.heat_risk.seasonal_anomaly:.1f}°C")
+        lines.append("")
+
+    if report.flood_risk:
+        lines.append("## Flood Risk")
+        lines.append(f"- **Score:** {report.flood_risk.score:.1f}")
+        lines.append(f"- Rainfall intensity: {report.flood_risk.rainfall_intensity:.1f} mm")
+        lines.append(f"- Multi-day accumulation: {report.flood_risk.multi_day_accumulation:.1f} mm")
+        lines.append(f"- Forecast uncertainty: {report.flood_risk.forecast_uncertainty_contribution:.1f}")
+        lines.append("")
+
+    if report.drought_risk:
+        lines.append("## Drought Risk")
+        lines.append(f"- **Score:** {report.drought_risk.score:.1f}")
+        lines.append(f"- Rainfall deficit: {report.drought_risk.rainfall_deficit_percent:.1f}%")
+        lines.append(f"- Temperature anomaly: {report.drought_risk.temperature_anomaly:.1f}°C")
+        lines.append("")
+
+    if report.explanation:
+        lines.append("## AI Explanation (SHAP)")
+        lines.append(f"- **Prediction:** {report.explanation.prediction:.1f}")
+        lines.append(f"- **Base value:** {report.explanation.base_value:.1f}")
+        lines.append(f"- **Confidence:** {report.explanation.confidence:.2f}")
+        lines.append(f"- **Interpretation:** {report.explanation.risk_interpretation}")
+        lines.append("")
+        if report.explanation.top_features:
+            lines.append("### Top Contributing Features")
+            for feat in report.explanation.top_features:
+                lines.append(f"- {feat}")
+            lines.append("")
+
+    if report.insights:
+        lines.append("## Climate Insights")
+        for insight in report.insights:
+            lines.append(f"- **{insight.variable}:** {insight.description}")
+            lines.append(f"  - Implication: {insight.risk_implication}")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("*Report generated by Climate Risk Engine*")
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))

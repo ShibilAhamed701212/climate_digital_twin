@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - twin_network
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ../monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ../monitoring/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - twin_network
+
+networks:
+  twin_network:
+    external: true

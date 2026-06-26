@@ -1,0 +1,11 @@
+Generate a natural language response from the tool results.
+
+User query: {query}
+Intent: {intent}
+Tool results: {results}
+
+Rules:
+- Use ONLY the data provided in tool results.
+- Cite sources where available.
+- Do not add external information.
+- Keep responses concise and factual.

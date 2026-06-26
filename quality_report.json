@@ -1,0 +1,54 @@
+{
+  "pipeline": "data_pipeline",
+  "phase": "validation",
+  "timestamp": "2026-06-26T17:10:36.673032",
+  "datasets": {
+    "rainfall": {
+      "file": "data\\raw\\rainfall.parquet",
+      "checks": {
+        "file_exists": true,
+        "missing_columns": [],
+        "date_range_ok": true,
+        "lat_lon_bounds_ok": false,
+        "value_range_issues": {},
+        "missing_values": {},
+        "duplicate_count": 628200
+      },
+      "record_count": 753840,
+      "passed": false
+    },
+    "max_temp": {
+      "file": "data\\raw\\maxtemp.parquet",
+      "checks": {
+        "file_exists": true,
+        "missing_columns": [],
+        "date_range_ok": true,
+        "lat_lon_bounds_ok": false,
+        "value_range_issues": {},
+        "missing_values": {},
+        "duplicate_count": 628200
+      },
+      "record_count": 753840,
+      "passed": false
+    },
+    "min_temp": {
+      "file": "data\\raw\\mintemp.parquet",
+      "checks": {
+        "file_exists": true,
+        "missing_columns": [],
+        "date_range_ok": true,
+        "lat_lon_bounds_ok": false,
+        "value_range_issues": {},
+        "missing_values": {},
+        "duplicate_count": 628200
+      },
+      "record_count": 753840,
+      "passed": false
+    }
+  },
+  "summary": {
+    "total_datasets": 3,
+    "passed": 0,
+    "failed": 3
+  }
+}

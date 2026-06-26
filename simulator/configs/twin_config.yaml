@@ -1,0 +1,29 @@
+twin:
+  name: "karnataka_climate_twin"
+  version: "1.0.0"
+  region: "Karnataka"
+  grid_resolution: 0.25
+
+storage:
+  engine: "duckdb"
+  path: "data/twin_store"
+  parquet_compression: "snappy"
+
+state:
+  max_versions_per_entity: 1000
+  enforce_immutable: true
+  validate_coordinates: true
+  validate_temperatures:
+    min: -10
+    max: 55
+  validate_rainfall:
+    min: 0
+    max: 2000
+
+events:
+  enabled: true
+  max_subscribers: 50
+
+api:
+  host: "0.0.0.0"
+  port: 8001

@@ -1,0 +1,154 @@
+# AI-Powered Digital Twin of India's Climate
+
+**ISRO BAH 2026 — Challenge 5**
+
+A proof-of-concept AI-powered Digital Twin of India's climate system using national datasets. Predicts rainfall and temperature, simulates future climate scenarios, visualizes via an interactive dashboard, and supports climate intelligence queries through an AI assistant.
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.10+
+- Docker & Docker Compose (for containerized deployment)
+
+### Local Development
+
+```bash
+# Install dependencies
+make install
+
+# Run tests
+make test
+
+# Run linter
+make lint
+
+# Launch dashboard (synthetic data fallback)
+make dashboard
+```
+
+### Docker Deployment
+
+```bash
+# Build and start all services
+make up
+
+# Stop all services
+make down
+
+# Full demo walkthrough
+make demo
+```
+
+### One-Click Demo
+
+```bash
+bash deployment/scripts/demo.sh
+```
+
+Then open **http://localhost:8501** in your browser.
+
+## Architecture
+
+```
+                     ┌──────────────────┐
+                     │  Streamlit Dash  │
+                     │    Port 8501     │
+                     └────────┬─────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │   API Gateway    │
+                     │    Port 8000     │
+                     └──┬──┬──┬──┬──┬──┘
+                        │  │  │  │  │
+   ┌─────┐ ┌────┐ ┌────┐│ ┌──┴┐ ┌──┴┐ ┌──────────┐
+   │Twin │ │Fore│ │Scen││ │Rsk│ │RAG│ │ Copilot  │
+   │Core │ │cast│ │Eng ││ │Eng│ │Svc│ │ Agent    │
+   │8001 │ │    │ │8002││ │800│ │800│ │ 8005     │
+   └─────┘ └────┘ └────┘│ └───┘ └───┘ └──────────┘
+                        │
+                  ┌─────▼──────┐
+                  │ Forecasting │
+                  │   Engine    │
+                  └────────────┘
+```
+
+## Project Structure
+
+```
+climate-digital-twin/
+├── docs/                  # Phase documentation (1–10)
+├── data/                  # Raw, interim, processed datasets
+├── backend/               # FastAPI backend services
+├── models/                # ML forecasting models (MLP, LSTM, Transformer)
+├── dashboard/             # Streamlit dashboard (6 pages)
+├── simulator/             # Digital Twin engine & scenario simulator
+├── risk/                  # Climate risk assessment & SHAP explainability
+├── knowledge/             # RAG knowledge base (FAISS + sentence-transformers)
+├── copilot/               # Climate Copilot agent (multi-agent orchestration)
+├── pipeline/              # Data processing pipeline
+├── config/                # Centralized configuration
+├── deployment/            # Docker, CI/CD, monitoring, orchestration
+│   ├── docker/            # 8 service Dockerfiles
+│   ├── compose/           # Docker Compose overlays
+│   ├── scripts/           # Startup, shutdown, demo, health check scripts
+│   ├── monitoring/        # Prometheus + Grafana config
+│   ├── health/            # Python health check utilities
+│   ├── configs/           # Nginx, environment templates
+│   └── docs/              # Architecture documentation
+└── logs/                  # Execution logs
+```
+
+## Features
+
+### Phase 1-9 Implemented
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Scope & Bootstrap | ✅ Complete |
+| 2 | Data Pipeline | ✅ Complete |
+| 3 | AI Forecasting (MLP/LSTM/Transformer) | ✅ Complete |
+| 4 | Digital Twin Core Engine | ✅ Complete |
+| 5 | Geospatial Dashboard | ✅ Complete |
+| 6 | Scenario Simulation Engine | ✅ Complete |
+| 7 | Climate Risk & Explainable AI (SHAP) | ✅ Complete |
+| 8 | RAG Knowledge Base (FAISS) | ✅ Complete |
+| 9 | Climate Copilot (Multi-Agent Orchestration) | ✅ Complete |
+| 10 | Deployment & DevOps | ✅ Complete |
+
+### Key Capabilities
+
+- **Rainfall & Temperature Prediction:** 1, 3, and 7-day forecasts using MLP, LSTM, and Transformer architectures
+- **What-If Simulation:** Temperature, rainfall, monsoon, and extreme event scenario analysis
+- **Climate Risk Assessment:** Heat, flood, drought, and composite risk scoring with SHAP explanations
+- **Semantic Search:** FAISS-based retrieval from government reports, ISRO documentation, and research papers
+- **AI Climate Copilot:** Multi-agent system (Intent→Planner→Executor→Generator) with conversation memory
+- **Interactive Dashboard:** 6-page Streamlit app with Plotly charts, Folium maps, and real-time updates
+- **Offline Demo:** Full synthetic data fallback for hackathon environments
+
+## Configuration
+
+All configuration is externalized to YAML files:
+
+- `config/data_config.yaml` — Pipeline settings
+- `models/configs/model_config.yaml` — Model hyperparameters
+- `simulator/configs/twin_config.yaml` — Twin engine settings
+- `simulator/configs/scenario.yaml` — Scenario validation bounds
+- `risk/configs/risk.yaml` — Risk scoring weights & thresholds
+- `knowledge/configs/rag.yaml` — RAG chunking & embedding settings
+- `copilot/configs/copilot.yaml` — LLM, memory & tool registry
+
+## API Endpoints
+
+| Service | Health Endpoint |
+|---------|----------------|
+| API Gateway | `GET /health` |
+| Twin Core | `GET /health` |
+| Scenario Engine | `GET /health` |
+| Risk Engine | `GET /health` |
+| RAG Service | `GET /health` |
+| Copilot Agent | `GET /health` |
+
+## License
+
+For ISRO BAH 2026 hackathon use.

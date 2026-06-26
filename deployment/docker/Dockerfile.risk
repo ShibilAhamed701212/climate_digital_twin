@@ -1,0 +1,10 @@
+FROM python:3.10-slim as builder
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml .
+RUN pip install --no-cache-dir "fastapi>=0.104.0" uvicorn pydantic pyyaml "shap>=0.44" "pandas>=2.0" "numpy>=1.24" scikit-learn
+COPY risk/ ./risk/
+COPY config/ ./config/
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')" || exit 1
+EXPOSE 8003
+CMD ["uvicorn", "risk.api.main:app", "--host", "0.0.0.0", "--port", "8003"]

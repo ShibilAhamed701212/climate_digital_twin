@@ -1,0 +1,56 @@
+risk:
+  score_range:
+    min: 0
+    max: 100
+
+  categories:
+    - name: "Very Low"
+      range: [0, 20]
+    - name: "Low"
+      range: [21, 40]
+    - name: "Moderate"
+      range: [41, 60]
+    - name: "High"
+      range: [61, 80]
+    - name: "Severe"
+      range: [81, 100]
+
+heat:
+  weights:
+    max_temperature: 0.4
+    consecutive_hot_days: 0.35
+    seasonal_anomaly: 0.25
+  hot_day_threshold_c: 35
+  consecutive_days_threshold: 3
+
+flood:
+  weights:
+    rainfall_intensity: 0.4
+    multi_day_accumulation: 0.35
+    forecast_uncertainty: 0.25
+  heavy_rain_threshold_mm: 100
+  accumulation_window_days: 3
+
+drought:
+  weights:
+    rainfall_deficit: 0.4
+    temperature_increase: 0.3
+    dry_period_days: 0.3
+  deficit_threshold_percent: -25
+  dry_period_threshold_days: 15
+
+composite:
+  weights:
+    heat: 0.33
+    flood: 0.33
+    drought: 0.34
+
+shap:
+  enabled: true
+  random_seed: 42
+  max_display_features: 10
+  background_samples: 100
+
+output:
+  formats: ["json", "markdown"]
+  output_dir: "risk/outputs"

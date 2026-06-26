@@ -1,0 +1,7 @@
+An error occurred while processing your climate query.
+
+Error details: {error}
+Intent: {intent}
+Query: {query}
+
+Suggest the user rephrase their query or try a different question about forecasts, risks, or climate data.

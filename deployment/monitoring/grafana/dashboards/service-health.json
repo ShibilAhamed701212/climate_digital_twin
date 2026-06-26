@@ -1,0 +1,35 @@
+{
+  "title": "Service Health",
+  "panels": [
+    {
+      "title": "Twin Core",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"twin-core\"}" }]
+    },
+    {
+      "title": "Scenario Engine",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"scenario-engine\"}" }]
+    },
+    {
+      "title": "Risk Engine",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"risk-engine\"}" }]
+    },
+    {
+      "title": "RAG Service",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"rag-service\"}" }]
+    },
+    {
+      "title": "Copilot Agent",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"copilot-agent\"}" }]
+    },
+    {
+      "title": "API Gateway",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"api-gateway\"}" }]
+    }
+  ]
+}

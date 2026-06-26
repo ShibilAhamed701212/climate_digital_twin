@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "twin-core"
+    static_configs:
+      - targets: ["twin-core:8001"]
+  - job_name: "scenario-engine"
+    static_configs:
+      - targets: ["scenario-engine:8002"]
+  - job_name: "risk-engine"
+    static_configs:
+      - targets: ["risk-engine:8003"]
+  - job_name: "rag-service"
+    static_configs:
+      - targets: ["rag-service:8004"]
+  - job_name: "copilot-agent"
+    static_configs:
+      - targets: ["copilot-agent:8005"]
+  - job_name: "api-gateway"
+    static_configs:
+      - targets: ["fastapi-gateway:8000"]

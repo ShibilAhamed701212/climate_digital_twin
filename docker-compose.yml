@@ -1,0 +1,181 @@
+version: "3.8"
+
+services:
+  twin-core:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.twin
+    ports:
+      - "${TWIN_CORE_PORT:-8001}:8001"
+    volumes:
+      - twin_data:/app/data
+      - ./simulator/configs:/app/simulator/configs
+    env_file:
+      - path: deployment/configs/.env.example
+        required: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  forecast-engine:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.forecast
+    depends_on:
+      twin-core:
+        condition: service_started
+    volumes:
+      - model_data:/app/models
+    networks:
+      - twin_network
+
+  scenario-engine:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.scenario
+    ports:
+      - "${SCENARIO_PORT:-8002}:8002"
+    depends_on:
+      twin-core:
+        condition: service_healthy
+    volumes:
+      - ./simulator/configs:/app/simulator/configs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  risk-engine:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.risk
+    ports:
+      - "${RISK_PORT:-8003}:8003"
+    depends_on:
+      twin-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.rag
+    ports:
+      - "${RAG_PORT:-8004}:8004"
+    volumes:
+      - vector_store:/app/knowledge/vector_store
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  copilot-agent:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.copilot
+    ports:
+      - "${COPILOT_PORT:-8005}:8005"
+    depends_on:
+      rag-service:
+        condition: service_started
+      risk-engine:
+        condition: service_started
+      scenario-engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  fastapi-gateway:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.gateway
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    depends_on:
+      twin-core:
+        condition: service_healthy
+      forecast-engine:
+        condition: service_started
+      scenario-engine:
+        condition: service_healthy
+      risk-engine:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+      copilot-agent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - twin_network
+
+  streamlit-dashboard:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.dashboard
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    depends_on:
+      fastapi-gateway:
+        condition: service_healthy
+    networks:
+      - twin_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles:
+      - monitoring
+    volumes:
+      - ./deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - twin_network
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles:
+      - monitoring
+    volumes:
+      - ./deployment/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./deployment/monitoring/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards
+      - ./deployment/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - twin_network
+
+volumes:
+  twin_data:
+  model_data:
+  vector_store:
+
+networks:
+  twin_network:
+    driver: bridge

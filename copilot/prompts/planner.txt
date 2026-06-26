@@ -1,0 +1,7 @@
+Given the user intent and available tools, create a step-by-step plan.
+
+Intent: {intent}
+Available tools: forecast_tool, digital_twin_tool, scenario_simulator, risk_assessor, rag_retriever, report_generator
+Extracted entities: {entities}
+
+Plan the sequence of tool calls needed to fulfill this request.

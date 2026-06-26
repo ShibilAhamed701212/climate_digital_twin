@@ -1,0 +1,62 @@
+data:
+  sequence_length: 30
+  batch_size: 64
+  feature_columns:
+    - "Rainfall"
+    - "MaxTemp"
+    - "MinTemp"
+    - "Month"
+    - "Week"
+    - "Season"
+    - "Monsoon"
+    - "RollingRain7"
+    - "RollingRain30"
+    - "RollingTemp7"
+    - "RollingTemp30"
+  target_columns:
+    - "Rainfall"
+    - "MaxTemp"
+    - "MinTemp"
+
+baseline:
+  hidden_layers: [64, 32]
+  learning_rate: 0.001
+  epochs: 50
+
+lstm:
+  hidden_dim: 128
+  num_layers: 2
+  dropout: 0.2
+  learning_rate: 0.001
+  epochs: 100
+  bidirectional: false
+
+transformer:
+  d_model: 128
+  nhead: 4
+  num_encoder_layers: 3
+  dim_feedforward: 512
+  dropout: 0.1
+  learning_rate: 0.0005
+  epochs: 100
+
+training:
+  device: "auto"
+  loss: "mse"
+  optimizer: "adam"
+  early_stopping_patience: 10
+  validation_frequency: 1
+  random_seed: 42
+
+evaluation:
+  metrics:
+    - "rmse"
+    - "mae"
+    - "r2"
+    - "mape"
+  save_plots: true
+  compare_models: true
+
+export:
+  format: "torchscript"
+  export_dir: "models/exported"

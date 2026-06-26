@@ -1,0 +1,56 @@
+project:
+  name: "climate-digital-twin"
+  region: "Karnataka"
+  pilot_districts:
+    - "Bengaluru Urban"
+    - "Mysuru"
+    - "Belagavi"
+    - "Dakshina Kannada"
+    - "Kalaburagi"
+
+data:
+  raw_dir: "data/raw"
+  interim_dir: "data/interim"
+  processed_dir: "data/processed"
+  external_dir: "data/external"
+  metadata_dir: "data/metadata"
+  log_dir: "data/logs"
+
+sources:
+  primary: nasa_power
+  nasa_power:
+    endpoint: "https://power.larc.nasa.gov/api/temporal/daily/point"
+    community: "AG"
+    format: "JSON"
+    resolution: 1.0
+    max_workers: 4
+    parameters:
+      rainfall: PRECTOTCORR
+      max_temp: T2M_MAX
+      min_temp: T2M_MIN
+
+datasets:
+  rainfall:
+    filename: "rainfall.parquet"
+  max_temp:
+    filename: "maxtemp.parquet"
+  min_temp:
+    filename: "mintemp.parquet"
+
+date_range:
+  start: "1981-01-01"
+  end: "2023-12-31"
+
+karnataka_bounds:
+  min_lat: 11.5
+  max_lat: 18.5
+  min_lon: 74.0
+  max_lon: 78.5
+
+pipeline:
+  train_split: 0.70
+  val_split: 0.15
+  test_split: 0.15
+  sequence_length: 30
+  batch_size: 64
+  random_seed: 42
