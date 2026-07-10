@@ -3,9 +3,9 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: "twin-core"
+  - job_name: "twin-state-mgr"
     static_configs:
-      - targets: ["twin-core:8001"]
+      - targets: ["twin-state-mgr:8001"]
   - job_name: "scenario-engine"
     static_configs:
       - targets: ["scenario-engine:8002"]
@@ -18,6 +18,18 @@ scrape_configs:
   - job_name: "copilot-agent"
     static_configs:
       - targets: ["copilot-agent:8005"]
+  - job_name: "forecast-engine"
+    static_configs:
+      - targets: ["forecast-engine:8006"]
   - job_name: "api-gateway"
     static_configs:
       - targets: ["fastapi-gateway:8000"]
+  - job_name: "report-service"
+    static_configs:
+      - targets: ["twin-report:8007"]
+  - job_name: "streamlit-dashboard"
+    static_configs:
+      - targets: ["streamlit-dashboard:8501"]
+  - job_name: "redis"
+    static_configs:
+      - targets: ["twin-redis:6379"]

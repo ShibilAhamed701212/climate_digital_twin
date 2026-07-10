@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class IntentType(str, Enum):
+class IntentType(StrEnum):
     FORECAST = "forecast"
     TWIN_STATE = "twin_state"
     SCENARIO = "scenario"
@@ -13,6 +13,7 @@ class IntentType(str, Enum):
     RAG_QUERY = "rag_query"
     REPORT = "report"
     GREETING = "greeting"
+    FEEDBACK = "feedback"
     UNKNOWN = "unknown"
 
 

@@ -87,8 +87,7 @@ class TwinEngineAdapter(TwinAPI):
         return self._engine.apply_scenario(entity, scenario_id)
 
     def rollback(self, version_id: int) -> dict[str, Any]:
-        location_id = ""
-        return self._engine.rollback(location_id, version_id)
+        return self._engine.rollback("", version_id)
 
     def get_state_history(
         self, location_id: str

@@ -1,7 +1,11 @@
 """Unit tests for model architectures (baseline, LSTM, transformer)."""
 
 import pytest
-import torch
+
+try:
+    import torch
+except (ImportError, OSError):
+    pytest.skip("torch not available or DLL failure", allow_module_level=True)
 
 from models.baseline.model import BaselineModel
 from models.lstm.model import LSTMModel
@@ -27,7 +31,9 @@ class TestBaselineModel:
 
     def test_different_hidden_layers(self, sample_batch):
         model = BaselineModel(
-            n_features=5, n_targets=3, sequence_length=10,
+            n_features=5,
+            n_targets=3,
+            sequence_length=10,
             hidden_layers=[128, 64, 32],
         )
         output = model(sample_batch)
@@ -69,8 +75,12 @@ class TestTransformerModel:
 
     def test_larger_model(self, sample_batch):
         model = TransformerModel(
-            n_features=5, n_targets=3, d_model=64, nhead=4,
-            num_encoder_layers=2, dim_feedforward=256,
+            n_features=5,
+            n_targets=3,
+            d_model=64,
+            nhead=4,
+            num_encoder_layers=2,
+            dim_feedforward=256,
         )
         output = model(sample_batch)
         assert output.shape == (4, 3)

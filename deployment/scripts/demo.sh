@@ -15,7 +15,7 @@ sleep 15
 echo ""
 
 echo "=== Step 3: Verify health ==="
-python deployment/health/health_check.py
+bash "$(dirname "$0")/health_check.sh"
 echo ""
 
 echo "=== Step 4: Demo walkthrough ==="

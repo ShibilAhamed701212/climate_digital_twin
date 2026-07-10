@@ -1,26 +1,61 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from requests.exceptions import ConnectionError, HTTPError, Timeout
+
+from copilot.clients.scenario_client import ScenarioClient
 from copilot.tools.base import BaseTool
+
+logger = logging.getLogger(__name__)
+
+
+def _synthetic_scenario(scenario_type: str, value: float, location: str) -> dict[str, Any]:
+    """Generate plausible synthetic scenario result when the service is unavailable."""
+    return {
+        "scenario_id": f"synthetic_{scenario_type}",
+        "location": location,
+        "max_temp_delta": round(value * 0.8, 1),
+        "rainfall_delta": round(value * 2.5 if scenario_type == "rainfall" else 0, 1),
+        "confidence": 0.65,
+    }
 
 
 class ScenarioSimulatorTool(BaseTool):
     def __init__(self) -> None:
         self._name = "scenario_simulator"
-        self._description = "Run a what-if climate scenario simulation (temperature change, rainfall change, etc.)"
+        self._description = "Run a what-if climate scenario simulation using the scenario engine"
+        self._client = ScenarioClient()
 
     def run(self, **kwargs: Any) -> dict[str, Any]:
         scenario_type = kwargs.get("scenario_type", "temperature")
         value = kwargs.get("value", 1.0)
         location = kwargs.get("location", "Karnataka")
-        return {
-            "tool": self._name,
-            "scenario_type": scenario_type,
-            "value": value,
-            "location": location,
-            "result": _synthetic_scenario(location, scenario_type, value),
-        }
+
+        try:
+            result = self._client.simulate(location, scenario_type, value)
+            return {
+                "tool": self._name,
+                "scenario_type": scenario_type,
+                "value": value,
+                "location": location,
+                "result": result,
+                "available": True,
+                "fallback": False,
+            }
+        except (ConnectionError, Timeout, HTTPError) as e:
+            logger.warning("Scenario service unavailable: %s", e)
+            fallback = _synthetic_scenario(scenario_type, value, location)
+            return {
+                "tool": self._name,
+                "scenario_type": scenario_type,
+                "value": value,
+                "location": location,
+                "result": fallback,
+                "available": False,
+                "fallback": True,
+            }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:
         valid_types = ["temperature", "rainfall", "monsoon", "extreme_event"]
@@ -41,17 +76,3 @@ class ScenarioSimulatorTool(BaseTool):
 
     def health_check(self) -> tuple[bool, str]:
         return True, "scenario_simulator healthy"
-
-
-def _synthetic_scenario(location: str, scenario_type: str, value: float) -> dict[str, Any]:
-    import hashlib
-    import random
-    seed = int(hashlib.md5(f"{location}:{scenario_type}".encode()).hexdigest()[:8], 16)
-    rng = random.Random(seed)
-    if scenario_type == "temperature":
-        return {"max_temp_delta": round(value, 1), "rainfall_delta": 0, "description": f"Temperature changes by {value}°C"}
-    if scenario_type == "rainfall":
-        return {"max_temp_delta": 0, "rainfall_delta_pct": round(value, 1), "description": f"Rainfall changes by {value}%"}
-    if scenario_type == "monsoon":
-        return {"monsoon_shift_days": int(value), "max_temp_delta": round(rng.uniform(-1, 1), 1), "rainfall_delta_pct": round(rng.uniform(-20, 20), 1)}
-    return {"max_temp_delta": round(rng.uniform(-5, 5), 1), "rainfall_delta_pct": round(rng.uniform(-50, 50), 1)}

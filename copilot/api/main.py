@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -26,13 +27,23 @@ class AskResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    llm_ok, llm_msg = api.orchestrator.llm_client.health_check()
+    llm_ok, llm_msg = False, "not initialized"
+    try:
+        if hasattr(api.orchestrator, "llm_client"):
+            llm_ok, llm_msg = api.orchestrator.llm_client.health_check()
+    except Exception as e:
+        llm_msg = str(e)
+
+    tools = {}
+    with suppress(Exception):
+        tools = api.health_check().get("tools", {})
+
     return {
         "status": "healthy",
         "service": "copilot-agent",
         "version": "1.0.0",
         "ollama": {"ok": llm_ok, "message": llm_msg},
-        "tools": api.health_check().get("tools", {}),
+        "tools": tools,
     }
 
 
@@ -61,7 +72,7 @@ def get_history(conversation_id: str):
     try:
         return api.get_history(conversation_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from None
 
 
 @app.get("/conversations")

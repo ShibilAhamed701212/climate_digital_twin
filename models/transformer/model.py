@@ -6,8 +6,16 @@ time-series forecasting.
 
 import math
 
-import torch
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+except ImportError:
+    import types as _types
+
+    torch = _types.ModuleType("torch")
+    torch.Tensor = type("Tensor", (), {})
+    nn = _types.ModuleType("nn")
+    nn.Module = type("Module", (), {})
 
 
 class PositionalEncoding(nn.Module):
@@ -17,10 +25,7 @@ class PositionalEncoding(nn.Module):
         super().__init__()
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2).float()
-            * (-math.log(10000.0) / d_model)
-        )
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         self.register_buffer("pe", pe.unsqueeze(0))

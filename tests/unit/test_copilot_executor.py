@@ -1,5 +1,7 @@
 """Unit tests for executor."""
 
+from unittest.mock import patch
+
 from copilot.models import IntentType, Plan, ToolCall
 from copilot.tools.registry import ToolRegistry
 from copilot.workflows.executor import Executor
@@ -10,10 +12,21 @@ class TestExecutor:
         registry = ToolRegistry()
         self.executor = Executor(registry)
 
-    def test_execute_forecast_plan(self):
+    @patch("copilot.tools.forecast_tool.ForecastClient.predict")
+    def test_execute_forecast_plan(self, mock_predict):
+        mock_predict.return_value = [
+            {"day": 1, "rainfall": 10.0, "max_temp": 30.0},
+            {"day": 2, "rainfall": 5.0, "max_temp": 32.0},
+        ]
         plan = Plan(
             intent=IntentType.FORECAST,
-            steps=[ToolCall(tool_name="forecast_tool", parameters={"location": "Karnataka", "days": 3}, description="test")],
+            steps=[
+                ToolCall(
+                    tool_name="forecast_tool",
+                    parameters={"location": "Karnataka", "days": 3},
+                    description="test",
+                )
+            ],
         )
         results = self.executor.execute(plan)
         assert len(results) == 1
@@ -33,7 +46,9 @@ class TestExecutor:
     def test_execute_invalid_parameters(self):
         plan = Plan(
             intent=IntentType.FORECAST,
-            steps=[ToolCall(tool_name="forecast_tool", parameters={"days": 100}, description="test")],
+            steps=[
+                ToolCall(tool_name="forecast_tool", parameters={"days": 100}, description="test")
+            ],
         )
         results = self.executor.execute(plan)
         assert len(results) == 1
@@ -44,19 +59,40 @@ class TestExecutor:
         results = self.executor.execute(plan)
         assert results == []
 
-    def test_execution_time_tracked(self):
+    @patch("copilot.tools.forecast_tool.ForecastClient.predict")
+    def test_execution_time_tracked(self, mock_predict):
+        mock_predict.return_value = [{"day": 1, "rainfall": 0.0, "max_temp": 25.0}]
         plan = Plan(
             intent=IntentType.FORECAST,
-            steps=[ToolCall(tool_name="forecast_tool", parameters={"location": "Karnataka", "days": 1}, description="test")],
+            steps=[
+                ToolCall(
+                    tool_name="forecast_tool",
+                    parameters={"location": "Karnataka", "days": 1},
+                    description="test",
+                )
+            ],
         )
         results = self.executor.execute(plan)
         assert results[0].execution_time_ms > 0
 
-    def test_execute_multiple_tools(self):
+    @patch("copilot.tools.forecast_tool.ForecastClient.predict")
+    @patch("copilot.tools.risk_tool.RiskClient.assess")
+    def test_execute_multiple_tools(self, mock_risk, mock_forecast):
+        """Test execution of multiple sequential tools."""
+        mock_forecast.return_value = [{"day": 1, "rainfall": 0.0, "max_temp": 25.0}]
+        mock_risk.return_value = {
+            "heat": 20,
+            "flood": 15,
+            "drought": 10,
+            "composite": 25,
+            "category": "LOW",
+        }
         plan = Plan(
             intent=IntentType.REPORT,
             steps=[
-                ToolCall(tool_name="forecast_tool", parameters={"location": "Karnataka", "days": 1}),
+                ToolCall(
+                    tool_name="forecast_tool", parameters={"location": "Karnataka", "days": 1}
+                ),
                 ToolCall(tool_name="risk_assessor", parameters={"location": "Karnataka"}),
             ],
         )

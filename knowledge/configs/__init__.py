@@ -1,0 +1,1 @@
+"""RAG configuration defaults."""

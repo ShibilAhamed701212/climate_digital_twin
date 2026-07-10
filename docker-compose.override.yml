@@ -1,0 +1,89 @@
+services:
+  twin-state-mgr:
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./simulator:/app/simulator
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  forecast-engine:
+    ports:
+      - "8006:8006"
+    volumes:
+      - ./models:/app/models
+      - ./backend:/app/backend
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  scenario-engine:
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./simulator:/app/simulator
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  risk-engine:
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./risk:/app/risk
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  rag-service:
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./knowledge:/app/knowledge
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  ollama:
+    ports:
+      - "11434:11434"
+
+  copilot-agent:
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./copilot:/app/copilot
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  fastapi-gateway:
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+    environment:
+      - GATEWAY_DEBUG=true
+      - LOG_LEVEL=DEBUG
+
+  streamlit-dashboard:
+    ports:
+      - "8051:8501"
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./copilot:/app/copilot
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  report-service:
+    ports:
+      - "8007:8007"
+    volumes:
+      - ./backend:/app/backend
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  redis:
+    ports:
+      - "6379:6379"

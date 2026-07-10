@@ -33,9 +33,7 @@ def validate_file_exists(filepath: Path) -> bool:
     return True
 
 
-def validate_columns(
-    df: pd.DataFrame, expected_columns: list[str], label: str
-) -> list[str]:
+def validate_columns(df: pd.DataFrame, expected_columns: list[str], label: str) -> list[str]:
     """Verify that expected columns exist in the DataFrame."""
     missing = [c for c in expected_columns if c not in df.columns]
     if missing:
@@ -43,9 +41,7 @@ def validate_columns(
     return missing
 
 
-def validate_date_range(
-    df: pd.DataFrame, start_date: str, end_date: str, label: str
-) -> bool:
+def validate_date_range(df: pd.DataFrame, start_date: str, end_date: str, label: str) -> bool:
     """Validate that all dates fall within the expected range."""
     if "Date" not in df.columns:
         logger.error("%s has no Date column", label)
@@ -67,29 +63,18 @@ def validate_date_range(
     return True
 
 
-def validate_lat_lon_bounds(
-    df: pd.DataFrame, bounds: dict[str, float], label: str
-) -> bool:
+def validate_lat_lon_bounds(df: pd.DataFrame, bounds: dict[str, float], label: str) -> bool:
     """Validate that latitude/longitude are within geographic bounds."""
-    invalid_lat = df[
-        (df["Latitude"] < bounds["min_lat"]) | (df["Latitude"] > bounds["max_lat"])
-    ]
-    invalid_lon = df[
-        (df["Longitude"] < bounds["min_lon"])
-        | (df["Longitude"] > bounds["max_lon"])
-    ]
+    invalid_lat = df[(df["Latitude"] < bounds["min_lat"]) | (df["Latitude"] > bounds["max_lat"])]
+    invalid_lon = df[(df["Longitude"] < bounds["min_lon"]) | (df["Longitude"] > bounds["max_lon"])]
     total_invalid = len(invalid_lat) + len(invalid_lon)
     if total_invalid > 0:
-        logger.warning(
-            "%s has %d records outside lat/lon bounds", label, total_invalid
-        )
+        logger.warning("%s has %d records outside lat/lon bounds", label, total_invalid)
         return False
     return True
 
 
-def validate_value_ranges(
-    df: pd.DataFrame, label: str
-) -> dict[str, Any]:
+def validate_value_ranges(df: pd.DataFrame, label: str) -> dict[str, Any]:
     """Detect out-of-range values for climate variables."""
     issues: dict[str, Any] = {}
     if "Rainfall" in df.columns:
@@ -100,9 +85,7 @@ def validate_value_ranges(
         extreme_max = (df["MaxTemp"] > 50).sum()
         if extreme_max > 0:
             issues["max_temp_above_50"] = int(extreme_max)
-        min_above_max = (
-            "MinTemp" in df.columns and (df["MaxTemp"] < df["MinTemp"]).sum()
-        )
+        min_above_max = "MinTemp" in df.columns and (df["MaxTemp"] < df["MinTemp"]).sum()
         if min_above_max > 0:
             issues["max_temp_below_min_temp"] = int(min_above_max)
     if "MinTemp" in df.columns:
@@ -187,23 +170,17 @@ def generate_quality_report(
             continue
 
         expected_cols = expected_cols_map.get(key, [])
-        ds_report["checks"]["missing_columns"] = validate_columns(
-            df, expected_cols, key
-        )
-        ds_report["checks"]["date_range_ok"] = validate_date_range(
-            df, start_date, end_date, key
-        )
-        ds_report["checks"]["lat_lon_bounds_ok"] = validate_lat_lon_bounds(
-            df, bounds, key
-        )
+        ds_report["checks"]["missing_columns"] = validate_columns(df, expected_cols, key)
+        ds_report["checks"]["date_range_ok"] = validate_date_range(df, start_date, end_date, key)
+        ds_report["checks"]["lat_lon_bounds_ok"] = validate_lat_lon_bounds(df, bounds, key)
         ds_report["checks"]["value_range_issues"] = validate_value_ranges(df, key)
         ds_report["checks"]["missing_values"] = detect_missing_values(df, key)
         ds_report["checks"]["duplicate_count"] = detect_duplicates(
-            df, expected_cols[:2] + ["Date"], key
+            df, ["Date", "Latitude", "Longitude"], key
         )
 
         all_ok = all(
-            v is True or v == [] or v == {}
+            v is True or v == [] or v == {} or (type(v) is int and v == 0)
             for v in ds_report["checks"].values()
         )
         ds_report["passed"] = all_ok
@@ -215,9 +192,7 @@ def generate_quality_report(
     return report
 
 
-def save_quality_report(
-    report: dict[str, Any], output_path: str = "quality_report.json"
-) -> str:
+def save_quality_report(report: dict[str, Any], output_path: str = "quality_report.json") -> str:
     """Save quality report to JSON file."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

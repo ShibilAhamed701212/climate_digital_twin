@@ -2,11 +2,13 @@
 set -euo pipefail
 
 SERVICES=(
-  "twin-core:8001"
+  "twin-state-mgr:8001"
   "scenario-engine:8002"
   "risk-engine:8003"
   "rag-service:8004"
   "copilot-agent:8005"
+  "forecast-engine:8006"
+  "report-service:8007"
   "fastapi-gateway:8000"
   "streamlit-dashboard:8501"
 )

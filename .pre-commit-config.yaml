@@ -22,3 +22,10 @@ repos:
       - id: check-json
       - id: check-toml
       - id: detect-private-key
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ["-r", "backend", "simulator", "risk", "copilot", "dashboard", "knowledge", "models", "tests"]
+        additional_dependencies: ["bandit[toml]"]

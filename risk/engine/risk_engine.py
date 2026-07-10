@@ -10,6 +10,7 @@ import yaml
 
 from risk.explainability.insights_engine import generate_insights
 from risk.explainability.shap_explainer import generate_explanation
+from risk.models.agriculture_risk import AgricultureRiskModel
 from risk.models.risk_models import (
     ClimateInsight,
     CompositeRiskScore,
@@ -17,6 +18,7 @@ from risk.models.risk_models import (
     FloodRiskScore,
     HeatRiskScore,
     RiskReport,
+    RiskScore,
     SHAPExplanation,
 )
 from risk.reports.report_generator import generate_report
@@ -88,6 +90,7 @@ class RiskEngine:
         seasonal_anomaly: float = 0.0,
         forecast_uncertainty: float = 0.0,
         prediction_confidence: float = 0.0,
+        agriculture_features: dict[str, float | str] | None = None,
     ) -> RiskReport:
         """Compute all risk scores, explanations, and insights for a location.
 
@@ -113,8 +116,15 @@ class RiskEngine:
 
         heat = self.assess_heat_risk(max_temp, consecutive_hot_days, seasonal_anomaly)
         flood = self.assess_flood_risk(rainfall, multi_day_accumulation, forecast_uncertainty)
-        drought = self.assess_drought_risk(rainfall, historical_mean_rainfall, max_temp, historical_mean_temp, dry_period_days)
+        drought = self.assess_drought_risk(
+            rainfall, historical_mean_rainfall, max_temp, historical_mean_temp, dry_period_days
+        )
         composite = self.assess_composite_risk(heat.score, flood.score, drought.score)
+        agriculture = (
+            self.assess_agriculture_risk(location_id, agriculture_features)
+            if agriculture_features
+            else None
+        )
 
         explanation = self._generate_explanation(
             prediction=composite.score,
@@ -143,6 +153,7 @@ class RiskEngine:
             flood_risk=flood,
             drought_risk=drought,
             composite_risk=composite,
+            agriculture_risk=agriculture,
             explanation=explanation,
             insights=insights,
             raw_data={
@@ -220,6 +231,18 @@ class RiskEngine:
             drought_score=drought_score,
             weights=self.composite_config.get("weights"),
         )
+
+    def assess_agriculture_risk(
+        self,
+        location_id: str,
+        features: dict[str, float | str] | None = None,
+    ) -> RiskScore | None:
+        if not features:
+            return None
+        model = AgricultureRiskModel()
+        import asyncio
+
+        return asyncio.run(model.assess(location_id=location_id, **features))
 
     def _generate_explanation(
         self,

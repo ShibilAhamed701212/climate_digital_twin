@@ -34,12 +34,8 @@ class ClimateDataset(Dataset):
         self.sequence_length = sequence_length
         self.feature_columns = feature_columns
         self.target_columns = target_columns
-        self.features = torch.tensor(
-            data[feature_columns].values, dtype=torch.float32
-        )
-        self.targets = torch.tensor(
-            data[target_columns].values, dtype=torch.float32
-        )
+        self.features = torch.tensor(data[feature_columns].values, dtype=torch.float32)
+        self.targets = torch.tensor(data[target_columns].values, dtype=torch.float32)
         if len(self.features) <= sequence_length:
             raise DataShapeError(
                 f"Data length ({len(self.features)}) must exceed "
@@ -105,19 +101,21 @@ def _generate_synthetic_training_data(
     """Generate synthetic training data for testing/demo."""
     rng = np.random.default_rng(42)
     n = num_samples + sequence_length
-    data = pd.DataFrame({
-        "Rainfall": np.maximum(0, rng.exponential(5, n)),
-        "MaxTemp": rng.uniform(25, 38, n),
-        "MinTemp": rng.uniform(15, 22, n),
-        "Month": rng.integers(1, 13, n),
-        "Week": rng.integers(1, 53, n),
-        "Season": rng.choice(["Winter", "Summer", "Monsoon", "Post-Monsoon"], n),
-        "Monsoon": rng.integers(0, 2, n),
-        "RollingRain7": np.maximum(0, rng.exponential(4, n)),
-        "RollingRain30": np.maximum(0, rng.exponential(4, n)),
-        "RollingTemp7": rng.uniform(20, 35, n),
-        "RollingTemp30": rng.uniform(20, 35, n),
-    })
+    data = pd.DataFrame(
+        {
+            "Rainfall": np.maximum(0, rng.exponential(5, n)),
+            "MaxTemp": rng.uniform(25, 38, n),
+            "MinTemp": rng.uniform(15, 22, n),
+            "Month": rng.integers(1, 13, n),
+            "Week": rng.integers(1, 53, n),
+            "Season": rng.choice(["Winter", "Summer", "Monsoon", "Post-Monsoon"], n),
+            "Monsoon": rng.integers(0, 2, n),
+            "RollingRain7": np.maximum(0, rng.exponential(4, n)),
+            "RollingRain30": np.maximum(0, rng.exponential(4, n)),
+            "RollingTemp7": rng.uniform(20, 35, n),
+            "RollingTemp30": rng.uniform(20, 35, n),
+        }
+    )
     return data
 
 
@@ -147,17 +145,23 @@ def load_data(
     else:
         logger.warning("Processed data not found, generating synthetic data")
         syn = _generate_synthetic_training_data(5000, seq_len)
-        train_df = syn.iloc[:3500]
-        val_df = syn.iloc[3500:4250]
-        test_df = syn.iloc[4250:]
+        train_df = syn.iloc[:3500].copy()
+        val_df = syn.iloc[3500:4250].copy()
+        test_df = syn.iloc[4250:].copy()
     train_df = train_df.reset_index(drop=True)
     val_df = val_df.reset_index(drop=True)
     test_df = test_df.reset_index(drop=True)
     logger.info(
         "Train: %d, Val: %d, Test: %d samples",
-        len(train_df), len(val_df), len(test_df),
+        len(train_df),
+        len(val_df),
+        len(test_df),
     )
-    cat_cols = [c for c in feat_cols if train_df[c].dtype == "object"]
+    cat_cols = [
+        c
+        for c in feat_cols
+        if pd.api.types.is_string_dtype(train_df[c]) or train_df[c].dtype == "object"
+    ]
     for df in [train_df, val_df, test_df]:
         for c in cat_cols:
             df[c] = pd.Categorical(df[c]).codes
@@ -173,15 +177,9 @@ def load_data(
     train_tgt = torch.tensor(train_df[tgt_cols].values, dtype=torch.float32)
     feat_scaler.fit(train_feat)
     tgt_scaler.fit(train_tgt)
-    train_dataset = ClimateDataset(
-        train_df, feat_cols, tgt_cols, seq_len
-    )
-    val_dataset = ClimateDataset(
-        val_df, feat_cols, tgt_cols, seq_len
-    )
-    test_dataset = ClimateDataset(
-        test_df, feat_cols, tgt_cols, seq_len
-    )
+    train_dataset = ClimateDataset(train_df, feat_cols, tgt_cols, seq_len)
+    val_dataset = ClimateDataset(val_df, feat_cols, tgt_cols, seq_len)
+    test_dataset = ClimateDataset(test_df, feat_cols, tgt_cols, seq_len)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

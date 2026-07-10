@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+import traceback
 
 import streamlit as st
 
 from dashboard.components.sidebar import render_sidebar
+from dashboard.components.sidebar_nav import render_sidebar_nav
 from dashboard.config.config import PAGE_CONFIG, PAGES
 from dashboard.services.api_client import create_api_client
 
@@ -18,7 +20,7 @@ def _load_css() -> None:
         with open("dashboard/assets/style.css") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        pass
+        logger.warning("CSS file not found at dashboard/assets/style.css — using defaults")
 
 
 def _init_session() -> None:
@@ -36,32 +38,28 @@ def main() -> None:
     filters = render_sidebar()
     api = st.session_state.api
 
+    # Sidebar page navigation replaces Streamlit's auto-generated nav
+    render_sidebar_nav()
+
     page_file = st.session_state.get("page", PAGES[0]["file"])
-
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        page_options = {p["title"]: p["file"] for p in PAGES}
-        selected_title = st.selectbox(
-            "Navigate",
-            options=list(page_options.keys()),
-            index=0,
-            label_visibility="collapsed",
-            key="nav_select",
-        )
-        st.session_state.page = page_options[selected_title]
-        page_file = st.session_state.page
-
-    st.divider()
 
     try:
         page_module = __import__(
-            f"dashboard.pages.{page_file}",
+            f"dashboard.page_views.{page_file}",
             fromlist=["render"],
         )
+    except Exception as e:
+        logger.exception("Import failed for page %s", page_file)
+        st.error(f"Failed to import page '{page_file}': {type(e).__name__}: {e}")
+        st.code(traceback.format_exc(), language="text")
+        return
+
+    try:
         page_module.render(api, filters)
-    except ImportError as e:
-        st.error(f"Page not found: {page_file}. Error: {e}")
-        logger.exception("Failed to load page %s", page_file)
+    except Exception as e:
+        logger.exception("Render failed for page %s", page_file)
+        st.error(f"Page '{page_file}' crashed: {type(e).__name__}: {e}")
+        st.code(traceback.format_exc(), language="text")
 
 
 if __name__ == "__main__":

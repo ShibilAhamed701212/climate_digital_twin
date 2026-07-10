@@ -26,10 +26,11 @@ class CopilotOrchestrator:
         self.executor = Executor(self.registry)
         llm_cfg = config.get("llm", {})
         self.llm_client = OllamaClient(
-            model=llm_cfg.get("primary_model", "qwen:4b"),
+            model=llm_cfg.get("primary_model", "llama3.2:3b"),
             temperature=llm_cfg.get("temperature", 0.1),
             max_tokens=llm_cfg.get("max_tokens", 1024),
         )
+        self.llm_client.ensure_model()
         self.generator = ResponseGenerator(llm_client=self.llm_client)
         mem_cfg = config.get("memory", {})
         self.memory = ConversationMemory(
@@ -63,12 +64,14 @@ class CopilotOrchestrator:
         intermediate = []
         if self.config.get("orchestration", {}).get("return_intermediate_steps", True):
             for r in results:
-                intermediate.append({
-                    "tool": r.tool_name,
-                    "success": r.success,
-                    "error": r.error,
-                    "execution_time_ms": r.execution_time_ms,
-                })
+                intermediate.append(
+                    {
+                        "tool": r.tool_name,
+                        "success": r.success,
+                        "error": r.error,
+                        "execution_time_ms": r.execution_time_ms,
+                    }
+                )
 
         return CopilotResponse(
             answer=response_text,

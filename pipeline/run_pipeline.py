@@ -18,6 +18,7 @@ import yaml
 from pipeline.clean import clean_dataset, merge_datasets
 from pipeline.download import DataDownloader
 from pipeline.export import export_datasets
+from pipeline.feature_engine import FeatureEngine
 from pipeline.features import engineer_features
 from pipeline.validate import generate_quality_report, save_quality_report
 
@@ -99,7 +100,24 @@ def run_pipeline() -> int:
         logger.info("--- Step 4/5: Feature Engineering ---")
         features_dir = Path(config["data"]["interim_dir"])
         features_path = features_dir / "featured_data.parquet"
-        featured_df = engineer_features(cleaned_df, output_path=features_path)
+        featured_df = engineer_features(cleaned_df)
+
+        # Enhance with BHAI FeatureEngine (advanced features)
+        logger.info("--- Step 4b/5: Advanced Feature Engineering (BHAI) ---")
+        try:
+            engine = FeatureEngine()
+            featured_df = engine.create_features(featured_df)
+            n_new = len(engine.get_feature_names())
+            logger.info("FeatureEngine added %d advanced features", n_new)
+            for name, meta in engine.get_feature_metadata().items():
+                logger.debug("  %s [%s]: %s", name, meta.feature_group, meta.description)
+        except Exception as exc:
+            logger.warning("FeatureEngine enhancement skipped: %s", exc)
+
+        # Save featured data
+        features_path.parent.mkdir(parents=True, exist_ok=True)
+        featured_df.to_parquet(features_path, index=False)
+        logger.info("Features saved to %s (%d cols)", features_path, len(featured_df.columns))
         logger.info("--- Step 5/5: Export ---")
         processed_dir = Path(config["data"]["processed_dir"])
         exported = export_datasets(featured_df, config, output_dir=processed_dir)

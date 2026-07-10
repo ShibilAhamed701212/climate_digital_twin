@@ -1,0 +1,38 @@
+{
+  "baseline": {
+    "name": "baseline",
+    "architecture": "BaselineModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models\\checkpoints\\baseline_best.pt",
+    "metrics": {
+      "rmse": 4.59,
+      "r2": 0.87
+    },
+    "config": {},
+    "registered_at": "2026-06-29T01:06:26.330627"
+  },
+  "lstm": {
+    "name": "lstm",
+    "architecture": "LSTMModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models\\checkpoints\\lstm_best.pt",
+    "metrics": {
+      "rmse": 4.53,
+      "r2": 0.87
+    },
+    "config": {},
+    "registered_at": "2026-06-29T01:06:26.330627"
+  },
+  "transformer": {
+    "name": "transformer",
+    "architecture": "TransformerModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models\\checkpoints\\transformer_best.pt",
+    "metrics": {
+      "rmse": 4.57,
+      "r2": 0.87
+    },
+    "config": {},
+    "registered_at": "2026-06-29T01:06:26.330627"
+  }
+}

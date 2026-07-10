@@ -2,9 +2,9 @@
   "title": "Service Health",
   "panels": [
     {
-      "title": "Twin Core",
+      "title": "Twin State Manager",
       "type": "stat",
-      "targets": [{ "expr": "up{job=\"twin-core\"}" }]
+      "targets": [{ "expr": "up{job=\"twin-state-mgr\"}" }]
     },
     {
       "title": "Scenario Engine",

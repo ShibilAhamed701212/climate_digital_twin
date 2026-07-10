@@ -1,0 +1,1 @@
+"""Copilot configuration defaults."""

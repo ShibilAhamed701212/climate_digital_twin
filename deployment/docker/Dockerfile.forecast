@@ -1,11 +1,15 @@
-FROM python:3.10-slim as builder
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+FROM python:3.11-slim
 WORKDIR /app
 COPY pyproject.toml .
-RUN pip install --no-cache-dir "torch>=2.0" "pandas>=2.0" "numpy>=1.24" scikit-learn pyyaml "fastapi>=0.104.0" uvicorn
+RUN pip install --no-cache-dir "torch>=2.0" "pandas>=2.0" "numpy>=1.24" scikit-learn pyyaml "fastapi>=0.104.0" uvicorn xgboost statsmodels shap nltk prophet
 COPY models/ ./models/
 COPY pipeline/ ./pipeline/
+COPY backend/ ./backend/
 COPY config/ ./config/
+RUN mkdir -p /app/data/processed
 VOLUME /app/models/checkpoints /app/models/exported /app/models/evaluation
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD python -c "import torch; print('ok')" || exit 1
-CMD ["python", "-m", "models.run_forecast"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')" || exit 1
+EXPOSE 8006
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+USER appuser
+CMD ["uvicorn", "backend.services.forecast.main:app", "--host", "0.0.0.0", "--port", "8006"]

@@ -1,23 +1,36 @@
-version: "3.8"
-
 services:
-  twin-core:
+  twin-state-mgr:
     build:
       context: .
-      dockerfile: deployment/docker/Dockerfile.twin
+      dockerfile: deployment/docker/Dockerfile.twin_state_mgr
     ports:
-      - "${TWIN_CORE_PORT:-8001}:8001"
+      - "${TWIN_STATE_MGR_PORT:-8001}:8001"
     volumes:
       - twin_data:/app/data
       - ./simulator/configs:/app/simulator/configs
-    env_file:
-      - path: deployment/configs/.env.example
-        required: false
+    environment:
+      - CLIMATEDT_DATA_DIR=${CLIMATEDT_DATA_DIR:-/app/data}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -25,11 +38,33 @@ services:
     build:
       context: .
       dockerfile: deployment/docker/Dockerfile.forecast
+    ports:
+      - "${FORECAST_PORT:-8006}:8006"
     depends_on:
-      twin-core:
-        condition: service_started
+      twin-state-mgr:
+        condition: service_healthy
     volumes:
       - model_data:/app/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -40,15 +75,30 @@ services:
     ports:
       - "${SCENARIO_PORT:-8002}:8002"
     depends_on:
-      twin-core:
+      twin-state-mgr:
         condition: service_healthy
     volumes:
       - ./simulator/configs:/app/simulator/configs
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -59,13 +109,28 @@ services:
     ports:
       - "${RISK_PORT:-8003}:8003"
     depends_on:
-      twin-core:
+      twin-state-mgr:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -79,16 +144,33 @@ services:
       - vector_store:/app/knowledge/vector_store
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.ollama
     ports:
-      - "11434:11434"
+      - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:
@@ -96,7 +178,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: "4.0"
+        reservations:
+          memory: 2G
+          cpus: "1.0"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -108,9 +204,12 @@ services:
       - "${COPILOT_PORT:-8005}:8005"
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - GATEWAY_HOST=fastapi-gateway
+      - GATEWAY_PORT=8000
     depends_on:
       ollama:
-        condition: service_started
+        condition: service_healthy
       rag-service:
         condition: service_started
       risk-engine:
@@ -119,9 +218,24 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -131,11 +245,15 @@ services:
       dockerfile: deployment/docker/Dockerfile.gateway
     ports:
       - "${GATEWAY_PORT:-8000}:8000"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - GATEWAY_CORS_ORIGINS=${GATEWAY_CORS_ORIGINS:-http://localhost:3000,http://localhost:8051}
+      - GATEWAY_API_KEY_ENABLED=${GATEWAY_API_KEY_ENABLED:-false}
     depends_on:
-      twin-core:
+      twin-state-mgr:
         condition: service_healthy
       forecast-engine:
-        condition: service_started
+        condition: service_healthy
       scenario-engine:
         condition: service_healthy
       risk-engine:
@@ -146,9 +264,24 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -157,26 +290,132 @@ services:
       context: .
       dockerfile: deployment/docker/Dockerfile.dashboard
     ports:
-      - "${DASHBOARD_PORT:-8501}:8501"
+      - "${DASHBOARD_PORT:-8051}:8501"
+    environment:
+      - API_BASE_URL=http://fastapi-gateway:8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       fastapi-gateway:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - twin_network
+
+  report-service:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.report
+    container_name: twin-report
+    ports:
+      - "${REPORT_PORT:-8007}:8007"
+    environment:
+      - GATEWAY_HOST=fastapi-gateway
+      - GATEWAY_PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REPORT_DIR=/reports
+    volumes:
+      - report_data:/reports
+    depends_on:
+      fastapi-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8007/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - twin_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: twin-redis
+    profiles:
+      - optional
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.51.0
     profiles:
       - monitoring
     volumes:
       - ./deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.3.1
     profiles:
       - monitoring
     volumes:
@@ -186,7 +425,19 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - twin_network
 
@@ -195,7 +446,13 @@ volumes:
   model_data:
   vector_store:
   ollama_data:
+  report_data:
+  redis_data:
 
 networks:
   twin_network:
+    name: twin_network
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

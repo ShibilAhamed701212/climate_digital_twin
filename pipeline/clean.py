@@ -21,9 +21,7 @@ def load_config(config_path: str = "config/data_config.yaml") -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def remove_duplicates(
-    df: pd.DataFrame, subset: list | None = None
-) -> pd.DataFrame:
+def remove_duplicates(df: pd.DataFrame, subset: list | None = None) -> pd.DataFrame:
     """Remove duplicate rows, keeping the first occurrence."""
     before = len(df)
     df = df.drop_duplicates(subset=subset, keep="first")
@@ -49,9 +47,6 @@ def handle_missing_values(df: pd.DataFrame, method: str = "interpolate") -> pd.D
         null_count = df[col].isnull().sum()
         if null_count > 0:
             df[col] = df[col].interpolate(method="linear", limit_direction="both")
-            remaining = df[col].isnull().sum()
-            if remaining > 0:
-                df[col] = df[col].fillna(df[col].median())
     cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     for col in cat_cols:
         if df[col].isnull().sum() > 0:
@@ -86,17 +81,11 @@ def clip_outliers(
     return df
 
 
-def correct_coordinates(
-    df: pd.DataFrame, bounds: dict[str, float]
-) -> pd.DataFrame:
+def correct_coordinates(df: pd.DataFrame, bounds: dict[str, float]) -> pd.DataFrame:
     """Remove records with coordinates outside the valid bounds."""
     before = len(df)
-    mask_lat = (df["Latitude"] >= bounds["min_lat"]) & (
-        df["Latitude"] <= bounds["max_lat"]
-    )
-    mask_lon = (df["Longitude"] >= bounds["min_lon"]) & (
-        df["Longitude"] <= bounds["max_lon"]
-    )
+    mask_lat = (df["Latitude"] >= bounds["min_lat"]) & (df["Latitude"] <= bounds["max_lat"])
+    mask_lon = (df["Longitude"] >= bounds["min_lon"]) & (df["Longitude"] <= bounds["max_lon"])
     df = df[mask_lat & mask_lon].reset_index(drop=True)
     after = len(df)
     if before > after:

@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
 *.so
 *.egg-info/
 dist/
@@ -11,6 +12,7 @@ build/
 # Virtual environments
 .venv/
 venv/
+venv_test/
 env/
 virtualenv/
 
@@ -29,6 +31,8 @@ Thumbs.db
 data/external/*
 data/interim/*
 data/processed/*
+data/twin_store/*
+data/test_twin_store/*
 !data/external/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
@@ -47,6 +51,8 @@ logs/*
 
 # Docker
 .env
+.env.local
+.env.*.local
 
 # Coverage
 htmlcov/
@@ -61,7 +67,6 @@ simulator/outputs/*
 risk/outputs/*
 knowledge/reports/*
 copilot/reports/*
-deployment/docs/*
 
 # Ruff
 .ruff_cache/
@@ -75,3 +80,13 @@ deployment/docs/*
 # Vector stores
 *.index
 *.faiss
+
+# Backup files
+*.bak
+*.orig
+
+# Playwright artifacts
+.playwright-mcp/
+
+# Dashboard screenshots
+*.png

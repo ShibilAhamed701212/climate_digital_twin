@@ -2,6 +2,8 @@
 
 Standardized prediction interface that hides model complexities.
 Loads best-performing model from checkpoint and makes predictions.
+All predictions pass through physics validation to guarantee physical
+plausibility before being returned to callers.
 """
 
 import logging
@@ -17,12 +19,57 @@ from models.data_loader import (
     Scaler,
 )
 from models.lstm.model import LSTMModel
+from models.physics import PhysicsValidator
 from models.trainer import (
     ModelNotFoundError,
 )
 from models.transformer.model import TransformerModel
 
 logger = logging.getLogger(__name__)
+
+# Default physics validator applied to all predictions.
+# Ensures physically impossible values (negative rainfall, Tmin > Tmax)
+# are corrected before results are returned to callers.
+# Can be overridden via configure_physics_validator().
+_validator: PhysicsValidator = PhysicsValidator()
+
+
+def configure_physics_validator(
+    rainfall_upper: float | None = None,
+    temp_lower: float | None = None,
+    temp_upper: float | None = None,
+) -> PhysicsValidator:
+    """Configure the global physics validator with custom bounds.
+
+    Parameters
+    ----------
+    rainfall_upper : float, optional
+        Maximum allowable rainfall in mm/day.
+    temp_lower : float, optional
+        Minimum allowable temperature in °C.
+    temp_upper : float, optional
+        Maximum allowable temperature in °C.
+
+    Returns
+    -------
+    PhysicsValidator
+        The configured validator instance.
+
+    Notes
+    -----
+    Only explicitly provided bounds are updated; existing bounds that are
+    not passed remain unchanged.  ``target_names`` from the current
+    validator are always preserved.
+    """
+    global _validator
+    _validator = PhysicsValidator(
+        rainfall_upper=rainfall_upper if rainfall_upper is not None else _validator.rainfall_upper,
+        temp_lower=temp_lower if temp_lower is not None else _validator.temp_lower,
+        temp_upper=temp_upper if temp_upper is not None else _validator.temp_upper,
+        target_names=_validator.target_names,
+    )
+    return _validator
+
 
 MODEL_REGISTRY: dict[str, Any] = {
     "baseline": BaselineModel,
@@ -112,6 +159,8 @@ def predict(
             raw_preds = model(input_data).cpu()
         if target_scaler is not None:
             raw_preds = target_scaler.inverse_transform(raw_preds)
+        # Apply physics validation to guarantee physical plausibility.
+        raw_preds = _validator.validate(raw_preds)
         pred_list = raw_preds.tolist()
         if not isinstance(pred_list[0], list):
             pred_list = [pred_list]

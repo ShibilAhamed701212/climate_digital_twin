@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -45,12 +46,14 @@ def multi_line_chart(
     df = _to_df(data)
     fig = go.Figure()
     for key in y_keys:
-        fig.add_trace(go.Scatter(
-            x=df[x_key],
-            y=df[key],
-            mode="lines+markers",
-            name=key,
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=df[x_key],
+                y=df[key],
+                mode="lines+markers",
+                name=key,
+            )
+        )
     fig.update_layout(
         title=title,
         hovermode="x unified",
@@ -74,31 +77,37 @@ def confidence_band_chart(
     lower = values * conf
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df[x_key],
-        y=upper,
-        mode="lines",
-        line=dict(width=0),
-        showlegend=False,
-        name="Upper Bound",
-    ))
-    fig.add_trace(go.Scatter(
-        x=df[x_key],
-        y=lower,
-        mode="lines",
-        fill="tonexty",
-        fillcolor="rgba(0,100,200,0.2)",
-        line=dict(width=0),
-        showlegend=False,
-        name="Confidence Band",
-    ))
-    fig.add_trace(go.Scatter(
-        x=df[x_key],
-        y=values,
-        mode="lines+markers",
-        name=y_key,
-        line=dict(color="royalblue", width=2),
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=df[x_key],
+            y=upper,
+            mode="lines",
+            line=dict(width=0),
+            showlegend=False,
+            name="Upper Bound",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df[x_key],
+            y=lower,
+            mode="lines",
+            fill="tonexty",
+            fillcolor="rgba(0,100,200,0.2)",
+            line=dict(width=0),
+            showlegend=False,
+            name="Confidence Band",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df[x_key],
+            y=values,
+            mode="lines+markers",
+            name=y_key,
+            line=dict(color="royalblue", width=2),
+        )
+    )
     fig.update_layout(
         title=title,
         hovermode="x unified",
@@ -108,6 +117,5 @@ def confidence_band_chart(
     return fig
 
 
-def _to_df(data: list[dict[str, Any]]) -> pd.DataFrame:  # noqa: F821
-    import pandas as pd
+def _to_df(data: list[dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(data)

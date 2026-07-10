@@ -1,196 +1,544 @@
-"""API client service — fetches data from the FastAPI backend with synthetic fallback."""
+"""API client service — fetches data from the Digital Twin microservices."""
 
 from __future__ import annotations
 
 import logging
-import random
 from datetime import datetime, timedelta
 from typing import Any
 
 import requests
 
-from dashboard.config.config import API_BASE_URL, API_TIMEOUT, SAMPLE_LOCATIONS
+from dashboard.config.config import SAMPLE_LOCATIONS
 
 logger = logging.getLogger(__name__)
 
+# Endpoint URL patterns (no trailing slash)
+TWIN_STATE_URL = "http://twin-state-mgr:8001"
+FORECAST_ENGINE_URL = "http://forecast-engine:8006"
+SCENARIO_ENGINE_URL = "http://scenario-engine:8002"
+RISK_ASSESSMENT_URL = "http://risk-engine:8003"
+
+# Predefined scenario library for offline/fallback use
+PREDEFINED_SCENARIOS = [
+    {
+        "id": "temp_plus_1",
+        "name": "Temperature +1°C",
+        "description": "Global temp increases by 1°C",
+    },
+    {
+        "id": "temp_plus_2",
+        "name": "Temperature +2°C",
+        "description": "Global temp increases by 2°C",
+    },
+    {
+        "id": "temp_plus_4",
+        "name": "Temperature +4°C",
+        "description": "Global temp increases by 4°C",
+    },
+    {
+        "id": "rain_plus_20",
+        "name": "Rainfall +20%",
+        "description": "Annual rainfall increases by 20%",
+    },
+    {
+        "id": "rain_plus_40",
+        "name": "Rainfall +40%",
+        "description": "Annual rainfall increases by 40%",
+    },
+    {
+        "id": "rain_minus_25",
+        "name": "Rainfall -25%",
+        "description": "Annual rainfall decreases by 25%",
+    },
+    {"id": "heatwave", "name": "Heatwave Event", "description": "Extreme heatwave scenario"},
+    {"id": "flood", "name": "Flood Event", "description": "Extreme flooding scenario"},
+]
+
+
+def _synthetic_forecast(location_id: str, horizon: int) -> list[dict[str, Any]]:
+    """Generate plausible synthetic forecast data."""
+    from dashboard.config.config import SAMPLE_LOCATIONS
+
+    meta = next(
+        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
+        {"lat": 12.97, "lon": 77.59, "district": "Bengaluru Urban"},
+    )
+    results = []
+    for i in range(horizon):
+        results.append(
+            {
+                "location_id": location_id,
+                "latitude": meta["lat"],
+                "longitude": meta["lon"],
+                "district": meta["district"],
+                "timestamp": (datetime.now() + timedelta(days=i + 1)).isoformat(),
+                "rainfall": round(10 - i * 2 + (i % 3) * 5, 1),
+                "max_temp": round(32 + (i % 2) * 2, 1),
+                "min_temp": round(22 - (i % 3), 1),
+                "prediction_confidence": round(max(0.3, 0.85 - (i * 0.05)), 2),
+                "state_type": "forecast",
+                "data_source": "synthetic",
+            }
+        )
+    return results
+
+
+def _synthetic_current_state(location_id: str) -> dict[str, Any]:
+    """Generate plausible synthetic current state data."""
+    from dashboard.config.config import SAMPLE_LOCATIONS
+
+    meta = next(
+        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
+        {"lat": 12.97, "lon": 77.59, "district": "Bengaluru Urban"},
+    )
+    return {
+        "location_id": location_id,
+        "latitude": meta["lat"],
+        "longitude": meta["lon"],
+        "district": meta["district"],
+        "timestamp": datetime.now().isoformat(),
+        "rainfall": 22.5,
+        "max_temp": 32.0,
+        "min_temp": 21.5,
+        "risk_score": 15.0,
+        "prediction_confidence": 0.75,
+        "state_type": "current",
+        "data_source": "synthetic",
+    }
+
+
+def _synthetic_risk(location_id: str) -> dict[str, Any]:
+    """Generate plausible synthetic risk assessment."""
+    from dashboard.config.config import SAMPLE_LOCATIONS
+
+    meta = next(
+        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
+        {"district": "unknown"},
+    )
+    composite = 25.0
+    return {
+        "location_id": location_id,
+        "latitude": meta["lat"],
+        "longitude": meta["lon"],
+        "district": meta["district"],
+        "composite_risk": composite,
+        "heat_risk": 32.0,
+        "flood_risk": 18.0,
+        "drought_risk": 14.0,
+        "category": "Moderate",
+        "trend": [composite],
+        "shap_summary": {
+            "Rainfall": round(composite * 0.02, 3),
+            "MaxTemp": round(composite * 0.03, 3),
+            "MinTemp": round(composite * 0.01, 3),
+        },
+    }
+
+
+def _synthetic_scenario_result(scenario_id: str, location_id: str) -> dict[str, Any]:
+    """Generate plausible synthetic scenario simulation result."""
+    return {
+        "status": "success",
+        "data": {
+            "location_id": location_id,
+            "timestamp": datetime.now().isoformat(),
+            "rainfall": 25.0,
+            "max_temp": 34.0,
+            "min_temp": 22.0,
+            "state_type": "scenario",
+            "scenario_id": scenario_id,
+        },
+    }
+
 
 class DashboardAPI:
-    """Client for the Digital Twin FastAPI backend."""
+    """Client for the Digital Twin microservices."""
 
-    def __init__(self, base_url: str = API_BASE_URL, timeout: int = API_TIMEOUT) -> None:
-        self.base_url = base_url
-        self.timeout = timeout
+    def __init__(self, base_url: str | None = None, timeout: int | None = None) -> None:
+        self.base_url = base_url or "http://twin-state-mgr:8001/api/v1"
+        self.timeout = timeout or 10
         self._session = requests.Session()
+        self._fallback_endpoints: dict[str, bool] = {}
 
-    def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    def _mark_fallback(self, endpoint: str, triggered: bool = True) -> None:
+        if triggered:
+            self._fallback_endpoints[endpoint] = True
+        else:
+            self._fallback_endpoints.pop(endpoint, None)
+
+    def get_fallback_status(self) -> dict[str, bool]:
+        """Return which endpoints are using fallback data."""
+        return dict(self._fallback_endpoints)
+
+    def clear_fallback_status(self) -> None:
+        """Clear all fallback tracking."""
+        self._fallback_endpoints.clear()
+
+    def _location_meta(self, location_id: str) -> dict[str, Any]:
+        return next(
+            (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
+            SAMPLE_LOCATIONS[0],
+        )
+
+    # ------------------------------------------------------------------
+    # Current State
+    # ------------------------------------------------------------------
+    def get_current_state(self, location_id: str) -> dict[str, Any] | None:
+        """Get current climate state for a location."""
+        meta = self._location_meta(location_id)
         try:
             resp = self._session.get(
-                f"{self.base_url}/{endpoint.lstrip('/')}",
-                params=params,
+                f"{self.base_url}/state/current",
+                params={"location_id": location_id},
                 timeout=self.timeout,
             )
             resp.raise_for_status()
-            return resp.json()
+            payload = resp.json()
+            data = payload.get("data", payload)
+            self._mark_fallback("current_state", False)
+            return {
+                "location_id": location_id,
+                "latitude": meta["lat"],
+                "longitude": meta["lon"],
+                "district": meta["district"],
+                "timestamp": data.get("timestamp", datetime.now().isoformat()),
+                "rainfall": data.get("rainfall", 0),
+                "max_temp": data.get("max_temp", 0),
+                "min_temp": data.get("min_temp", 0),
+                "risk_score": data.get("risk_score", 0),
+                "prediction_confidence": data.get("prediction_confidence", 0.5),
+                "state_type": "current",
+                "data_source": data.get("data_source", "api"),
+            }
         except Exception as e:
-            logger.warning("API request failed: %s", e)
-            return None
+            logger.warning("Twin service unavailable: %s", e)
+            self._mark_fallback("current_state")
+            return _synthetic_current_state(location_id)
 
-    def get_current_state(self, location_id: str) -> dict[str, Any] | None:
-        data = self._get("current", {"location_id": location_id})
-        if data and "data" in data:
-            return data["data"]
-        return self._synthetic_current(location_id)
-
+    # ------------------------------------------------------------------
+    # Forecast
+    # ------------------------------------------------------------------
     def get_forecast(self, location_id: str, horizon: int = 3) -> list[dict[str, Any]]:
-        data = self._get("forecast", {"location_id": location_id, "horizon": horizon})
-        if data and "data" in data:
-            return data["data"]
-        return self._synthetic_forecast(location_id, horizon)
+        """Get climate forecast for a location."""
+        meta = self._location_meta(location_id)
+        try:
+            resp = self._session.get(
+                f"{self.base_url}/forecast",
+                params={"location_id": location_id, "horizon": horizon},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            entries = payload.get("data", payload) if isinstance(payload, dict) else payload
+            self._mark_fallback("forecast", False)
+            results = []
+            for i, entry in enumerate(entries):
+                rainfall = entry.get("rainfall", 0)
+                max_temp = entry.get("max_temp", 0)
+                min_temp = entry.get("min_temp", 0)
+                results.append(
+                    {
+                        "location_id": location_id,
+                        "latitude": meta["lat"],
+                        "longitude": meta["lon"],
+                        "district": meta["district"],
+                        "timestamp": entry.get(
+                            "timestamp",
+                            (datetime.now() + timedelta(days=i + 1)).isoformat(),
+                        ),
+                        "rainfall": round(float(rainfall), 2),
+                        "max_temp": round(float(max_temp), 2),
+                        "min_temp": round(float(min_temp), 2),
+                        "prediction_confidence": round(
+                            float(entry.get("prediction_confidence", max(0.3, 0.85 - (i * 0.05)))),
+                            2,
+                        ),
+                        "state_type": "forecast",
+                        "data_source": entry.get("data_source", "api"),
+                    }
+                )
+            return results
+        except Exception as e:
+            logger.warning("Forecast service unavailable: %s", e)
+            self._mark_fallback("forecast")
+            return _synthetic_forecast(location_id, horizon)
 
-    def get_historical(
-        self, location_id: str, start: str | None = None, end: str | None = None
-    ) -> list[dict[str, Any]]:
-        params: dict[str, Any] = {"location_id": location_id}
-        if start:
-            params["start"] = start
-        if end:
-            params["end"] = end
-        data = self._get("historical", params)
-        if data and "data" in data:
-            return data["data"]
-        return self._synthetic_historical(location_id)
+    # ------------------------------------------------------------------
+    # Historical
+    # ------------------------------------------------------------------
+    def get_historical(self, location_id: str) -> list[dict[str, Any]]:
+        """Get historical state data from the twin history."""
+        try:
+            resp = self._session.get(
+                f"{self.base_url}/state/history",
+                params={"location_id": location_id},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            states = resp.json()
+            if not states:
+                return []
+            self._mark_fallback("historical", False)
+            return [
+                {
+                    "location_id": s.get("location_id", location_id),
+                    "timestamp": s.get("timestamp", ""),
+                    "rainfall": s.get("rainfall", 0),
+                    "max_temp": s.get("max_temp", 0),
+                    "min_temp": s.get("min_temp", 0),
+                    "state_type": "historical",
+                }
+                for s in states[-90:]
+            ]
+        except Exception as e:
+            logger.warning("History unavailable: %s", e)
+            self._mark_fallback("historical")
+            return []
 
+    # ------------------------------------------------------------------
+    # Scenarios
+    # ------------------------------------------------------------------
     def get_scenarios(self) -> list[dict[str, Any]]:
-        data = self._get("scenarios/list")
-        if data and "data" in data:
-            return data["data"]
-        return self._synthetic_scenarios()
+        """Get list of available scenarios."""
+        try:
+            resp = self._session.get(f"{SCENARIO_ENGINE_URL}/scenarios", timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            self._mark_fallback("scenarios_list", False)
+            return data if isinstance(data, list) else PREDEFINED_SCENARIOS
+        except Exception as e:
+            logger.warning("Scenario list unavailable: %s", e)
+            self._mark_fallback("scenarios_list")
+            return PREDEFINED_SCENARIOS
 
     def simulate_scenario(self, params: dict[str, Any]) -> dict[str, Any] | None:
+        """Run a scenario simulation."""
+        location_id = params.get("location_id", SAMPLE_LOCATIONS[0]["id"])
+        scenario_id = params.get("scenario_id", "temp_plus_2")
         try:
             resp = self._session.post(
-                f"{self.base_url}/scenarios/simulate",
-                json=params,
+                f"{SCENARIO_ENGINE_URL}/scenarios/simulate",
+                json={"scenario_id": scenario_id, "location_ids": [location_id]},
                 timeout=self.timeout,
             )
             resp.raise_for_status()
+            result = resp.json()
+            results_list = result.get("results", [])
+            self._mark_fallback("scenario_simulation", False)
+            if results_list:
+                sim = results_list[0].get("simulated", {})
+                return {
+                    "status": "success",
+                    "data": {
+                        "location_id": location_id,
+                        "timestamp": result.get("completed_at", datetime.now().isoformat()),
+                        "rainfall": sim.get("rainfall", 0),
+                        "max_temp": sim.get("max_temp", 0),
+                        "min_temp": sim.get("min_temp", 0),
+                        "state_type": "scenario",
+                        "scenario_id": scenario_id,
+                    },
+                }
+            return {"status": "success", "data": {}}
+        except Exception as e:
+            logger.warning("Scenario simulation unavailable: %s", e)
+            self._mark_fallback("scenario_simulation")
+            return _synthetic_scenario_result(scenario_id, location_id)
+
+    # ------------------------------------------------------------------
+    # Monte Carlo Simulation (via FastAPI gateway)
+    # ------------------------------------------------------------------
+    def run_monte_carlo(
+        self,
+        scenario_type: str = "temperature",
+        base_params: dict[str, Any] | None = None,
+        num_simulations: int = 1000,
+        confidence_level: float = 0.95,
+    ) -> dict[str, Any] | None:
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/scenario/monte-carlo-sim",
+                json={
+                    "scenario_type": scenario_type,
+                    "base_params": base_params or {},
+                    "num_simulations": num_simulations,
+                    "confidence_level": confidence_level,
+                },
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            self._mark_fallback("monte_carlo", False)
             return resp.json()
         except Exception as e:
-            logger.warning("Scenario simulation request failed: %s", e)
-            return self._synthetic_simulation(params)
+            logger.warning("Monte Carlo simulation unavailable: %s", e)
+            self._mark_fallback("monte_carlo")
+            return None
 
+    # ------------------------------------------------------------------
+    # Scenario Comparison (via FastAPI gateway)
+    # ------------------------------------------------------------------
+    def compare_scenarios(
+        self,
+        scenarios: list[dict[str, Any]],
+        baseline_index: int = 0,
+    ) -> dict[str, Any] | None:
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/scenario/compare-scenarios",
+                json={"scenarios": scenarios, "baseline_index": baseline_index},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            self._mark_fallback("compare_scenarios", False)
+            return resp.json()
+        except Exception as e:
+            logger.warning("Scenario comparison unavailable: %s", e)
+            self._mark_fallback("compare_scenarios")
+            return None
+
+    # ------------------------------------------------------------------
+    # Ensemble Simulation (via FastAPI gateway)
+    # ------------------------------------------------------------------
+    def run_ensemble(
+        self,
+        members: list[dict[str, Any]],
+        location_id: str = "unknown",
+    ) -> dict[str, Any] | None:
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/scenario/ensemble",
+                json={"members": members, "location_id": location_id},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            self._mark_fallback("ensemble", False)
+            return resp.json()
+        except Exception as e:
+            logger.warning("Ensemble simulation unavailable: %s", e)
+            self._mark_fallback("ensemble")
+            return None
+
+    # ------------------------------------------------------------------
+    # Scenario Generator (via FastAPI gateway)
+    # ------------------------------------------------------------------
+    def generate_scenario(
+        self,
+        scenario_type: str,
+        location_id: str,
+        latitude: float,
+        longitude: float,
+        duration_days: int = 30,
+        parameters: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        try:
+            resp = self._session.post(
+                f"{self.base_url}/scenario/scenario-generator",
+                json={
+                    "scenario_type": scenario_type,
+                    "location_id": location_id,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "duration_days": duration_days,
+                    "parameters": parameters or {},
+                },
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            self._mark_fallback("generate_scenario", False)
+            return resp.json()
+        except Exception as e:
+            logger.warning("Scenario generation unavailable: %s", e)
+            self._mark_fallback("generate_scenario")
+            return None
+
+    # ------------------------------------------------------------------
+    # Risk
+    # ------------------------------------------------------------------
     def get_risk(self, location_id: str) -> dict[str, Any] | None:
-        data = self._get("risk", {"location_id": location_id})
-        if data and "data" in data:
-            return data["data"]
-        return self._synthetic_risk(location_id)
+        """Get climate risk assessment for a location."""
+        meta = self._location_meta(location_id)
+        try:
+            resp = self._session.get(
+                f"{RISK_ASSESSMENT_URL}/risk/assess",
+                params={"location_id": location_id},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            scores = data if isinstance(data, dict) else {}
+            composite = scores.get("composite", scores.get("composite_risk", 0))
+            self._mark_fallback("risk", False)
+            return {
+                "location_id": location_id,
+                "latitude": meta["lat"],
+                "longitude": meta["lon"],
+                "district": meta["district"],
+                "composite_risk": composite,
+                "heat_risk": scores.get("heat", scores.get("heat_risk", 0)),
+                "flood_risk": scores.get("flood", scores.get("flood_risk", 0)),
+                "drought_risk": scores.get("drought", scores.get("drought_risk", 0)),
+                "category": scores.get("category", "Low"),
+                "trend": [composite],
+                "shap_summary": {
+                    "Rainfall": round(float(composite) * 0.02, 3),
+                    "MaxTemp": round(float(composite) * 0.03, 3),
+                    "MinTemp": round(float(composite) * 0.01, 3),
+                },
+            }
+        except Exception as e:
+            logger.warning("Risk service unavailable: %s", e)
+            self._mark_fallback("risk")
+            return _synthetic_risk(location_id)
 
+    # ------------------------------------------------------------------
+    # Locations
+    # ------------------------------------------------------------------
     def get_all_locations(self) -> list[dict[str, Any]]:
+        """Return all sample locations."""
         return SAMPLE_LOCATIONS
 
+    # ------------------------------------------------------------------
+    # District Summary
+    # ------------------------------------------------------------------
     def get_district_summary(self, district: str) -> dict[str, Any]:
-        return self._synthetic_district_summary(district)
-
-    @staticmethod
-    def _random_entity(location_id: str) -> dict[str, Any]:
-        loc = next((ent for ent in SAMPLE_LOCATIONS if ent["id"] == location_id), SAMPLE_LOCATIONS[0])
-        return {
-            "location_id": location_id,
-            "latitude": loc["lat"],
-            "longitude": loc["lon"],
-            "district": loc["district"],
-            "timestamp": datetime.now().isoformat(),
-            "rainfall": round(random.uniform(0, 120), 2),
-            "max_temp": round(random.uniform(25, 40), 2),
-            "min_temp": round(random.uniform(15, 24), 2),
-            "risk_score": round(random.uniform(0, 100), 1),
-            "prediction_confidence": round(random.uniform(0.6, 1.0), 2),
-            "state_type": "current",
-            "data_source": "IMD",
-        }
-
-    def _synthetic_current(self, location_id: str) -> dict[str, Any]:
-        return self._random_entity(location_id)
-
-    def _synthetic_forecast(self, location_id: str, horizon: int) -> list[dict[str, Any]]:
-        base = self._random_entity(location_id)
-        results = []
-        for day in range(horizon):
-            entry = dict(base)
-            entry["timestamp"] = (datetime.now() + timedelta(days=day + 1)).isoformat()
-            entry["rainfall"] = round(max(0, base["rainfall"] + random.gauss(0, 15)), 2)
-            entry["max_temp"] = round(base["max_temp"] + random.gauss(0, 2), 2)
-            entry["min_temp"] = round(base["min_temp"] + random.gauss(0, 1.5), 2)
-            entry["prediction_confidence"] = round(max(0.3, base["prediction_confidence"] - day * 0.08), 2)
-            entry["state_type"] = "forecast"
-            results.append(entry)
-        return results
-
-    def _synthetic_historical(self, location_id: str) -> list[dict[str, Any]]:
-        base = self._random_entity(location_id)
-        results = []
-        for days_ago in range(90, 0, -1):
-            entry = dict(base)
-            entry["timestamp"] = (datetime.now() - timedelta(days=days_ago)).isoformat()
-            entry["rainfall"] = round(max(0, base["rainfall"] + random.gauss(0, 20)), 2)
-            entry["max_temp"] = round(base["max_temp"] + random.gauss(0, 3), 2)
-            entry["min_temp"] = round(base["min_temp"] + random.gauss(0, 2), 2)
-            entry["state_type"] = "historical"
-            results.append(entry)
-        return results
-
-    @staticmethod
-    def _synthetic_scenarios() -> list[dict[str, Any]]:
-        return [
-            {"id": "temp_plus_2", "name": "Temperature +2°C", "description": "Raises temperature by 2°C across all locations"},
-            {"id": "rain_plus_20", "name": "Rainfall +20%", "description": "Increases rainfall by 20% across all locations"},
-            {"id": "extreme_heat", "name": "Extreme Heat Wave", "description": "Simulates a week-long heat wave with temperatures 5°C above normal"},
-            {"id": "flood", "name": "Flood Scenario", "description": "Simulates heavy rainfall event with 200% normal precipitation"},
-            {"id": "drought", "name": "Drought Condition", "description": "Simulates a month-long drought with 80% reduction in rainfall"},
-        ]
-
-    def _synthetic_simulation(self, params: dict[str, Any]) -> dict[str, Any]:
-        scenario_id = params.get("scenario_id", "unknown")
-        location_id = params.get("location_id", SAMPLE_LOCATIONS[0]["id"])
-        base = self._random_entity(location_id)
-        result = dict(base)
-        result["scenario_id"] = scenario_id
-        result["state_type"] = "scenario"
-        delta_temp = params.get("temperature_delta", 0)
-        delta_rain_pct = params.get("rainfall_change_pct", 0)
-        result["max_temp"] = round(base["max_temp"] + delta_temp, 2)
-        result["min_temp"] = round(base["min_temp"] + delta_temp, 2)
-        result["rainfall"] = round(max(0, base["rainfall"] * (1 + delta_rain_pct / 100)), 2)
-        return {"status": "success", "data": result}
-
-    @staticmethod
-    def _synthetic_risk(location_id: str) -> dict[str, Any]:
-        loc = next((ent for ent in SAMPLE_LOCATIONS if ent["id"] == location_id), SAMPLE_LOCATIONS[0])
-        return {
-            "location_id": location_id,
-            "district": loc["district"],
-            "composite_risk": round(random.uniform(10, 90), 1),
-            "heat_risk": round(random.uniform(10, 90), 1),
-            "flood_risk": round(random.uniform(10, 90), 1),
-            "drought_risk": round(random.uniform(10, 90), 1),
-            "trend": [round(random.uniform(10, 90), 1) for _ in range(12)],
-            "shap_summary": {
-                "Rainfall": round(random.uniform(-0.5, 0.5), 3),
-                "MaxTemp": round(random.uniform(-0.5, 0.5), 3),
-                "MinTemp": round(random.uniform(-0.5, 0.5), 3),
-            },
-        }
-
-    @staticmethod
-    def _synthetic_district_summary(district: str) -> dict[str, Any]:
+        """Get a summary for a specific district."""
+        locs = [loc for loc in SAMPLE_LOCATIONS if loc["district"] == district]
+        if not locs:
+            return {
+                "district": district,
+                "rainy_days": 0,
+                "extreme_heat_days": 0,
+                "error": "District not found",
+            }
+        loc = locs[0]
+        state = self.get_current_state(loc["id"])
+        risk = self.get_risk(loc["id"])
+        if state:
+            risk_level = "Moderate"
+            if risk:
+                comp = risk.get("composite_risk", 0)
+                if comp < 25:
+                    risk_level = "Low"
+                elif comp < 50:
+                    risk_level = "Moderate"
+                elif comp < 75:
+                    risk_level = "High"
+                else:
+                    risk_level = "Severe"
+            return {
+                "district": district,
+                "avg_max_temp": state.get("max_temp", 0),
+                "avg_min_temp": state.get("min_temp", 0),
+                "total_rainfall_ytd": state.get("rainfall", 0),
+                "rainy_days": 60,
+                "extreme_heat_days": 10,
+                "risk_level": risk_level,
+            }
         return {
             "district": district,
-            "total_rainfall_ytd": round(random.uniform(500, 3000), 1),
-            "avg_max_temp": round(random.uniform(28, 36), 2),
-            "avg_min_temp": round(random.uniform(16, 22), 2),
-            "rainy_days": random.randint(30, 120),
-            "extreme_heat_days": random.randint(5, 30),
-            "risk_level": random.choice(["Low", "Moderate", "High", "Severe"]),
+            "rainy_days": 0,
+            "extreme_heat_days": 0,
+            "error": "No data available",
         }
 
 

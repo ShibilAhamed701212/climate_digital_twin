@@ -1,0 +1,12 @@
+FROM ollama/ollama:0.1.32
+
+RUN ollama serve & \
+    sleep 3 && \
+    ollama pull qwen2.5:0.5b; \
+    kill %1 2>/dev/null; exit 0
+
+EXPOSE 11434
+RUN groupadd -r appuser && useradd -r -g appuser appuser -m -d /home/appuser && mkdir -p /home/appuser/.ollama && chown -R appuser:appuser /home/appuser
+USER appuser
+ENTRYPOINT ["/bin/ollama"]
+CMD ["serve"]

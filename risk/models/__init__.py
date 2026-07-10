@@ -1,3 +1,4 @@
+from risk.models.agriculture_risk import AgricultureRiskModel
 from risk.models.risk_models import (
     ClimateInsight,
     CompositeRiskScore,
@@ -5,14 +6,17 @@ from risk.models.risk_models import (
     FeatureAttribution,
     FloodRiskScore,
     GlobalFeatureImportance,
+    HazardType,
     HeatRiskScore,
     RiskCategory,
     RiskReport,
+    RiskScore,
     SHAPExplanation,
     categorize_risk,
 )
 
 __all__ = [
+    "AgricultureRiskModel",
     "HeatRiskScore",
     "FloodRiskScore",
     "DroughtRiskScore",
@@ -23,5 +27,7 @@ __all__ = [
     "ClimateInsight",
     "RiskReport",
     "RiskCategory",
+    "RiskScore",
+    "HazardType",
     "categorize_risk",
 ]

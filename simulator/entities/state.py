@@ -1,9 +1,9 @@
 """State type definitions for the Digital Twin entity model."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class StateType(str, Enum):
+class StateType(StrEnum):
     """Enum of valid state types for climate entities."""
 
     CURRENT = "current"

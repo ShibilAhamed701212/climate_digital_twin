@@ -53,7 +53,7 @@ evaluation:
     - "rmse"
     - "mae"
     - "r2"
-    - "mape"
+    - "smape"
   save_plots: true
   compare_models: true
 

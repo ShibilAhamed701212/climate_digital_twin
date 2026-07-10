@@ -20,7 +20,7 @@ class TestCopilotOrchestrator:
         assert "hello" in response.answer.lower()
 
     def test_process_risk_query(self):
-        response = self.orchestrator.process("What are the climate risks?")
+        response = self.orchestrator.process("What is the flood risk in Karnataka?")
         assert response.intent == IntentType.RISK
         assert len(response.answer) > 0
 

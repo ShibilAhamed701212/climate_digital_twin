@@ -3,7 +3,11 @@
 from pathlib import Path
 
 import pytest
-import torch
+
+try:
+    import torch
+except (ImportError, OSError):
+    pytest.skip("torch not available or DLL failure", allow_module_level=True)
 
 from models.predictor import (
     MODEL_REGISTRY,
@@ -25,10 +29,34 @@ def config():
             "target_columns": ["x", "y"],
         },
         "baseline": {"hidden_layers": [16, 8], "learning_rate": 0.01, "epochs": 2},
-        "lstm": {"hidden_dim": 32, "num_layers": 1, "dropout": 0.1, "learning_rate": 0.01, "epochs": 2},
-        "transformer": {"d_model": 16, "nhead": 2, "num_encoder_layers": 1, "dim_feedforward": 32, "dropout": 0.1, "learning_rate": 0.01, "epochs": 2},
-        "training": {"device": "cpu", "loss": "mse", "optimizer": "adam", "early_stopping_patience": 10, "random_seed": 42},
-        "evaluation": {"metrics": ["rmse", "mae", "r2", "mape"], "save_plots": True, "compare_models": True},
+        "lstm": {
+            "hidden_dim": 32,
+            "num_layers": 1,
+            "dropout": 0.1,
+            "learning_rate": 0.01,
+            "epochs": 2,
+        },
+        "transformer": {
+            "d_model": 16,
+            "nhead": 2,
+            "num_encoder_layers": 1,
+            "dim_feedforward": 32,
+            "dropout": 0.1,
+            "learning_rate": 0.01,
+            "epochs": 2,
+        },
+        "training": {
+            "device": "cpu",
+            "loss": "mse",
+            "optimizer": "adam",
+            "early_stopping_patience": 10,
+            "random_seed": 42,
+        },
+        "evaluation": {
+            "metrics": ["rmse", "mae", "r2", "smape"],
+            "save_plots": True,
+            "compare_models": True,
+        },
         "export": {"format": "torchscript", "export_dir": "models/exported"},
     }
 

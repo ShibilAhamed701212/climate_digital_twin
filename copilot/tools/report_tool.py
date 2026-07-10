@@ -1,19 +1,45 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from requests.exceptions import ConnectionError, HTTPError, Timeout
+
+from copilot.clients.report_client import ReportClient
 from copilot.tools.base import BaseTool
+
+logger = logging.getLogger(__name__)
 
 
 class ReportGeneratorTool(BaseTool):
     def __init__(self) -> None:
         self._name = "report_generator"
-        self._description = "Generate a structured climate report combining forecast, risk, and twin state data"
+        self._description = (
+            "Generate a structured climate report combining forecast, risk, and twin state data"
+        )
+        self._client = ReportClient()
 
     def run(self, **kwargs: Any) -> dict[str, Any]:
         report_type = kwargs.get("report_type", "summary")
         location = kwargs.get("location", "Karnataka")
-        return {"tool": self._name, "report_type": report_type, "location": location, "report": _synthetic_report(location, report_type)}
+        try:
+            report = self._client.generate_report(location, report_type)
+            return {
+                "tool": self._name,
+                "report_type": report_type,
+                "location": location,
+                "report": report,
+                "fallback": False,
+            }
+        except (ConnectionError, Timeout, HTTPError) as e:
+            logger.warning("Report service unavailable: %s", e)
+            return {
+                "tool": self._name,
+                "report_type": report_type,
+                "location": location,
+                "report": _synthetic_report(location, report_type),
+                "fallback": True,
+            }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:
         valid_types = ["summary", "detailed", "risk", "forecast"]
@@ -27,7 +53,10 @@ class ReportGeneratorTool(BaseTool):
         return {
             "name": self._name,
             "description": self._description,
-            "parameters": {"report_type": "str (summary/detailed/risk/forecast)", "location": "str"},
+            "parameters": {
+                "report_type": "str (summary/detailed/risk/forecast)",
+                "location": "str",
+            },
         }
 
     def health_check(self) -> tuple[bool, str]:

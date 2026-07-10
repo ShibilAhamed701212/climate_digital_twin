@@ -34,7 +34,7 @@ def climate_overlay_map(
         value = loc.get(var_key, loc.get("rainfall", 0))
         color = _value_color(value, variable)
         folium.CircleMarker(
-            location=[loc["latitude"], loc["longitude"]],
+            location=[loc.get("latitude", 12.97), loc.get("longitude", 77.59)],
             radius=10,
             color=color,
             fill=True,
@@ -56,7 +56,7 @@ def district_boundary_map(
         value = loc.get(var_key, loc.get("rainfall", 0))
         color = _value_color(value, variable)
         folium.CircleMarker(
-            location=[loc["latitude"], loc["longitude"]],
+            location=[loc.get("latitude", 12.97), loc.get("longitude", 77.59)],
             radius=15,
             color=color,
             fill=True,
@@ -74,7 +74,11 @@ def risk_heatmap(
 ) -> folium.Map:
     m = create_base_map()
     heat_data = [
-        [loc["latitude"], loc["longitude"], loc.get(risk_key, loc.get("risk_score", 0))]
+        [
+            loc.get("latitude", 12.97),
+            loc.get("longitude", 77.59),
+            loc.get(risk_key, loc.get("risk_score", 0)),
+        ]
         for loc in locations
     ]
     HeatMap(heat_data, radius=20, blur=15, max_zoom=10).add_to(m)
@@ -91,7 +95,7 @@ def forecast_map(
     c_val = current.get(var_key, current.get("rainfall", 0))
     c_color = _value_color(c_val, variable)
     folium.CircleMarker(
-        location=[current["latitude"], current["longitude"]],
+        location=[current.get("latitude", 12.97), current.get("longitude", 77.59)],
         radius=12,
         color=c_color,
         fill=True,
@@ -104,7 +108,7 @@ def forecast_map(
         f_val = f.get(var_key, f.get("rainfall", 0))
         f_color = _value_color(f_val, variable)
         folium.CircleMarker(
-            location=[f["latitude"], f["longitude"]],
+            location=[f.get("latitude", 12.97), f.get("longitude", 77.59)],
             radius=8,
             color=f_color,
             fill=True,
@@ -138,11 +142,13 @@ def _value_color(value: float, variable: str) -> str:
 
 
 def _popup_html(loc: dict[str, Any], variable: str, value: float) -> str:
+    import html
+
     return f"""
-    <b>{loc.get('district', 'Unknown')}</b><br>
-    <b>{variable}:</b> {value:.2f}<br>
-    <b>Max Temp:</b> {loc.get('max_temp', 'N/A')}°C<br>
-    <b>Min Temp:</b> {loc.get('min_temp', 'N/A')}°C<br>
-    <b>Rainfall:</b> {loc.get('rainfall', 'N/A')} mm<br>
-    <b>Risk:</b> {loc.get('risk_score', 'N/A')}
+    <b>{html.escape(str(loc.get("district", "Unknown")))}</b><br>
+    <b>{html.escape(variable)}:</b> {value:.2f}<br>
+    <b>Max Temp:</b> {html.escape(str(loc.get("max_temp", "N/A")))}°C<br>
+    <b>Min Temp:</b> {html.escape(str(loc.get("min_temp", "N/A")))}°C<br>
+    <b>Rainfall:</b> {html.escape(str(loc.get("rainfall", "N/A")))} mm<br>
+    <b>Risk:</b> {html.escape(str(loc.get("risk_score", "N/A")))}
     """

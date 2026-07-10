@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 from typing import Any
@@ -10,7 +9,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "qwen:4b"
+DEFAULT_MODEL = "llama3.2:3b"
 DEFAULT_TIMEOUT = 30.0
 
 
@@ -70,6 +69,31 @@ class OllamaClient:
         prompt = template.format(**kwargs)
         return self.generate(prompt, system_prompt)
 
+    def ensure_model(self) -> bool:
+        """Pull the model if not already available. Returns True if available after attempt."""
+        try:
+            resp = self._client.get(f"{self.base_url}/api/tags", timeout=5.0)
+            resp.raise_for_status()
+            models = resp.json().get("models", [])
+            available = [m["name"] for m in models]
+            if self.model in available or any(self.model in m for m in available):
+                return True
+        except httpx.RequestError:
+            pass
+        logger.info("Pulling model %s (this may take a few minutes)...", self.model)
+        try:
+            pull_resp = self._client.post(
+                f"{self.base_url}/api/pull",
+                json={"name": self.model},
+                timeout=None,
+            )
+            pull_resp.raise_for_status()
+            logger.info("Model %s pulled successfully", self.model)
+            return True
+        except Exception as e:
+            logger.warning("Failed to pull model %s: %s", self.model, e)
+            return False
+
     def health_check(self) -> tuple[bool, str]:
         try:
             resp = self._client.get(f"{self.base_url}/api/tags", timeout=5.0)
@@ -78,7 +102,10 @@ class OllamaClient:
             available = [m["name"] for m in models]
             if self.model in available or any(self.model in m for m in available):
                 return True, f"Ollama running, model {self.model} available"
-            return True, f"Ollama running (model {self.model} not found, available: {', '.join(available)})"
+            return (
+                True,
+                f"Ollama running (model {self.model} not found, available: {', '.join(available)})",
+            )
         except httpx.RequestError as e:
             return False, f"Ollama unreachable: {e}"
 

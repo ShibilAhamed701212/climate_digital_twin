@@ -3,9 +3,12 @@
 Loads settings from rag.yaml with sensible defaults.
 """
 
+import logging
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 def load_rag_config(config_path: str = "knowledge/configs/rag.yaml") -> dict[str, Any]:
@@ -18,10 +21,22 @@ def load_rag_config(config_path: str = "knowledge/configs/rag.yaml") -> dict[str
         Dict with all configuration sections.
     """
     default = {
-        "rag": {"chunk_size": 700, "chunk_overlap": 120, "embedding_model": "all-MiniLM-L6-v2", "embedding_dimension": 384},
+        "rag": {
+            "chunk_size": 700,
+            "chunk_overlap": 120,
+            "embedding_model": "all-MiniLM-L6-v2",
+            "embedding_dimension": 384,
+        },
         "retrieval": {"top_k": 5, "score_threshold": 0.5, "enable_metadata_filtering": True},
-        "vector_store": {"type": "faiss", "index_path": "knowledge/vector_store/index.faiss", "metadata_path": "knowledge/vector_store/metadata.pkl"},
-        "documents": {"base_path": "knowledge/documents", "supported_formats": ["pdf", "md", "txt", "csv", "json"]},
+        "vector_store": {
+            "type": "faiss",
+            "index_path": "knowledge/vector_store/index.faiss",
+            "metadata_path": "knowledge/vector_store/metadata.pkl",
+        },
+        "documents": {
+            "base_path": "knowledge/documents",
+            "supported_formats": ["pdf", "md", "txt", "csv", "json"],
+        },
         "logging": {"log_path": "logs/rag.log", "log_level": "INFO"},
     }
 
@@ -35,6 +50,6 @@ def load_rag_config(config_path: str = "knowledge/configs/rag.yaml") -> dict[str
                 else:
                     default[section] = values
     except FileNotFoundError:
-        pass
+        logger.warning("RAG config file not found — using defaults")
 
     return default

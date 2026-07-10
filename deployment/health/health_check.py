@@ -5,11 +5,12 @@ import urllib.error
 import urllib.request
 
 SERVICES = {
-    "twin-core": "http://localhost:8001/health",
+    "twin-state-mgr": "http://localhost:8001/health",
     "scenario-engine": "http://localhost:8002/health",
     "risk-engine": "http://localhost:8003/health",
     "rag-service": "http://localhost:8004/health",
     "copilot-agent": "http://localhost:8005/health",
+    "forecast-engine": "http://localhost:8006/health",
     "fastapi-gateway": "http://localhost:8000/health",
     "streamlit-dashboard": "http://localhost:8501",
 }

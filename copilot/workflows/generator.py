@@ -36,7 +36,7 @@ class ResponseGenerator:
         generator = self._get_generator(intent.intent)
         return generator(intent, results)
 
-    def _try_llm(self, intent: IntentResult, plan: Plan, results: list[ToolResult]) -> str | None:
+    def _try_llm(self, intent: IntentResult, _plan: Plan, results: list[ToolResult]) -> str | None:
         if self._llm is None:
             return None
         prompt_path = os.path.join(PROMPT_DIR, "generator.txt")
@@ -82,7 +82,9 @@ class ResponseGenerator:
                 loc = r.data.get("location", "Karnataka")
                 lines = [f"**{loc} — {len(forecasts)}-Day Forecast**", ""]
                 for f in forecasts:
-                    lines.append(f"Day {f['day']} ({f['date']}): Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rainfall {f['rainfall_mm']}mm, Humidity {f['humidity_pct']}%")
+                    lines.append(
+                        f"Day {f['day']} ({f['date']}): Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rainfall {f['rainfall_mm']}mm, Humidity {f['humidity_pct']}%"
+                    )
                 return "\n".join(lines)
         return "Forecast data unavailable."
 
@@ -135,7 +137,9 @@ class ResponseGenerator:
                 items = r.data["results"]
                 lines = ["**Knowledge Base Results**", ""]
                 for i, item in enumerate(items, 1):
-                    lines.append(f"{i}. {item['content']} (Source: {item.get('source', 'unknown')}, Relevance: {item.get('score', 0):.2f})")
+                    lines.append(
+                        f"{i}. {item['content']} (Source: {item.get('source', 'unknown')}, Relevance: {item.get('score', 0):.2f})"
+                    )
                 return "\n".join(lines)
         return "No relevant knowledge found."
 
@@ -149,7 +153,9 @@ class ResponseGenerator:
             if r.success:
                 if "forecast" in r.data:
                     f = r.data["forecast"][0]
-                    parts.append(f"Forecast: Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rain {f['rainfall_mm']}mm")
+                    parts.append(
+                        f"Forecast: Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rain {f['rainfall_mm']}mm"
+                    )
                 if "risk_assessment" in r.data:
                     ra = r.data["risk_assessment"]
                     parts.append(f"Risk: Composite {ra['composite_risk']}/100 ({ra['category']})")

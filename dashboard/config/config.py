@@ -22,7 +22,7 @@ DASHBOARD_TITLE = "Climate Digital Twin — Karnataka"
 DASHBOARD_ICON = "🌍"
 PAGE_ICON = "🌤"
 
-API_BASE_URL = "http://localhost:8001/api/v1"
+API_BASE_URL = "http://localhost:8000"
 COPILOT_API_URL = "http://localhost:8005"
 API_TIMEOUT = 10
 
@@ -57,8 +57,10 @@ VARIABLE_TO_FIELD = {
     "MinTemp": "min_temp",
 }
 
+
 def variable_to_field(variable: str) -> str:
     return VARIABLE_TO_FIELD.get(variable, variable.lower())
+
 
 PAGE_CONFIG = {
     "page_title": DASHBOARD_TITLE,
@@ -75,6 +77,9 @@ PAGES = [
     {"title": "Climate Risk", "file": "05_climate_risk", "icon": "⚠️"},
     {"title": "Reports & Insights", "file": "06_reports", "icon": "📊"},
     {"title": "AI Copilot", "file": "07_copilot_chat", "icon": "🤖"},
+    {"title": "Knowledge Base", "file": "08_knowledge_base", "icon": "📚"},
+    {"title": "Feedback", "file": "09_feedback", "icon": "💬"},
+    {"title": "Twin State (BHAI)", "file": "10_twin_state_bhai", "icon": "🔷"},
 ]
 
 HORIZONS = {"1-Day": 1, "3-Day": 3, "7-Day": 7}
@@ -91,11 +96,11 @@ SAMPLE_LOCATIONS = [
     {"id": "KA-BLR-001", "lat": 12.97, "lon": 77.59, "district": "Bengaluru Urban"},
     {"id": "KA-MYS-001", "lat": 12.30, "lon": 76.65, "district": "Mysuru"},
     {"id": "KA-BEL-001", "lat": 15.85, "lon": 74.50, "district": "Belagavi"},
-    {"id": "KA-DK-001", "lat": 12.87, "lon": 74.88, "district": "Dakshina Kannada"},
-    {"id": "KA-KAL-001", "lat": 17.33, "lon": 76.83, "district": "Kalaburagi"},
-    {"id": "KA-UD-001", "lat": 13.34, "lon": 74.75, "district": "Udupi"},
-    {"id": "KA-SH-001", "lat": 13.42, "lon": 75.25, "district": "Shivamogga"},
-    {"id": "KA-HAS-001", "lat": 13.01, "lon": 75.98, "district": "Hassan"},
-    {"id": "KA-DVG-001", "lat": 14.80, "lon": 75.97, "district": "Davanagere"},
+    {"id": "KA-MNG-001", "lat": 12.87, "lon": 74.88, "district": "Dakshina Kannada"},
+    {"id": "KA-GUL-001", "lat": 17.33, "lon": 76.83, "district": "Kalaburagi"},
+    {"id": "KA-UDP-001", "lat": 13.34, "lon": 74.75, "district": "Udupi"},
+    {"id": "KA-SHM-001", "lat": 13.42, "lon": 75.25, "district": "Shivamogga"},
+    {"id": "KA-HBL-001", "lat": 15.49, "lon": 75.01, "district": "Dharwad"},
+    {"id": "KA-HAS-001", "lat": 13.01, "lon": 76.10, "district": "Hassan"},
     {"id": "KA-TUM-001", "lat": 13.34, "lon": 77.10, "district": "Tumakuru"},
 ]

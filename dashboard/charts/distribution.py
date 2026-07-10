@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -53,6 +54,5 @@ def scatter_plot(
     return fig
 
 
-def _to_df(data: list[dict[str, Any]]) -> pd.DataFrame:  # noqa: F821
-    import pandas as pd
+def _to_df(data: list[dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(data)

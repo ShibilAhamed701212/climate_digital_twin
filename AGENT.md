@@ -1,6 +1,40 @@
 # AGENT LOG
 
 ## Session Log
+**Date:** 2026-07-01
+**Phase:** Phase 0 — Architecture Freeze & Migration Mapping
+**Agent:** Autonomous Development Agent (OpenCode)
+**Objective:** Freeze both climate-digital-twin and BHAI repositories. Produce complete subsystem mapping with decisions (Keep Original/Keep BHAI/Merge/Replace/Archive) for every module. Generate migration matrix and dependency graph. No code changes.
+**Tasks Completed:**
+- Deep-inventoried 266 Python files in climate-digital-twin (all source files across simulator/, risk/, knowledge/, copilot/, dashboard/, models/, pipeline/, backend/, deployment/)
+- Deep-inventoried 464 Python files in BHAI (runtime/, climatedt/, api_gateway/, services/, dashboard/, copilot_agent/, tests/, climate/)
+- Produced ARCHITECTURE_MIGRATION.md — complete 47KB master plan covering all 16 subsystems, 100+ module-level decisions
+- Assigned decisions: KEEP ORIGINAL (2), KEEP BHAI (2), MERGE (9), REPLACE (1), ARCHIVE (0)
+- Mapped dependency graph with 7 parallel-serial phase groups
+- Documented risks, mitigations, acceptance criteria, and service map
+- Forensic audit confirmed: ~0% code identity, ~25% architectural similarity between repos
+**Files Created:** `ARCHITECTURE_MIGRATION.md`
+**Files Modified:** `AGENT.md`
+**Decision Count:** KEEP ORIGINAL=2, KEEP BHAI=2, MERGE=9, REPLACE=1, ARCHIVE=0
+**Key Decisions:**
+- API Gateway: REPLACE (BHAI's complete gateway over skeleton)
+- Digital Twin Core: MERGE (keep original architecture, import BHAI's anomaly/conflict/graph)
+- Scenario Engine: MERGE (import BHAI's Monte Carlo/perturbation/ensemble)
+- Risk Engine: MERGE (keep original SHAP, add BHAI's agriculture_risk)
+- RAG/Knowledge: MERGE (add BHAI's hybrid search, collection management)
+- Copilot: MERGE (keep original multi-agent, import BHAI's intent/pipeline)
+- Dashboard: MERGE (keep original charts/components/maps, add BHAI's pages)
+- ML Models: MERGE (keep 7 original architectures, add BHAI's XGBoost/Prophet)
+- Data Pipeline: KEEP ORIGINAL (no BHAI equivalent)
+- Data Ingestion: KEEP BHAI (new capability from BHAI)
+- Feedback Loop: KEEP BHAI (new capability from BHAI)
+- Runtime: KEEP BHAI (new architectural layer from BHAI)
+- Deployment: MERGE (keep monitoring/nginx/CI-CD, add BHAI hardening)
+- Tests: MERGE (combine both suites, ~1000+ expected)
+- Documentation: MERGE (keep reports/ structure, import BHAI docs/)
+**Next Steps:** Phase A — Foundation (merge pyproject.toml, configs, Makefile). Begin when ARCHITECTURE_MIGRATION.md is approved.
+
+## Session Log
 **Date:** 2026-06-26
 **Phase:** Repository Bootstrap — Folder Structure, Configs, Docker, CI
 **Agent:** Expert AI System Architect
@@ -239,7 +273,7 @@
 **Agent:** OpenCode
 **Objective:** Containerize all 8 microservices with health endpoints, orchestrate with Docker Compose, create deployment scripts, monitoring, CI/CD, demo script, comprehensive README, and architecture documentation.
 **Tasks Completed:**
-- Created FastAPI `/health` endpoints for all 6 API services: `simulator/api/main.py` (twin-core), `simulator/scenarios/api.py` (scenario-engine), `risk/api/main.py` (risk-engine), `knowledge/api/main.py` (rag-service), `copilot/api/main.py` (copilot-agent), `backend/api/main.py` (gateway)
+- Created FastAPI `/health` endpoints for all 6 API services: `simulator/api/main.py` (twin-state-mgr), `simulator/scenarios/api.py` (scenario-engine), `risk/api/main.py` (risk-engine), `knowledge/api/main.py` (rag-service), `copilot/api/main.py` (copilot-agent), `backend/api/main.py` (gateway)
 - Rewrote all 8 Dockerfiles with proper HEALTHCHECK instructions, pinned dependency versions, and corrected CMD targets
 - Updated `docker-compose.yml` with env_file support, port interpolation, healthcheck conditions for all services, and Prometheus/Grafana monitoring services (under `monitoring` profile)
 - Created `deployment/scripts/health_check.sh` — shell-based health verification for all 7 services

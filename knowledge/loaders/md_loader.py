@@ -43,10 +43,12 @@ class MarkdownLoader(BaseLoader):
 
 def _path_to_id(file_path: str) -> str:
     import hashlib
-    return hashlib.md5(file_path.encode()).hexdigest()[:12]
+
+    return hashlib.md5(file_path.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 def _path_to_title(file_path: str) -> str:
     import os
+
     name = os.path.splitext(os.path.basename(file_path))[0]
     return name.replace("_", " ").replace("-", " ").title()

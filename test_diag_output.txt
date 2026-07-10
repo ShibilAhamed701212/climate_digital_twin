@@ -1,0 +1,88 @@
+title: Climate Digital Twin — Karnataka
+selectboxes: 5
+sidebar: 1
+main: 1
+errors: 0
+alerts: 1
+--- body ---
+app
+
+climate overview
+
+forecast viewer
+
+twin state
+
+scenario simulator
+
+climate risk
+
+reports
+
+copilot chat
+
+knowledge base
+
+feedback
+
+twin state bhai
+
+🌤 Climate Twin
+
+Karnataka — Pilot Region
+
+District
+
+Location
+
+Climate Variable
+
+Forecast Horizon
+
+About
+
+AI-Powered Digital Twin of India's Climate. ISRO BAH 2026 — Challenge 5.
+
+Deploy
+🌍 Climate Overview
+
+Current climate conditions across Karnataka with district-level data
+
+Climate Map
+Current Conditions
+
+Rainfall
+
+22.5 mm
+
+Max Temp
+
+32.0 °C
+
+Min Temp
+
+21.5 °C
+
+Risk Score
+
+15.0
+
+District Quick Stats
+
+Bengaluru Urban — Rain: 22.5mm, Max: 32.0°C, Min: 21.5°C
+
+Mysuru — Rain: 22.5mm, Max: 32.0°C, Min: 21.5°C
+
+Belagavi — Rain: 22.5mm, Max: 32.0°C, Min: 21.5°C
+
+Dakshina Kannada — Rain: 22.5mm, Max: 32.0°C, Min: 21.5°C
+
+Kalaburagi — Rain: 22.5mm, Max: 32.0°C, Min: 21.5°C
+
+Historical Trend
+
+No historical data available
+--- end body ---
+selectbox visible: True
+options: 0
+Forecast option: 0

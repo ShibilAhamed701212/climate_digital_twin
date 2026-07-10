@@ -19,10 +19,15 @@ EXPECTED_OUTPUT_COLUMNS: list[str] = [
     "Rainfall",
     "MaxTemp",
     "MinTemp",
+    "DayOfYear",
     "Month",
     "Week",
     "Season",
     "Monsoon",
+    "RainfallTrend",
+    "PriorRain7",
+    "PriorRain30",
+    "TempDiff",
     "RollingRain7",
     "RollingRain30",
     "RollingTemp7",
@@ -97,9 +102,7 @@ def export_datasets(
     train_ratio = config["pipeline"]["train_split"]
     val_ratio = config["pipeline"]["val_split"]
     df_out = select_output_columns(df)
-    train_df, val_df, test_df = temporal_train_val_test_split(
-        df_out, train_ratio, val_ratio
-    )
+    train_df, val_df, test_df = temporal_train_val_test_split(df_out, train_ratio, val_ratio)
     results = {}
     results["training"] = save_split(train_df, output_dir, "training.csv")
     results["validation"] = save_split(val_df, output_dir, "validation.csv")

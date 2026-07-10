@@ -7,7 +7,11 @@ verifies loss decreases, and validates the prediction API.
 from pathlib import Path
 
 import pytest
-import torch
+
+try:
+    import torch
+except (ImportError, OSError):
+    pytest.skip("torch not available or DLL failure", allow_module_level=True)
 
 from models.data_loader import load_data
 from models.evaluator import evaluate_model
@@ -23,17 +27,50 @@ def forecast_config(tmp_path: Path) -> dict:
             "sequence_length": 10,
             "batch_size": 8,
             "feature_columns": [
-                "Rainfall", "MaxTemp", "MinTemp", "Month", "Week",
-                "Season", "Monsoon", "RollingRain7", "RollingRain30",
-                "RollingTemp7", "RollingTemp30",
+                "Rainfall",
+                "MaxTemp",
+                "MinTemp",
+                "Month",
+                "Week",
+                "Season",
+                "Monsoon",
+                "RollingRain7",
+                "RollingRain30",
+                "RollingTemp7",
+                "RollingTemp30",
             ],
             "target_columns": ["Rainfall", "MaxTemp", "MinTemp"],
         },
         "baseline": {"hidden_layers": [32, 16], "learning_rate": 0.01, "epochs": 2, "dropout": 0.1},
-        "lstm": {"hidden_dim": 32, "num_layers": 1, "dropout": 0.1, "learning_rate": 0.01, "epochs": 2, "bidirectional": False},
-        "transformer": {"d_model": 16, "nhead": 2, "num_encoder_layers": 1, "dim_feedforward": 32, "dropout": 0.1, "learning_rate": 0.01, "epochs": 2},
-        "training": {"device": "cpu", "loss": "mse", "optimizer": "adam", "early_stopping_patience": 10, "random_seed": 42},
-        "evaluation": {"metrics": ["rmse", "mae", "r2", "mape"], "save_plots": True, "compare_models": True},
+        "lstm": {
+            "hidden_dim": 32,
+            "num_layers": 1,
+            "dropout": 0.1,
+            "learning_rate": 0.01,
+            "epochs": 2,
+            "bidirectional": False,
+        },
+        "transformer": {
+            "d_model": 16,
+            "nhead": 2,
+            "num_encoder_layers": 1,
+            "dim_feedforward": 32,
+            "dropout": 0.1,
+            "learning_rate": 0.01,
+            "epochs": 2,
+        },
+        "training": {
+            "device": "cpu",
+            "loss": "mse",
+            "optimizer": "adam",
+            "early_stopping_patience": 10,
+            "random_seed": 42,
+        },
+        "evaluation": {
+            "metrics": ["rmse", "mae", "r2", "smape"],
+            "save_plots": True,
+            "compare_models": True,
+        },
         "export": {"format": "torchscript", "export_dir": str(tmp_path / "exported")},
     }
 
@@ -65,7 +102,10 @@ class TestForecastingIntegration:
         n_tgt = len(forecast_config["data"]["target_columns"])
         model = create_model("baseline", n_feat, n_tgt, forecast_config)
         history = train_model(
-            model, train_loader, val_loader, forecast_config,
+            model,
+            train_loader,
+            val_loader,
+            forecast_config,
             checkpoint_dir=str(tmp_path / "checkpoints"),
             model_name="baseline_integration",
         )
@@ -79,7 +119,10 @@ class TestForecastingIntegration:
         n_tgt = len(forecast_config["data"]["target_columns"])
         model = create_model("lstm", n_feat, n_tgt, forecast_config)
         history = train_model(
-            model, train_loader, val_loader, forecast_config,
+            model,
+            train_loader,
+            val_loader,
+            forecast_config,
             checkpoint_dir=str(tmp_path / "checkpoints"),
             model_name="lstm_integration",
         )
@@ -91,7 +134,10 @@ class TestForecastingIntegration:
         n_tgt = len(forecast_config["data"]["target_columns"])
         model = create_model("transformer", n_feat, n_tgt, forecast_config)
         history = train_model(
-            model, train_loader, val_loader, forecast_config,
+            model,
+            train_loader,
+            val_loader,
+            forecast_config,
             checkpoint_dir=str(tmp_path / "checkpoints"),
             model_name="transformer_integration",
         )
@@ -105,14 +151,17 @@ class TestForecastingIntegration:
         n_tgt = len(forecast_config["data"]["target_columns"])
         model = create_model("baseline", n_feat, n_tgt, forecast_config)
         train_model(
-            model, train_loader, val_loader, forecast_config,
+            model,
+            train_loader,
+            val_loader,
+            forecast_config,
             checkpoint_dir=str(tmp_path / "checkpoints"),
             model_name="baseline_eval",
         )
         device = torch.device("cpu")
         eval_result = evaluate_model(model, test_loader, device)
         metrics = eval_result["metrics"]
-        for key in ["rmse", "mae", "r2", "mape"]:
+        for key in ["rmse", "mae", "r2", "smape"]:
             assert key in metrics
         assert metrics["rmse"] >= 0
         assert metrics["r2"] <= 1.0
@@ -125,7 +174,10 @@ class TestForecastingIntegration:
         n_tgt = len(forecast_config["data"]["target_columns"])
         model = create_model("baseline", n_feat, n_tgt, forecast_config)
         train_model(
-            model, train_loader, val_loader, forecast_config,
+            model,
+            train_loader,
+            val_loader,
+            forecast_config,
             checkpoint_dir=str(tmp_path / "checkpoints"),
             model_name="baseline_api",
         )
@@ -149,7 +201,10 @@ class TestForecastingIntegration:
         for model_name in ["baseline", "lstm", "transformer"]:
             model = create_model(model_name, n_feat, n_tgt, forecast_config)
             history = train_model(
-                model, train_loader, val_loader, forecast_config,
+                model,
+                train_loader,
+                val_loader,
+                forecast_config,
                 checkpoint_dir=str(tmp_path / "checkpoints"),
                 model_name=f"{model_name}_e2e",
             )

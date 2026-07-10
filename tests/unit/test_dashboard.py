@@ -7,6 +7,18 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _prevent_real_http():
+    """Prevent real HTTP requests in all dashboard tests.
+
+    Each test can override individual patches to test success paths.
+    Instead of blocking: allow requests but ensure tests that don't mock
+    will hit connection errors and exercise fallback paths.
+    This fixture does nothing — individual tests handle mocking.
+    """
+    yield
+
+
 class TestDashboardConfig:
     """Test the dashboard configuration module."""
 
@@ -22,10 +34,10 @@ class TestDashboardConfig:
         )
 
         assert DASHBOARD_TITLE == "Climate Digital Twin — Karnataka"
-        assert API_BASE_URL == "http://localhost:8001/api/v1"
+        assert API_BASE_URL == "http://localhost:8000"
         assert KARNATAKA_BOUNDS["min_lat"] == 11.5
         assert PAGE_CONFIG["layout"] == "wide"
-        assert len(PAGES) == 7
+        assert len(PAGES) == 10
         assert len(PILOT_DISTRICTS) == 5
         assert len(SAMPLE_LOCATIONS) == 10
 
@@ -41,6 +53,9 @@ class TestDashboardConfig:
             "Climate Risk",
             "Reports & Insights",
             "AI Copilot",
+            "Knowledge Base",
+            "Feedback",
+            "Twin State (BHAI)",
         ]
 
     def test_config_color_schemes(self):
@@ -169,6 +184,172 @@ class TestDashboardAPI:
         assert summary["district"] == "Bengaluru Urban"
         assert "total_rainfall_ytd" in summary
         assert "risk_level" in summary
+
+    def test_fallback_status_empty_initially(self, api):
+        assert api.get_fallback_status() == {}
+
+    def test_fallback_tracks_current_state(self, api):
+        status = api.get_fallback_status()
+        assert "current_state" not in status
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_tracked_on_api_failure(self, mock_get, api):
+        mock_get.side_effect = ConnectionError("API unavailable")
+        api.get_current_state("KA-BLR-001")
+        assert api.get_fallback_status()["current_state"] is True
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_not_tracked_on_success(self, mock_get, api):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "status": "success",
+            "data": {"location_id": "KA-BLR-001", "rainfall": 50.0},
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+        api.get_current_state("KA-BLR-001")
+        assert "current_state" not in api.get_fallback_status()
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_tracks_forecast_failure(self, mock_get, api):
+        mock_get.side_effect = ConnectionError("API unavailable")
+        api.get_forecast("KA-BLR-001", horizon=3)
+        assert api.get_fallback_status()["forecast"] is True
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_tracks_historical_failure(self, mock_get, api):
+        mock_get.side_effect = ConnectionError("API unavailable")
+        api.get_historical("KA-BLR-001")
+        assert api.get_fallback_status()["historical"] is True
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_tracks_risk_failure(self, mock_get, api):
+        mock_get.side_effect = ConnectionError("API unavailable")
+        api.get_risk("KA-BLR-001")
+        assert api.get_fallback_status()["risk"] is True
+
+    def test_clear_fallback_status(self, api):
+        api._fallback_endpoints["current_state"] = True
+        api._fallback_endpoints["forecast"] = True
+        api.clear_fallback_status()
+        assert api.get_fallback_status() == {}
+
+    @patch("dashboard.services.api_client.requests.Session.post")
+    def test_fallback_tracks_scenario_simulation_failure(self, mock_post, api):
+        mock_post.side_effect = ConnectionError("API unavailable")
+        params = {"scenario_id": "temp_plus_2", "location_id": "KA-BLR-001"}
+        result = api.simulate_scenario(params)
+        assert result is not None
+        assert api.get_fallback_status()["scenario_simulation"] is True
+
+    @patch("dashboard.services.api_client.requests.Session.post")
+    def test_fallback_not_tracked_on_scenario_success(self, mock_post, api):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "status": "success",
+            "data": {"scenario_id": "temp_plus_2"},
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+        params = {"scenario_id": "temp_plus_2", "location_id": "KA-BLR-001"}
+        api.simulate_scenario(params)
+        assert "scenario_simulation" not in api.get_fallback_status()
+
+    @patch("dashboard.services.api_client.requests.Session.get")
+    def test_fallback_tracks_scenarios_list_failure(self, mock_get, api):
+        mock_get.side_effect = ConnectionError("API unavailable")
+        api.get_scenarios()
+        assert api.get_fallback_status()["scenarios_list"] is True
+
+
+class TestCopilotClientPaths:
+    """Test that DashboardAPI routes to the correct HTTP endpoints."""
+
+    @pytest.fixture
+    def api(self):
+        from dashboard.services.api_client import DashboardAPI
+
+        return DashboardAPI(base_url="http://test/api/v1", timeout=1)
+
+    def test_get_current_state_via_http(self, api):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "status": "success",
+            "data": {
+                "location_id": "KA-BLR-001",
+                "rainfall": 35.0,
+                "max_temp": 34.0,
+                "min_temp": 20.0,
+                "timestamp": "2026-06-28T12:00:00",
+            },
+        }
+        mock_resp.raise_for_status.return_value = None
+        with patch.object(api._session, "get", return_value=mock_resp) as mock_get:
+            result = api.get_current_state("KA-BLR-001")
+            assert result["location_id"] == "KA-BLR-001"
+            assert result["rainfall"] == 35.0
+            assert result["max_temp"] == 34.0
+            assert result["state_type"] == "current"
+            mock_get.assert_called_once()
+
+    def test_get_forecast_via_http(self, api):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "status": "success",
+            "data": [
+                {"day": 1, "rainfall": 10.0, "max_temp": 33.0, "min_temp": 21.0},
+                {"day": 2, "rainfall": 5.0, "max_temp": 34.0, "min_temp": 22.0},
+            ],
+        }
+        mock_resp.raise_for_status.return_value = None
+        with patch.object(api._session, "get", return_value=mock_resp):
+            result = api.get_forecast("KA-BLR-001", horizon=2)
+            assert len(result) == 2
+            assert result[0]["state_type"] == "forecast"
+            assert result[0]["rainfall"] == 10.0
+
+    def test_get_risk_via_http(self, api):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "heat": 45.0,
+            "flood": 60.0,
+            "drought": 20.0,
+            "composite": 41.7,
+            "category": "Moderate",
+        }
+        mock_resp.raise_for_status.return_value = None
+        with patch.object(api._session, "get", return_value=mock_resp):
+            result = api.get_risk("KA-BLR-001")
+            assert result["composite_risk"] == 41.7
+            assert result["heat_risk"] == 45.0
+            assert result["flood_risk"] == 60.0
+            assert result["drought_risk"] == 20.0
+
+    def test_simulate_scenario_via_http(self, api):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "results": [
+                {
+                    "simulated": {
+                        "location_id": "KA-BLR-001",
+                        "max_temp": 36.0,
+                        "min_temp": 24.0,
+                        "rainfall": 50.0,
+                    }
+                }
+            ],
+            "completed_at": "2026-06-28T12:00:00",
+        }
+        mock_resp.raise_for_status.return_value = None
+        with patch.object(api._session, "post", return_value=mock_resp):
+            params = {
+                "scenario_id": "temp_plus_2",
+                "location_id": "KA-BLR-001",
+                "temperature_delta": 2.0,
+            }
+            result = api.simulate_scenario(params)
+            assert result["status"] == "success"
+            assert result["data"]["state_type"] == "scenario"
 
 
 class TestCharts:
@@ -353,6 +534,7 @@ class TestComponents:
 
     def test_api_synthetic_data_has_all_fields(self):
         from dashboard.services.api_client import DashboardAPI
+
         api = DashboardAPI()
         data = api.get_current_state("KA-BLR-001")
         required = ["location_id", "rainfall", "max_temp", "min_temp", "latitude", "longitude"]

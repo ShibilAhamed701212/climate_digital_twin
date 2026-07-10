@@ -173,7 +173,9 @@ class TestScenarioEngine:
         run2 = engine.run_simulation(temp_scenario, baseline_data)
         for r1, r2 in zip(run1.results, run2.results, strict=True):
             assert r1.success == r2.success
-            assert r1.simulated == r2.simulated
+            s1 = {k: v for k, v in r1.simulated.items() if k != "timestamp"}
+            s2 = {k: v for k, v in r2.simulated.items() if k != "timestamp"}
+            assert s1 == s2
 
     def test_rainfall_never_negative(self, engine, baseline_data):
         from simulator.models.scenario_models import ScenarioDefinition

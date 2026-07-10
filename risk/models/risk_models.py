@@ -3,13 +3,24 @@
 Defines dataclasses for risk scores, explanations, reports, and insights.
 """
 
+import enum
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class RiskCategory(Enum):
+class HazardType(StrEnum):
+    HEAT = "heat"
+    FLOOD = "flood"
+    DROUGHT = "drought"
+    STORM = "storm"
+    WILDFIRE = "wildfire"
+    COMPOSITE = "composite"
+    AGRICULTURE = "agriculture"
+
+
+class RiskCategory(StrEnum):
     VERY_LOW = "Very Low"
     LOW = "Low"
     MODERATE = "Moderate"
@@ -28,6 +39,17 @@ def categorize_risk(score: float) -> RiskCategory:
         return RiskCategory.HIGH
     else:
         return RiskCategory.SEVERE
+
+
+@dataclass
+class RiskScore:
+    hazard_type: HazardType
+    score: float
+    category: RiskCategory
+    probability: float | None = None
+    severity: float | None = None
+    confidence: float | None = None
+    description: str = ""
 
 
 @dataclass(frozen=True)
@@ -114,6 +136,7 @@ class RiskReport:
     flood_risk: FloodRiskScore | None = None
     drought_risk: DroughtRiskScore | None = None
     composite_risk: CompositeRiskScore | None = None
+    agriculture_risk: RiskScore | None = None
     explanation: SHAPExplanation | None = None
     insights: list[ClimateInsight] = field(default_factory=list)
     raw_data: dict[str, Any] = field(default_factory=dict)
@@ -122,7 +145,7 @@ class RiskReport:
         def _serialize(obj: Any) -> Any:
             if hasattr(obj, "_asdict"):
                 return obj._asdict()
-            if isinstance(obj, Enum):
+            if isinstance(obj, enum.Enum):
                 return obj.value
             if isinstance(obj, list):
                 return [_serialize(v) for v in obj]

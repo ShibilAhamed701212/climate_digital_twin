@@ -1,8 +1,13 @@
-"""Module 4: Evaluation.
+"""Evaluation metrics and reporting.
 
-Computes RMSE, MAE, R², MAPE. Generates plots: predictions vs actuals,
+Computes RMSE, MAE, R², SMAPE. Generates plots: predictions vs actuals,
 error distribution, residuals. Compares across model architectures.
 Exports evaluation reports to models/evaluation/.
+
+SMAPE (Symmetric Mean Absolute Percentage Error) is used instead of MAPE
+because MAPE is undefined when actual values are zero, which commonly occurs
+with rainfall data. SMAPE is bounded between 0%% and 200%%, symmetric, and
+handles zero actual values correctly.
 """
 
 import json
@@ -41,21 +46,41 @@ def compute_r2(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
 
 
 def compute_mape(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
-    """Compute Mean Absolute Percentage Error."""
+    """Compute Mean Absolute Percentage Error.
+
+    Note: MAPE is undefined when y_true contains zeros (common in rainfall data).
+    Prefer :func:`compute_smape` for climate prediction tasks.
+    """
     epsilon = 1e-8
     abs_pct = torch.abs((y_true - y_pred) / (torch.abs(y_true) + epsilon))
     return float(torch.mean(abs_pct) * 100)
 
 
-def compute_metrics(
-    y_true: torch.Tensor, y_pred: torch.Tensor
-) -> dict[str, float]:
-    """Compute all evaluation metrics."""
+def compute_smape(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
+    """Compute Symmetric Mean Absolute Percentage Error.
+
+    SMAPE is bounded between 0%% and 200%%, symmetric, and handles zero
+    actual values correctly — unlike MAPE which diverges when actual is zero.
+
+    Formula: 100%% * (2 * |y_true - y_pred|) / (|y_true| + |y_pred| + epsilon)
+    """
+    epsilon = 1e-8
+    numerator = 2.0 * torch.abs(y_true - y_pred)
+    denominator = torch.abs(y_true) + torch.abs(y_pred) + epsilon
+    return float(torch.mean(numerator / denominator) * 100)
+
+
+def compute_metrics(y_true: torch.Tensor, y_pred: torch.Tensor) -> dict[str, float]:
+    """Compute all evaluation metrics.
+
+    Returns dict with keys: rmse, mae, r2, smape.
+    SMAPE is preferred over MAPE for climate data as it handles zero rainfall.
+    """
     return {
         "rmse": round(compute_rmse(y_true, y_pred), 4),
         "mae": round(compute_mae(y_true, y_pred), 4),
         "r2": round(compute_r2(y_true, y_pred), 4),
-        "mape": round(compute_mape(y_true, y_pred), 4),
+        "smape": round(compute_smape(y_true, y_pred), 4),
     }
 
 

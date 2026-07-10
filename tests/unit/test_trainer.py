@@ -1,8 +1,12 @@
 """Unit tests for models/trainer.py."""
 
 import pytest
-import torch
-import torch.nn as nn
+
+try:
+    import torch
+    import torch.nn as nn
+except (ImportError, OSError):
+    pytest.skip("torch not available or DLL failure", allow_module_level=True)
 from torch.utils.data import DataLoader, TensorDataset
 
 from models.trainer import (

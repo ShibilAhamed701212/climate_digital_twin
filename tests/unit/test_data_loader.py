@@ -2,7 +2,11 @@
 
 import pandas as pd
 import pytest
-import torch
+
+try:
+    import torch
+except (ImportError, OSError):
+    pytest.skip("torch not available or DLL failure", allow_module_level=True)
 from torch.utils.data import DataLoader
 
 from models.data_loader import (
@@ -60,9 +64,17 @@ class TestSyntheticData:
     def test_generates_correct_columns(self):
         df = _generate_synthetic_training_data(100)
         expected = [
-            "Rainfall", "MaxTemp", "MinTemp", "Month", "Week",
-            "Season", "Monsoon", "RollingRain7", "RollingRain30",
-            "RollingTemp7", "RollingTemp30",
+            "Rainfall",
+            "MaxTemp",
+            "MinTemp",
+            "Month",
+            "Week",
+            "Season",
+            "Monsoon",
+            "RollingRain7",
+            "RollingRain30",
+            "RollingTemp7",
+            "RollingTemp30",
         ]
         for col in expected:
             assert col in df.columns

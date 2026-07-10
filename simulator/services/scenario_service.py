@@ -67,9 +67,7 @@ class ScenarioService:
         logger.info("Scenario %s: %s", event_type, scenario.scenario_id)
         return scenario
 
-    def validate_scenario(
-        self, scenario_type: str, parameters: dict[str, Any]
-    ) -> list[str]:
+    def validate_scenario(self, scenario_type: str, parameters: dict[str, Any]) -> list[str]:
         """Validate scenario parameters without creating a scenario."""
         return validate_scenario_parameters(scenario_type, parameters)
 
@@ -101,6 +99,7 @@ class ScenarioService:
         for result in run.results:
             if result.success:
                 from simulator.entities.climate_entity import ClimateEntity
+
                 entity = ClimateEntity.deserialize(result.simulated)
                 try:
                     self.twin.apply_scenario(entity, scenario_id)
@@ -135,9 +134,7 @@ class ScenarioService:
         )
         return run
 
-    def compare_with_baseline(
-        self, run: ScenarioRun
-    ) -> list[dict[str, Any]]:
+    def compare_with_baseline(self, run: ScenarioRun) -> list[dict[str, Any]]:
         """Generate comparison summaries for a simulation run."""
         return self.scenario_engine.compare_with_baseline(run)
 
@@ -164,9 +161,7 @@ class ScenarioService:
             return True
         return False
 
-    def _collect_baseline(
-        self, location_ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
+    def _collect_baseline(self, location_ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Collect baseline current states from the twin."""
         all_locations = self.twin.service.state_manager.get_all_location_ids()
         if location_ids:
@@ -175,7 +170,7 @@ class ScenarioService:
             ids = list(all_locations)
 
         if not ids:
-            ids = ["KA-BLR-001", "KA-MYS-001", "KA-BEL-001"]
+            raise ValueError("No locations available in the digital twin. Seed the twin first.")
 
         baseline: list[dict[str, Any]] = []
         for loc_id in ids:
@@ -183,14 +178,5 @@ class ScenarioService:
             if state:
                 baseline.append(state)
             else:
-                baseline.append({
-                    "location_id": loc_id,
-                    "rainfall": 50.0,
-                    "max_temp": 30.0,
-                    "min_temp": 20.0,
-                    "risk_score": 25.0,
-                    "prediction_confidence": 0.8,
-                    "data_source": "synthetic",
-                    "state_type": "current",
-                })
+                logger.warning("No current state found for %s, skipping", loc_id)
         return baseline

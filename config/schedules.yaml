@@ -1,0 +1,62 @@
+# Ingestion schedules for climate data sources
+# Used by the ingestion scheduler service
+
+sources:
+  - name: openmeteo_open-meteo
+    connector: openmeteo
+    locations:
+      - KA-BLR-001
+      - KA-BLR-002
+      - KA-BLR-003
+      - KA-BLR-004
+      - KA-MYS-001
+    job_type: forecast
+    horizon_days: 16
+    incremental_backfill_days: 30
+    retry:
+      max_retries: 3
+      base_delay_seconds: 30.0
+      max_delay_seconds: 3600.0
+      backoff_factor: 2.0
+
+schedules:
+  - name: daily_forecast
+    source: openmeteo_open-meteo
+    description: Daily forecast ingestion at 06:00 UTC
+    trigger:
+      type: cron
+      hour: "6"
+      minute: "0"
+      timezone: UTC
+    enabled: true
+
+  - name: hourly_forecast
+    source: openmeteo_open-meteo
+    description: Forecast refresh every 6 hours
+    trigger:
+      type: interval
+      hours: 6
+      timezone: UTC
+    enabled: true
+
+  - name: weekly_backfill
+    source: openmeteo_open-meteo
+    description: Weekly backfill on Sundays at 04:00 UTC
+    trigger:
+      type: cron
+      day_of_week: "sun"
+      hour: "4"
+      minute: "0"
+      timezone: UTC
+    enabled: true
+
+  - name: monthly_historical_sync
+    source: openmeteo_open-meteo
+    description: Monthly historical data sync on the 1st at 02:00 UTC
+    trigger:
+      type: cron
+      day: "1"
+      hour: "2"
+      minute: "0"
+      timezone: UTC
+    enabled: true
