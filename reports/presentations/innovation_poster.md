@@ -1,185 +1,150 @@
 # Innovation Poster (Text Format)
 
+> **⚠️ Honest version. Proof-of-concept. Synthetic data. Mock copilot.**
+
 ```
 ╔══════════════════════════════════════════════════════════════════════════════════╗
-║         AI-POWERED DIGITAL TWIN OF INDIA'S CLIMATE                             ║
-║         ISRO BAH 2026 — Challenge 5 | June 2026                                 ║
+║         AI-POWERED DIGITAL TWIN OF INDIA'S CLIMATE (PROTOTYPE)                  ║
+║         ISRO BAH 2026 — Challenge 5 | July 2026 | v0.1.0 — Proof-of-Concept    ║
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  TEAM & PROJECT                                                                  │
+│  WHAT WE BUILT                                                                   │
 │                                                                                  │
-│  Project: AI-Powered Digital Twin of India's Climate                            │
-│  Hackathon: ISRO BAH 2026 — Challenge 5: Digital Twin for Climate Resilience    │
-│  Pilot Region: Karnataka, India (11.5-18.5°N, 74.0-78.5°E)                      │
-│  Pilot Districts: Bengaluru Urban, Mysuru, Belagavi, Dakshina Kannada, Kalaburagi│
-│  Version: 1.0.0 | Repository: climate-digital-twin                              │
+│  A prototype architecture for a climate digital twin: 8 Docker services,         │
+│  8-step data pipeline, 3 trained models, and an interactive dashboard.           │
+│                                                                                  │
+│  ⚠️ HONESTY NOTE: All data is synthetic (np.random.seed(42)). Copilot returns   │
+│  mock template responses (no LLM wired). FAISS index starts empty.              │
+│  This is a proof-of-concept for the architecture, not a production system.      │
+│                                                                                  │
+│  Pilot: 15 sample Karnataka districts (hardcoded in config.yaml)                 │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  PROBLEM                                                                         │
 │                                                                                  │
 │  India loses 3-5% of GDP annually to climate-related disasters.                 │
-│  60% of agriculture depends on monsoon rainfall.                                │
-│  Climate data exists (IMD, ISRO, NASA) but is fragmented across agencies,       │
-│  not localized to district level, and requires technical expertise to analyze.  │
+│  Climate data exists but is fragmented and not integrated.                       │
 │                                                                                  │
-│  Key Question: Can we build a unified AI-powered system that:                   │
-│    • Predicts rainfall and temperature at district scale                        │
+│  Key Question: Can we design the architecture for a unified system that:        │
+│    • Predicts rainfall and temperature                                          │
 │    • Simulates what-if climate scenarios                                        │
 │    • Assesses heat, flood, and drought risk                                     │
-│    • Answers natural language queries about climate conditions                   │
-│    • Deploys with one command in any environment?                               │
+│    • Answers natural language queries                                           │
+│    • Deploys with one command?                                                  │
+│                                                                                  │
+│  Answer: Architecture designed ✅. Real data integration: NEXT.                   │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  SOLUTION ARCHITECTURE                                                           │
-│                                                                                  │
-│  9-Microservice System — Docker Compose Orchestration                           │
+│  ARCHITECTURE (8 Docker Services)                                                │
 │                                                                                  │
 │  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                          STREAMLIT DASHBOARD                             │   │
-│  │                  7 pages | Folium Maps | Plotly Charts                   │   │
+│  │                    STREAMLIT DASHBOARD (8501)                            │   │
+│  │            7 live pages + 3 mock pages | Folium | Plotly                 │   │
 │  └────────────────────────────────┬─────────────────────────────────────────┘   │
 │                                   │                                              │
 │  ┌────────────────────────────────▼──────────────────────────────────────────┐   │
-│  │                          FASTAPI GATEWAY (8000)                           │   │
+│  │                     NGINX REVERSE PROXY (80)                              │   │
 │  └──┬──────────┬──────────┬──────────┬──────────┬──────────┬─────────────────┘   │
 │     │          │          │          │          │          │                     │
 │     ▼          ▼          ▼          ▼          ▼          ▼                     │
 │  ┌──────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐              │
 │  │ TWIN │ │FORECAST│ │SCENARIO│ │  RISK  │ │  RAG   │ │ COPILOT  │              │
-│  │8001  │ │ 8006   │ │ 8002   │ │ 8003   │ │ 8004   │ │ 8005     │              │
-│  └──────┘ └────────┘ └────────┘ └────────┘ └────────┘ └─────┬────┘              │
-│                                                              │                   │
-│                                                   ┌──────────▼────────┐          │
-│                                                   │  Ollama Qwen3:8b  │          │
-│                                                   │     11434         │          │
-│                                                   └───────────────────┘          │
+│  │8002  │ │ 8005   │ │ 8003   │ │ 8004   │ │ 8006   │ │ 8007     │              │
+│  │Real: │ │Real: 3 │ │Real:   │ │Real:   │ │⚠️Empty │ │⚠️Mock    │              │
+│  │synth │ │models  │ │11      │ │4 scores│ │index   │ │responses │              │
+│  │state │ │+3 stubs│ │presets │ │        │ │        │ │          │              │
+│  └──────┘ └────────┘ └────────┘ └────────┘ └────────┘ └──────────┘              │
 │                                                                                  │
-│  Monitoring: Prometheus (9090) + Grafana (3000)                                  │
-│  CI/CD: GitHub Actions — Lint → Test (matrix 3.10/3.12) → Docker → Deploy       │
+│  Ollama (Qwen3:8b) — declared but NOT WIRED to copilot                          │
+│  Prometheus + Grafana — defined but NOT actively configured                      │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  DATA PIPELINE                                                                   │
+│  DATA: ALL SYNTHETIC                                                             │
 │                                                                                  │
-│  Source: NASA POWER API (PRECTOTCORR, T2M_MAX, T2M_MIN)                         │
-│  Period: 1981-01-01 to 2023-12-31 (43 years)                                    │
-│  Coverage: Karnataka — 48 grid cells at 0.5° resolution                         │
+│  Declared: NASA POWER API — 43 years, 48 grid cells                              │
+│  Actual:   np.random.seed(42) — random values in correct schema                  │
 │                                                                                  │
-│  Pipeline: Download → Validate → Clean → Feature Engineering → Export           │
+│  Pipeline: Generate → Validate → Feature Engineering → Export                    │
 │                                                                                  │
-│  12 Engineered Features:                                                         │
-│  • Temporal: Month, Week, Season, Monsoon, DayOfYear                            │
-│  • Rolling: RollingRain7/30, RollingTemp7/30                                    │
-│  • Trend: RainfallTrend, TempDiff, PriorRain7/30                                │
+│  Output: 628,200 synthetic rows | 70/15/15 split                                 │
+│  Quality: 0 missing values (expected from generated data)                        │
 │                                                                                  │
-│  Output: 628,200 processed rows | 70/15/15 temporal split                        │
-│  Training: 439,740 rows | Validation: 94,230 | Testing: 94,230                   │
-│  Quality: 0 missing values, all bounds validated                                 │
+│  ⚠️ NASA POWER download code exists but always uses synthetic fallback           │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  KEY INNOVATIONS                                                                 │
+│  KEY INNOVATIONS (with honest status)                                            │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  1. 7 MODEL ARCHITECTURES FOR ENSEMBLE CLIMATE FORECASTING               ║   │
-│  ║     LSTM (RMSE 4.53), Transformer (RMSE 4.57), Baseline MLP (RMSE 4.59)  ║   │
-│  ║     PatchTST, TimeMixer, iTransformer (stubs), Ensemble Meta-Learner      ║   │
-│  ║     All trained models achieve R² = 0.87                                  ║   │
-│  ║     PhysicsValidator: rainfall≥0, Tmin≤Tmax, temp bounds [-10,55]°C       ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  1. 3 TRAINED MODELS + 4 STUBS                                                  │
+│     LSTM (RMSE 4.53), Transformer (4.57), MLP (4.59) — ON SYNTHETIC DATA        │
+│     PatchTST, TimeMixer, iTransformer — class definitions only (stubs)           │
+│     Ensemble — not trained. All three show suspiciously uniform R²=0.87          │
+│     PhysicsValidator enforces basic physical constraints                         │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  2. DIGITAL TWIN WITH IMMUTABLE VERSIONING                                ║   │
-│  ║     Append-only state manager, Parquet repository, EventBus pub/sub       ║   │
-│  ║     4 state types: Current, Historical, Forecast, Scenario                ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  2. DIGITAL TWIN WITH IMMUTABLE VERSIONING                                      │
+│     Append-only state manager, EventBus pub/sub                                 │
+│     Clean, production-quality design — strongest component                       │
+│     All states are synthetic                                                     │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  3. SCENARIO SIMULATION ENGINE                                            ║   │
-│  ║     5 scenario types, 11 presets, deterministic <3s execution             ║   │
-│  ║     Temperature, Rainfall, Monsoon, Extreme Events, Combined scenarios    ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  3. SCENARIO SIMULATION ENGINE                                                   │
+│     5 types, 11 presets, deterministic <3s                                       │
+│     Linear perturbations of synthetic baseline                                   │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  4. 4-COMPONENT RISK SCORING + SHAP EXPLAINABILITY                        ║   │
-│  ║     Heat, Flood, Drought (0-100 each), Composite (weighted)               ║   │
-│  ║     5 risk categories: Very Low → Severe                                  ║   │
-│  ║     Deterministic SHAP with feature attribution + natural-language insights ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  4. RISK SCORING (4 MODULES)                                                     │
+│     Heat, Flood, Drought, Composite — configurable weights                       │
+│     ⚠️ SHAP is deterministic synthetic — not connected to model gradients        │
+│     ⚠️ Risk thresholds arbitrary — not calibrated                                │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  5. RAG KNOWLEDGE BASE OVER GOVERNMENT/ISRO/IMD DOCUMENTS                ║   │
-│  ║     FAISS IndexFlatIP (384-dim), 15 sources, 30 chunks                    ║   │
-│  ║     Recursive chunking at 700/120, semantic search <3ms                   ║   │
-│  ║     5 format loaders: MD, TXT, CSV, JSON, PDF (stub)                      ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  5. RAG KNOWLEDGE BASE                                                           │
+│     FAISS IndexFlatIP, 15 docs → 30 chunks                                      │
+│     ⚠️ Index starts EMPTY. generate_answer() is MOCK                             │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  6. MULTI-AGENT AI COPILOT                                                ║   │
-│  ║     4-step pipeline: Intent → Plan → Execute → Generate                   ║   │
-│  ║     8 intent types, 6 tools, Qwen3:8b LLM via Ollama                      ║   │
-│  ║     Conversation memory: 10 turns, 60min expiry                           ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  6. AI COPILOT (MOCK)                                                            │
+│     4-stage pipeline designed. Keyword intent classification.                   │
+│     ⚠️ All responses are templates. Qwen3:8b NOT wired.                          │
 │                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  7. FULL DOCKER COMPOSE DEPLOYMENT                                        ║   │
-│  ║     11 services (8 app + 2 monitoring + Ollama)                           ║   │
-│  ║     HEALTHCHECK on every service, Prometheus/Grafana monitoring           ║   │
-│  ║     CI/CD pipelines, one-click startup, synthetic data fallback           ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
+│  7. DOCKER COMPOSE DEPLOYMENT                                                    │
+│     8 services, one-command startup                                              │
+│     ⚠️ No auth, no HTTPS, no production hardening                                │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  RESULTS                                                                         │
+│  RESULTS (HONEST)                                                                │
 │                                                                                  │
-│  ┌────────────────────────────────────────────────────────────────────────┐      │
-│  │  METRIC                    │  VALUE                                    │      │
-│  ├────────────────────────────────────────────────────────────────────────┤      │
-│  │  Total Tests              │  656 (57 files)                            │      │
-│  │  Unit Tests               │  ~620 passing                              │      │
-│  │  Integration Tests        │  ~36 passing                               │      │
-│  │  E2E Pipeline             │  17/17 stages (100%)                       │      │
-│  │  Forecasting Models       │  7 architectures                           │      │
-│  │  Best RMSE                │  4.53 (LSTM)                               │      │
-│  │  R² Score                 │  0.87 (all models)                         │      │
-│  │  Inference (fastest)      │  Transformer — 26.8 ms total               │      │
-│  │  RAG Retrieval Rate       │  100% (8/8 queries)                        │      │
-│  │  RAG Mean Latency         │  2.15 ms                                   │      │
-│  │  Copilot Simple Query     │  < 50 ms                                   │      │
-│  │  Docker Services          │  11                                        │      │
-│  │  Dashboard Pages          │  7                                         │      │
-│  │  Codebase Size            │  262 files, 17,354 LOC                     │      │
-│  └────────────────────────────────────────────────────────────────────────┘      │
-│                                                                                  │
-│  Model Comparison:                                                                │
-│                                                                                  │
-│    RMSE:  Baseline 4.59 ─── LSTM 4.53 ─── Transformer 4.57                      │
-│    R²:   All 0.87                                                                 │
-│    Size: Baseline 94 KB ─── LSTM 802 KB ─── Transformer 2,847 KB                 │
+│  Metric                    │ Value                           │ Status           │
+│  ────────────────────────────────────────────────────────────────────────────    │
+│  Tests passing             │ 109 (dashboard focused)         │ ⚠️ Dashboard only │
+│  Known test failures       │ 18 (env-dependent)              │ ⚠️ Pre-existing   │
+│  Model coverage            │ 0% of model code tested        │ ❌ Need tests      │
+│  API coverage              │ 0% of API code tested          │ ❌ Need tests      │
+│  E2E pipeline (synthetic)  │ 17/17 stages pass              │ ✅ On synthetic    │
+│  Docker compose            │ 8 services up                   │ ✅ Demo ready      │
+│  Authentication            │ NONE                            │ ❌ Critical gap    │
+│  Real data ingested        │ NONE                            │ ❌ Critical gap    │
+│  LLM integration           │ NONE                            │ ❌ Critical gap    │
+│  Best RMSE                 │ 4.53 (LSTM, on synthetic)       │ ⚠️ Meaningless    │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  IMPACT                                                                          │
+│  PATH TO PRODUCTION                                                              │
 │                                                                                  │
-│  🌾 Agriculture: 7-day forecasts for 60% of farmers dependent on monsoon         │
-│  🏠 Disaster Preparedness: District-level risk scores (heat, flood, drought)    │
-│  📊 Policy Planning: What-if scenario analysis for climate adaptation            │
-│  🤖 Democratized Access: AI Copilot makes climate data accessible to all         │
-│  🔓 Open Source: Freely available for any state or district to adapt             │
-│                                                                                  │
-│  Future Roadmap:                                                                  │
-│  • National scale: Karnataka → All Indian states                                 │
-│  • Train advanced models: PatchTST, TimeMixer, iTransformer                      │
-│  • Real SHAP: Connect to model gradients                                         │
-│  • Live data: Real-time IMD/INSAT feeds                                          │
-│  • Mobile app: Farmer-facing extreme weather alerts                              │
-│  • V2 Architecture: 11 services with data fusion, uncertainty, decision intel.   │
+│  1. 🔴 Real data ingestion (NASA POWER / IMD / ISRO)                            │
+│  2. 🔴 Wire LLM to copilot (Qwen3:8b)                                           │
+│  3. 🔴 Authentication + HTTPS + rate limiting                                    │
+│  4. 🟡 Add test coverage for models, APIs, RAG, copilot                         │
+│  5. 🟡 Connect SHAP to model gradients                                           │
+│  6. 🟡 Load testing                                                             │
+│  7. 🟢 Scale from Karnataka to all India                                         │
+│  8. 🟢 Train stubs (PatchTST, TimeMixer, iTransformer)                          │
+│  9. 🟢 Mobile app, decision intelligence layer                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ╔══════════════════════════════════════════════════════════════════════════════════╗
 ║  ISRO BAH 2026 — Challenge 5 · AI-Powered Digital Twin of India's Climate      ║
+║  STATUS: PROOF-OF-CONCEPT · NOT PRODUCTION-READY · SYNTHETIC DATA              ║
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 ```

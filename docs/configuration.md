@@ -4,13 +4,20 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FORECAST_SERVICE_URL` | `http://forecast-engine:8006` | URL for forecast service (used by copilot_forecast_client.py) |
-| `RISK_SERVICE_URL` | `http://risk-engine:8003` | URL for risk service (used by copilot_risk_client.py) |
-| `COPILOT_API_URL` | dashboard config | URL for copilot API (used by 07_copilot_chat.py) |
-| `PYTHONUNBUFFERED` | `1` | Disable Python output buffering (Docker) |
-| `BENCHMARK_ITERATIONS` | `100` | Number of iterations for benchmark tests |
+| `TWIN_STATE_MGR_PORT` | `8001` | Port for twin state manager |
+| `FORECAST_PORT` | `8006` | Port for forecast engine |
+| `SCENARIO_PORT` | `8002` | Port for scenario engine |
+| `RISK_PORT` | `8003` | Port for risk engine |
+| `COPILOT_PORT` | `8005` | Port for copilot agent |
+| `RAG_PORT` | `8004` | Port for RAG service |
+| `REPORT_PORT` | `8007` | Port for report service |
+| `API_PORT` | `8000` | Port for API gateway |
+| `DASHBOARD_PORT` | `8051` | Port for dashboard (Docker) |
+| `CLIMATEDT_DATA_DIR` | `/app/data` | Data directory for climate DT |
+| `LOG_LEVEL` | `INFO` | Logging level |
+| `PYTHONUNBUFFERED` | `1` | Disable Python output buffering |
 
-## Runtime Configuration
+## Runtime Configuration (`runtime/`)
 
 ### Blackboard (`runtime/blackboard.py`)
 
@@ -35,11 +42,6 @@
 | ResolutionCache (compose) | 86,400s (24h) | 100 | Caches capability dependency chains |
 | ResolutionCache (resolve) | 86,400s (24h) | 100 | Caches provider resolution chains |
 
-All caches support:
-- `max_size`: maximum entries before LRU-like eviction
-- `default_ttl`: default TTL in seconds (per-cache override)
-- Per-entry TTL override when calling `set()`
-
 ### Circuit Breaker (`runtime/reliability.py`)
 
 | Parameter | Default | Description |
@@ -57,34 +59,6 @@ All caches support:
 | `max_delay` | 30.0s | Maximum backoff cap |
 | `backoff_factor` | 2.0 | Exponential multiplier per attempt |
 
-### Memory (`runtime/models/memory.py`)
-
-| Store | Default | Description |
-|-------|---------|-------------|
-| ConversationMemory | max_turns=50 | Maximum conversation turns retained |
-| ToolOutputCache | default_ttl=300s | Default TTL for cached tool outputs |
-
-### Pipeline Stages
-
-| Stage | Configurable Parameter | Default |
-|-------|----------------------|---------|
-| RetrievalStage | `default_top_k` | 5 |
-| RetrievalStage | `min_score` | 0.3 |
-| GroundingStage | `min_confidence` | 0.3 |
-| ReasoningStage | `prefer_deterministic` | True |
-| EvidenceAggregationStage | `dependency_map` | {} (injected by ClimatePlugin) |
-| ExecutionStage | (uses stage timeout) | 30,000ms |
-| IntentStage | pattern-based | (not configurable) |
-
-### Pipeline Engine
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Stage `timeout_ms` | 30,000ms | Per-stage execution timeout |
-| Pipeline `timeout_ms` | 60,000ms | Pipeline-wide timeout |
-| ExecutionContext MAX_TRACE_ENTRIES | 500 | Max trace entries per execution |
-| RuntimeContext MAX_TRACE_LOG | 1,000 | Max trace log entries per request |
-
 ### Performance Budgets (`runtime/performance_budget.py`)
 
 | Operation | Budget | Description |
@@ -97,27 +71,35 @@ All caches support:
 | runtime.initialize | 100ms | Runtime init in under 100ms |
 | runtime.shutdown | 100ms | Runtime shutdown in under 100ms |
 
+## Dashboard Configuration (`dashboard/config/`)
+
+### Sample Locations
+15 hardcoded Karnataka districts (defined in `dashboard/config/config.py`):
+- Bengaluru Urban, Bengaluru Rural, Mysuru, Mangaluru, etc.
+
+### Synthetic Data Fallback
+The API client (`dashboard/services/api_client.py`) automatically falls back to synthetic data when microservices are unavailable. This is the default behavior — all data in the dashboard is synthetic unless services are running with real data.
+
+## Data Configuration (`config/data_config.yaml`)
+
+YAML-based configuration for data sources, pipelines, and storage settings. Supports both real (NASA POWER, Open-Meteo) and synthetic data source configuration.
+
 ## Docker Configuration
 
-See `docker-compose.benchmark.yml`:
-
-```yaml
-services:
-  runtime-benchmark:
-    build:
-      context: .
-      dockerfile: Dockerfile.benchmark
-    volumes:
-      - ./reports:/reports
-    environment:
-      - PYTHONUNBUFFERED=1
-      - BENCHMARK_ITERATIONS=100
-```
+See `docker-compose.yml` for all service configurations including:
+- Port mappings
+- Volume mounts (twin_data, model_data)
+- Resource limits (memory, CPU)
+- Health check intervals
+- Network configuration
 
 ## pyproject.toml
 
-Dependencies are declared in `pyproject.toml` with version pins:
+Dependencies declared in `pyproject.toml`:
 
-- **Runtime**: aiohttp, requests, pyyaml, python-dateutil, pydantic
-- **Dev**: pytest, pytest-asyncio, pytest-cov, coverage, ruff, mypy, pre-commit
-- **Ollama**: ollama, httpx
+- **Core**: fastapi, uvicorn, httpx, requests, aiohttp
+- **Data**: pandas, numpy, scipy, pyarrow, pyyaml
+- **ML**: torch, scikit-learn, xgboost, prophet, statsmodels, shap
+- **RAG**: faiss-cpu, sentence-transformers
+- **Dashboard**: streamlit, plotly, folium, streamlit-folium, geopandas
+- **Dev**: pytest, pytest-cov, coverage, ruff, black, mypy, pre-commit, bandit, pip-audit

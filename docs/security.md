@@ -1,8 +1,8 @@
 # Security Architecture
 
-A comprehensive security audit was performed on 2026-06-30 covering `runtime/`, `climate/`, `copilot/`, and root-level Python files. The audit used ripgrep pattern matching, pip-audit dependency scanning, and manual code review.
+A security audit was performed on 2026-06-30 covering source code files across the repository. The audit used ripgrep pattern matching, pip-audit dependency scanning, and manual code review.
 
-**Overall Grade: B+**
+**Overall Grade: B+** (hackathon prototype — acceptable for proof-of-concept)
 
 ## Dependency Audit (pip-audit)
 
@@ -14,13 +14,6 @@ A comprehensive security audit was performed on 2026-06-30 covering `runtime/`, 
 | wheel | 0.45.1 | 1 | 0.46.2 |
 
 **Note**: These affect build/install tools, not application runtime. Docker image runs Python 3.10 while project requires >=3.11 — a version mismatch flagged for correction.
-
-**Runtime dependencies** (no known CVEs):
-- aiohttp >=3.9
-- requests >=2.31
-- pyyaml >=6.0
-- python-dateutil >=2.8
-- pydantic >=2.0
 
 ## Secret Scanning
 
@@ -54,17 +47,15 @@ A comprehensive security audit was performed on 2026-06-30 covering `runtime/`, 
 
 | File | Target | Risk |
 |------|--------|------|
-| `climate/providers/scenario.py:33` | `http://scenario-engine:8002` (hardcoded) | Low — Docker internal |
-| `copilot_forecast_client.py:24` | `$FORECAST_SERVICE_URL` env var | Medium — env-controllable |
-| `copilot_risk_client.py:21` | `$RISK_SERVICE_URL` env var | Medium — env-controllable |
-| `07_copilot_chat.py:24,37,46` | `$COPILOT_API_URL` | Low — config-driven |
-| `test_dash.py` | `http://copilot-agent:8005` | Low — test only |
+| `dashboard/services/api_client.py` | (config-driven URLs) | Low — config-controlled |
+| `climatedt/ml/inference.py` | (internal service URLs) | Low — Docker internal |
+| Various service clients | `$*_SERVICE_URL` env vars | Low-Medium — env-controlled |
 
 **Assessment**: No user-controlled URLs are passed to HTTP clients. All env-var URLs default to Docker-internal service names. SSRF risk is low.
 
 ## TOCTOU / Race Condition Analysis
 
-No TOCTOU vectors found. All `open()` calls are in test files. No `os.path.exists()`/`os.access()` patterns used.
+No TOCTOU vectors found. All `open()` calls are in test files.
 
 ## Configuration & Code Quality
 
@@ -72,14 +63,14 @@ No TOCTOU vectors found. All `open()` calls are in test files. No `os.path.exist
 - No `try: except: pass` patterns — all exceptions handled or logged
 - Pydantic models throughout for input validation
 - Internal services use HTTP (not HTTPS) — acceptable for Docker-internal communication
-- `pyyaml` is listed as a dependency but never used — flagged for removal
+- `pyyaml` is listed as a dependency but unused — flagged for removal
 
 ## Strengths
 
 - No hardcoded secrets, credentials, or keys
 - No use of eval, exec, pickle, subprocess, or unsafe yaml.load
 - All HTTP calls use explicit timeouts
-- Pydantic models throughout for data validation
+- Pydantic models for data validation
 - Clean separation of concerns (runtime vs domain)
 - Architecture tests prevent domain leaks into runtime core
 
@@ -87,9 +78,12 @@ No TOCTOU vectors found. All `open()` calls are in test files. No `os.path.exist
 
 - Docker image runs Python 3.10 but project requires 3.11+
 - pip and wheel have 8 known CVEs (build toolchain only)
-- HTTP (no TLS) for internal service communication
+- HTTP (no TLS) for internal service communication — acceptable for POC
 - Some service URLs controllable via environment variables without validation
-- `pyyaml` dependency included but unused — potential future risk if yaml.load is used incorrectly
+- `pyyaml` dependency included but unused
+- **No production authentication/authorization** — hackathon POC constraint
+- **No input rate limiting** on API endpoints
+- **No audit logging** for data access
 
 ## Recommendations
 
@@ -97,8 +91,9 @@ No TOCTOU vectors found. All `open()` calls are in test files. No `os.path.exist
 2. Align Docker Python version with pyproject.toml requirement (3.11+)
 3. Add URL validation if env-var-based service URLs can be overridden at deployment
 4. Remove unused `pyyaml` dependency or add a linter rule requiring `yaml.safe_load()`
-5. Add a CI pipeline step with `pip-audit` or `safety check` for ongoing dependency scanning
-6. Consider adding bandit or ruff security rules (`--select S`) for automated security linting
+5. Add a CI pipeline step with `pip-audit` or `safety check` for ongoing scanning
+6. Add authentication middleware before any production deployment
+7. Consider adding bandit or ruff security rules (`--select S`) for automated security linting
 
 ## Full Report
 

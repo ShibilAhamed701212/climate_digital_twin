@@ -1,104 +1,89 @@
-# Runtime, Climate, and Copilot Integration
+# Runtime, Climate Domain, and Copilot Integration
 
-The three layers of the BHAI platform integrate through well-defined interfaces, with strict dependency direction: Copilot → Climate → Runtime. Never the reverse.
+## Overview
+
+The system integrates three layers with strict dependency direction: Domain code → Runtime. Never the reverse.
+
+```
+Dashboard (Streamlit, page_views/)
+    │
+    ▼
+API Client (dashboard/services/api_client.py)
+    │
+    ├──► Backend Services (Docker)
+    │       api-gateway, twin-state-mgr, forecast-engine,
+    │       scenario-engine, risk-engine, copilot-agent, etc.
+    │
+    └──► Synthetic Data Fallback (when services unavailable)
+```
+
+## Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Dashboard Layer                         │
+│  dashboard/app.py · page_views/ · sidebar_nav.py        │
+│  services/api_client.py · components/ · charts/          │
+└──────────────────────────┬──────────────────────────────┘
+                           │ HTTP
+┌──────────────────────────▼──────────────────────────────┐
+│                   Service Layer                           │
+│  api-gateway :8000  ·  twin-state-mgr :8001             │
+│  forecast-engine :8006  ·  risk-engine :8003            │
+│  scenario-engine :8002  ·  copilot-agent :8005          │
+│  rag-service :8004  ·  report-service :8007             │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                   Domain Logic Layer                      │
+│  climatedt/ (climate-specific)                          │
+│  models/ (ML definitions)                               │
+│  knowledge/ (RAG pipeline)                              │
+│  risk/ (risk engine)                                    │
+│  simulator/ (scenario simulation)                       │
+│  pipeline/ (data pipelines)                             │
+└──────────────────────────┬──────────────────────────────┘
+                           │ Plugin Interface
+┌──────────────────────────▼──────────────────────────────┐
+│                   AI Runtime Layer                        │
+│  runtime/ (domain-agnostic)                             │
+│  PipelineEngine · Blackboard · EventBus                 │
+│  ProviderRegistry · PluginLoader · WorkflowEngine        │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## Dependency Direction
 
 ```
-copilot/clients/       → climate/providers/    (wrapped as provider adapters)
-climate/plugin.py      → runtime/              (plugin registers into runtime)
-runtime/               → (nothing external)    (domain-agnostic core)
+climatedt/  →  runtime/  (domain code uses runtime interfaces)
+copilot/    →  runtime/  (agent code uses runtime interfaces)
+dashboard/  →  services/ (HTTP calls to backend)
+services/   →  runtime/  (optional runtime integration)
 ```
 
-The Runtime has zero knowledge of Climate or Copilot. The Climate plugin is registered into the Runtime at startup. The Copilot clients are wrapped by Climate provider adapters.
+The Runtime has zero knowledge of climate concepts. Domain isolation is enforced by architecture tests in `runtime/test_architecture.py`.
 
 ## Startup Sequence
 
-```
-1. AgentRuntime.initialize()
-   ├── Blackboard created
-   ├── EventBus created
-   ├── ProviderRegistry created
-   ├── CapabilityRouter created
-   ├── PluginLoader created
-   ├── WorkflowEngine created
-   └── PipelineEngine created
+1. **Docker compose up** starts all services
+2. **API Gateway** initializes FastAPI with routers
+3. **Backend services** register with health checks
+4. **Dashboard** starts Streamlit app, connects to API Gateway
+5. If services unavailable, **synthetic data fallback** kicks in
 
-2. ClimatePlugin loaded via rt.load_plugin(ClimatePlugin())
-   ├── register_capabilities(router)    → 6 contracts registered
-   ├── register_providers(registry)     → 6 adapters registered
-   ├── register_events(bus)             → publishes domain events
-   ├── register_workflows(engine)       → COPILOT_WORKFLOW registered
-   └── register_pipelines(runtime)      → climate.interactive pipeline registered
-
-3. Runtime ready to process("user_query", ctx)
-   ├── PipelineEngine finds climate.interactive pipeline
-   ├── Pipeline executes 11 stages
-   │   ├── IntentStage classifies intent
-   │   ├── MemoryStage loads conversation context
-   │   ├── RetrievalStage queries knowledge providers
-   │   ├── PlanningStage builds execution graph
-   │   ├── ExecutionStage calls provider adapters
-   │   │   └── ForecastProviderAdapter wraps ForecastClient
-   │   │   └── RiskProviderAdapter wraps RiskClient
-   │   │   └── ... (adapters execute through provider interface)
-   │   ├── EvidenceAggregationStage converts to Evidence
-   │   ├── GroundingStage verifies claims
-   │   ├── ReasoningStage produces conclusions
-   │   ├── ResponseStage formats output
-   │   └── VerificationStage validates output
-   └── RuntimeResult returned
-```
-
-## Integration Points
-
-### Plugin Interface
-
-The `Plugin` ABC (`runtime/plugins/base.py`) defines 7 registration methods that the ClimatePlugin implements:
-
-```python
-class Plugin(ABC):
-    def register_capabilities(self, router): ...
-    def register_providers(self, registry): ...
-    def register_events(self, bus): ...
-    def register_workflows(self, engine): ...
-    def register_agents(self, runtime): ...
-    def register_configuration(self, runtime): ...
-    def register_pipelines(self, runtime): ...
-```
-
-### Provider Interface
-
-The `Provider` ABC (`runtime/providers/base.py`) defines the contract that all climate provider adapters implement:
-
-```python
-class Provider(ABC):
-    provider_id: str
-    capability: str
-    async def execute(self, request: ProviderRequest) -> ProviderResult: ...
-    def health(self) -> ProviderHealth: ...
-```
-
-### Pipeline Stage Interface
-
-The `PipelineStage` ABC (`runtime/models/pipeline.py`) defines the lifecycle hooks that pipeline stages implement. Climate stages (Intent, Planning, Execution, Response, Verification) and Runtime stages (Memory, Retrieval, EvidenceAggregation, Grounding, Reasoning) both implement this interface, making them interchangeable in pipeline definitions.
-
-### Event Interface
-
-Both Runtime and Climate define event type constants that flow through the shared EventBus. Runtime events (`runtime/events/definitions.py`) cover memory, retrieval, evidence, grounding, reasoning, and verification lifecycle. Climate events (`climate/events/definitions.py`) cover query processing, domain execution, and response lifecycle.
-
-## Data Flow Summary
+## Data Flow (Synthetic)
 
 ```
-User → Runtime API → PipelineEngine → [10 Stages] → RuntimeResult
-                         ↕
-                    Blackboard (shared state store)
-                         ↕
-                    CapabilityRouter → ProviderRegistry
-                         ↕
-                    Provider Adapters → Copilot Clients
+Dashboard (user interaction)
+    → API Client (DashboardAPIClient)
+    → Tries to call backend service
+    → Service unavailable → SYNTHETIC DATA FALLBACK
+    → Dashboard renders with generated data
 ```
 
 ## Testing Integration
 
-Integration tests in `climate/tests/test_integration.py` verify that the ClimatePlugin correctly wires all components together. The plugin test (`climate/tests/test_plugin.py`) validates registration order and contract validation.
+- **2,266 tests** total
+- Dashboard tests: 109 tests, all passing
+- Tests use `DashboardAPIClient` with synthetic data
+- No real service dependencies required for testing

@@ -1,77 +1,101 @@
-# Executive Summary — Climate Digital Twin
+# Executive Summary — AI-Powered Digital Twin of India's Climate
 
-## Project Identity
+> **ISRO BAH 2026 — Challenge 5**  
+> **Hackathon Proof-of-Concept (v0.1.0)**  
+> **Built:** May–June 2026 (~6 weeks)  
+> **Honest Status:** Functional demonstrable prototype. All data synthetic. Not production-ready.
 
-| Field | Value |
-|-------|-------|
-| **Project Name** | AI-Powered Digital Twin of India's Climate |
-| **Repository** | `climate-digital-twin` |
-| **Hackathon** | ISRO BAH 2026 — Challenge 5 |
-| **Version** | 0.1.0 |
-| **Pilot Region** | Karnataka (11.5–18.5°N, 74.0–78.5°E) |
+---
 
-## Problem Statement
+## What This Project Is
 
-Develop a proof-of-concept AI-powered Digital Twin of India's climate system using national datasets. The system must predict rainfall and temperature, simulate future climate scenarios, visualize conditions via an interactive dashboard, and support climate intelligence queries through an AI assistant. The pilot is scoped to Karnataka state with 5 pilot districts: Bengaluru Urban, Mysuru, Belagavi, Dakshina Kannada, and Kalaburagi.
+A proof-of-concept digital twin for climate resilience in Karnataka, India. The system demonstrates an 8-step pipeline from data ingestion → forecasting → simulation → risk assessment → RAG-powered Q&A → interactive dashboard. Every component is containerized with Docker Compose and can be demonstrated end-to-end — **on synthetic data.**
+
+## What This Project Is NOT
+
+- ❌ **Not validated on real climate data.** All .parquet/.csv files are `np.random.seed(42)` synthetic.
+- ❌ **Not production-ready.** No authentication, no real API keys, no load testing, no SLAs.
+- ❌ **Not connected to real LLMs.** Copilot returns mock responses. Qwen3:8b is declared but not wired.
+- ❌ **Not a complete 9-microservice system.** 8 Docker services; Ollama is a dependency, not a custom service.
+- ❌ **Not 656 tests passing.** 109 dashboard tests pass; 18 known env-related failures.
+
+---
 
 ## Architecture Overview
 
-9 microservices orchestrated via Docker Compose:
+| Component | Technology | Honest Status |
+|-----------|-----------|---------------|
+| Backend API | FastAPI (Python 3.11) | ✅ 6 endpoints work with synthetic fallback |
+| Dashboard | Streamlit + Plotly + Folium | ✅ 7 live pages + 3 mock pages |
+| Forecasting | PyTorch (MLP/LSTM/Transformer) | ✅ 3 trained on synthetic data, 3 stubs |
+| Digital Twin | Python dataclass + event bus | ✅ Clean design, populated with synthetic states |
+| Risk Engine | Weighted scoring (0–100) | ✅ 4 modules, configurable, all on synthetic data |
+| RAG | FAISS + sentence-transformers | ⚠️ Index starts empty; ~30 chunks from 15 docs |
+| Copilot | Keyword classification → mock response | ⚠️ No real LLM integration |
+| Explainability | Deterministic synthetic SHAP | ⚠️ Not connected to model gradients |
+| Scenario Engine | 5 types, 11 presets | ✅ <3s deterministic, synthetic baseline |
 
-| Service | Port | Role |
-|---------|------|------|
-| Twin State Manager | 8001 | Entity state, versioning, event system |
-| Scenario Engine | 8002 | What-if simulation |
-| Risk Engine | 8003 | Climate risk scoring + SHAP explainability |
-| RAG Service | 8004 | FAISS vector store + semantic search |
-| Copilot Agent | 8005 | Multi-agent LLM orchestration |
-| Forecast Engine | 8006 | ML forecasting |
-| API Gateway | 8000 | FastAPI routing |
-| Streamlit Dashboard | 8501 | 7-page interactive dashboard |
-| Ollama | 11434 | Local LLM serving (Qwen3:8b) |
+---
 
-Plus Prometheus (9090) and Grafana (3000) for monitoring.
+## Key Metrics (On Synthetic Data Only)
 
-## Tech Stack
+| Metric | Value | Caveat |
+|--------|-------|--------|
+| LSTM RMSE | ~4.53 mm/day | On synthetic rainfall. Real performance unknown. |
+| Models at R²=0.87 | 3 of 3 trained | Suspiciously uniform — expected on synthetic data. |
+| Pipeline stages passing | 17/17 | End-to-end synthetic run. |
+| Dashboard tests passing | 109 | Excluding 18 known env failures. |
+| Total Python LOC | ~17,354 | Includes models, tests, generated files, legacy code. |
+| Docker services | 8 | + Ollama dependency (manual model pull required). |
+| Training time (LSTM) | ~2 min on synthetic data | Single epoch batch, no hyperparameter tuning. |
 
-| Layer | Technology |
-|-------|-----------|
-| ML Framework | PyTorch 2.0+ |
-| Forecasting Models | Baseline (MLP), LSTM, Transformer, iTransformer, PatchTST, TimeMixer, Ensemble Meta-Learner |
-| Backend | FastAPI + Uvicorn |
-| Dashboard | Streamlit + Plotly + Folium |
-| Vector Store | FAISS (IndexFlatIP) |
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2, 384-dim) |
-| LLM | Qwen3:8b via Ollama |
-| Explainability | SHAP (deterministic offline estimation) |
-| Storage | Parquet + DuckDB |
-| Monitoring | Prometheus + Grafana |
+---
 
-## Key Metrics
+## Codebase Structure (Key Directories)
 
-| Metric | Value |
-|--------|-------|
-| **Total Tests** | 656 |
-| **Unit Tests** | ~620 |
-| **Integration Tests** | ~36 |
-| **E2E Pipeline Stages** | 17/17 passing |
-| **Forecasting Models** | 7 architectures |
-| **Best RMSE** | 4.53 (LSTM) |
-| **RMSE Range** | 4.53–4.59 |
-| **R² Score** | 0.87 (all 3 primary models) |
-| **Config YAML Files** | 7 externalized |
-| **Dockerfiles** | 8 |
-| **Dashboard Pages** | 7 |
-| **Copilot Tools** | 6 |
-| **Risk Categories** | 5 (Very Low → Severe) |
-| **Scenario Presets** | 11 |
+```
+climate-digital-twin/
+├── app/                    # Streamlit dashboard
+├── api/                    # FastAPI backend
+├── models/                 # PyTorch forecasting models
+├── digital_twin/           # Digital twin core
+├── scenario_engine/        # Scenario simulation
+├── risk/                   # Risk scoring engine
+├── rag/                    # FAISS RAG pipeline
+├── copilot/                # Mock copilot
+├── explainability/         # Deterministic SHAP
+├── config/                 # YAML/JSON configuration
+├── data/                   # Synthetic data storage
+├── tests/                  # Test suite
+├── scripts/                # Utility scripts
+├── tools/                  # Development tools
+├── reports/                # This documentation
+└── docker/                 # Docker configuration
+```
 
-## Primary Users
+---
 
-- **ISRO BAH 2026 Hackathon Evaluators** — primary audience for demo and evaluation
-- **Climate Researchers** — scenario analysis and risk assessment
-- **Policy Planners** — district-level climate intelligence via Copilot
+## What Works (Honest Assessment)
 
-## Innovation Summary
+- **Docker Compose up** launches all 8 services successfully (conditional on Ollama model availability)
+- **Data pipeline** generates synthetic data and runs through all 8 stages
+- **Dashboard** renders interactive charts, maps, and tables with synthetic data
+- **Forecasting** trains 3 models and generates predictions (on synthetic data)
+- **Scenario engine** applies deltas and returns results in <3 seconds
+- **Risk scores** compute per-district heat/flood/drought/composite on synthetic data
+- **109/127 tests pass** (18 env-related failures pre-existing)
 
-The Climate Digital Twin integrates 7 forecasting model architectures, a physics validation safety layer, deterministic SHAP-based explainability, FAISS-powered RAG retrieval from government/ISRO/IMD documents, and a multi-agent LLM Copilot (Intent→Planner→Executor→Generator) — all containerized for one-command deployment with full synthetic data fallback for offline hackathon environments. The system achieves RMSE of 4.53–4.59 mm/°C with R² of 0.87 across rainfall, max temperature, and min temperature predictions for the Karnataka pilot region.
+## What Does NOT Work
+
+- **Real data ingestion** — never connected to NASA POWER/IMD/ISRO APIs
+- **LLM-powered Copilot** — mock responses only
+- **RAG retrieval from real documents** — FAISS index starts empty
+- **Authentication/authorization** — none implemented
+- **Production deployment** — not load tested, not hardened
+- **Real SHAP** — synthetic values, not from model gradients
+
+---
+
+## Conclusion
+
+This project is a **successful hackathon proof-of-concept** that demonstrates the architecture, pipeline, and UI for a climate digital twin. The design is modular, containerized, and demonstrable. The critical next step — replacing synthetic data with real observations and wiring real LLM integration — remains uncompleted. The codebase provides a solid foundation for future development but is **not production ready** in its current state.

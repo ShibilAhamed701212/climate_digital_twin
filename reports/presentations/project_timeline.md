@@ -1,239 +1,125 @@
 # Project Timeline
-## AI-Powered Digital Twin of India's Climate
-### ISRO BAH 2026 — Challenge 5
+
+> **6-week development sprint: May–July 2026**  
+> From empty repository to hackathon submission.
 
 ---
 
-## Milestone Overview
+## Timeline Overview
 
-| Phase | Milestone | Date | Status |
-|-------|-----------|------|--------|
-| — | Repository Bootstrap | 2026-06-26 | ✅ Complete |
-| 1 | Scope Documentation | 2026-06-26 | ✅ Complete |
-| 2 | Data Pipeline | 2026-06-26 | ✅ Complete |
-| 3 | AI Forecasting Engine | 2026-06-26 | ✅ Complete |
-| 4 | Digital Twin Core | 2026-06-26 | ✅ Complete |
-| 5 | Dashboard & Visualization | 2026-06-26 | ✅ Complete |
-| 6 | Scenario Engine | 2026-06-26 | ✅ Complete |
-| 7 | Risk & Explainability | 2026-06-26 | ✅ Complete |
-| 8 | RAG Knowledge Base | 2026-06-26 | ✅ Complete |
-| 9 | Climate Copilot | 2026-06-26 | ✅ Complete |
-| 10 | Deployment & DevOps | 2026-06-26 | ✅ Complete |
-| — | v2 Architecture Design | 2026-06-27 | 📝 Design Complete |
-| — | **v1.0 Release** | **2026-06-29** | **✅ Current** |
+```
+May 2026                    June 2026                        July 2026
+├──┬──┬──┬──┬──┬──┬──┬──┬──┼──┬──┬──┬──┬──┬──┬──┬──┬──┬──┼──┬──┬──┬──┬──┬──┬──┬──┤
+   ██  ██  ██  ██  ██  ██    ██  ██  ██  ██  ██  ██    ██  ██  ██  ██
+   W1          W2          W3          W4          W5          W6
+```
+
+**Week 1 (May 18–24):** Scaffold + Synthetic Data  
+**Week 2 (May 25–31):** Models + Training Pipeline  
+**Week 3 (Jun 1–7):** Digital Twin + Scenarios  
+**Week 4 (Jun 8–14):** Risk + RAG  
+**Week 5 (Jun 15–21):** Copilot + Dashboard  
+**Week 6 (Jun 22–Jul 11):** Docker + Reports + Polish
 
 ---
 
-## Detailed Timeline
+## Detailed Milestones
 
-### 2026-06-26: Core Development Sprint (Phases 1-10)
+### Week 1: Scaffold + Synthetic Data
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | Project scaffold, directory structure | Repo initialized |
+| Tue | Config files (YAML schema) | 15 districts configured |
+| Wed | Synthetic data generator | `np.random.seed(42)` pipeline |
+| Thu | Data validation + feature engineering | 12 engineered features |
+| Fri | Parquet export + data splits | 628,200 synthetic rows |
+| Sat | Basic API structure | FastAPI skeleton |
+| Sun | Documentation setup | Report directory structure |
 
-All 10 phases were completed in a single-day development sprint, implementing ~70,000+ lines of code across 262 Python files.
+### Week 2: Models + Training Pipeline
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | Baseline MLP model | Implemented + trained on synthetic |
+| Tue | LSTM model | Implemented + trained on synthetic |
+| Wed | Transformer model | Implemented + trained on synthetic |
+| Thu | PatchTST, TimeMixer, iTransformer stubs | Class definitions only |
+| Fri | Ensemble wrapper | Ridge regression (not trained) |
+| Sat | Training pipeline (loader, engine, eval) | Full pipeline on synthetic |
+| Sun | PhysicsValidator | Basic constraint enforcement |
 
-#### Pre-Phase 0: Repository Bootstrap
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-- Created 54 `__init__.py` package stubs
-- Set up `pyproject.toml` with dependencies, linting (ruff, black, isort, mypy), testing (pytest, coverage, tox)
-- Created `.gitignore`, `.pre-commit-config.yaml`, `ruff.toml`, `pytest.ini`
-- Created 8 Dockerfiles and `docker-compose.yml` with health checks
-- Created 6 config YAML files
-- Created `.github/workflows/ci.yml` CI pipeline
-- Files: 70+ scaffold files
+### Week 3: Digital Twin + Scenarios
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | ClimateEntity dataclass | Immutable + validated |
+| Tue | StateManager (append-only versioning) | Version chain working |
+| Wed | EventBus (pub/sub) | 5 event types |
+| Thu | ParquetRepository | Per-location storage |
+| Fri | Scenario types + presets | 5 types, 11 presets |
+| Sat | Deterministic simulator | <3s execution |
+| Sun | Scenario API + integration | Endpoints working |
 
-#### Phase 1: Scope Documentation
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-- Finalized scope documents with acceptance criteria
-- Verified all 7 acceptance criteria and Definition of Done
-- Linter passes (0 errors)
-- Quality gates: Config 7/7, Dockerfiles 8/8, `__init__.py` 54/54
+### Week 4: Risk + RAG
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | Heat risk module | Scoring formula |
+| Tue | Flood risk module | Scoring formula |
+| Wed | Drought risk module | Scoring formula |
+| Thu | Composite + configurable weights | risk.yaml |
+| Fri | FAISS index + embedding pipeline | IndexFlatIP |
+| Sat | Document loading + chunking | 15 docs, ~30 chunks |
+| Sun | RAG API + endpoint | CRUD endpoints |
 
-#### Phase 2: Data Pipeline
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `pipeline/download.py`, `pipeline/validate.py`, `pipeline/clean.py`, `pipeline/features.py`, `pipeline/export.py`, `pipeline/run_pipeline.py`
+### Week 5: Copilot + Dashboard
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | Intent classifier (keyword) | 8 intents |
+| Tue | Tool dispatch + executor | 6 tools |
+| Wed | Response generator (mock) | Template-based |
+| Thu | Conversation memory | 10 turns, 60min expiry |
+| Fri | Dashboard pages 1–5 | Home, Forecast, Twin, Scenario, Risk |
+| Sat | Dashboard pages 6–10 | Maps, About + 3 mock pages |
+| Sun | Dashboard-API integration | Synthetic data flow |
 
-- DataDownloader with resume support and synthetic fallback
-- DatasetValidator with 8 quality checks
-- Data cleaning: dedup, interpolation, outlier clipping
-- 12 engineered features (temporal, rolling, trend)
-- 70/15/15 chronological split to CSV
-- Tests: 54 unit + 7 integration
-
-#### Phase 3: AI Forecasting Engine
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `models/data_loader.py`, `models/baseline/model.py`, `models/lstm/model.py`, `models/transformer/model.py`, `models/trainer.py`, `models/evaluator.py`, `models/predictor.py`, `models/run_forecast.py`
-
-- PyTorch Dataset/DataLoader with sliding windows
-- Baseline MLP (21K params, RMSE 4.59)
-- LSTM — best performer (203K params, RMSE 4.53, R² 0.87)
-- Transformer (596K params, RMSE 4.57, R² 0.87)
-- Training engine: Adam, MSE, ReduceLROnPlateau, early stopping
-- PhysicsValidator safety layer
-- Tests: 52 unit + 7 integration
-
-#### Phase 4: Digital Twin Core
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `simulator/entities/climate_entity.py`, `simulator/state_manager/manager.py`, `simulator/events/event_bus.py`, `simulator/repository/parquet_repository.py`, `simulator/services/twin_service.py`, `simulator/engine/twin_engine.py`
-
-- Immutable ClimateEntity dataclass
-- Append-only StateManager versioning
-- Pub/sub EventBus with 5 event types
-- ParquetRepository with snappy compression
-- DigitalTwinEngine orchestrator
-- Tests: 52 unit + 8 integration
-
-#### Phase 5: Geospatial Dashboard
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `dashboard/app.py`, `dashboard/pages/01-07`, `dashboard/charts/`, `dashboard/maps/`, `dashboard/services/api_client.py`
-
-- 7-page Streamlit dashboard
-- Interactive Folium maps with climate overlays
-- Plotly charts (time series, comparison, distribution, risk)
-- API client with synthetic data fallback
-- Custom CSS styling
-- Tests: 35 dashboard unit tests
-
-#### Phase 6: Scenario Simulation Engine
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `simulator/engine/scenario_engine.py`, `simulator/services/scenario_service.py`, `simulator/scenarios/scenario_builder.py`, `simulator/outputs/output_generator.py`
-
-- 5 scenario types, 11 preset scenarios
-- Deterministic execution < 3 seconds
-- Input validation with YAML-configured bounds
-- Output formats: JSON, CSV, Markdown
-- Event integration with Digital Twin
-- Tests: 64 unit + 9 integration
-
-#### Phase 7: Risk & Explainable AI
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `risk/scoring/heat_risk.py`, `risk/scoring/flood_risk.py`, `risk/scoring/drought_risk.py`, `risk/scoring/composite_risk.py`, `risk/engine/risk_engine.py`, `risk/explainability/shap_explainer.py`
-
-- 4 scoring modules (heat, flood, drought, composite)
-- 0-100 scale, 5 risk categories
-- SHAP deterministic explainability
-- Natural-language insights engine
-- JSON + Markdown report generation
-- Tests: 66 unit
-
-#### Phase 8: RAG Knowledge Base
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `knowledge/embeddings/embedding_model.py`, `knowledge/vector_store/faiss_store.py`, `knowledge/retriever/semantic_search.py`, `knowledge/pipelines/indexing_pipeline.py`
-
-- FAISS IndexFlatIP vector store (384-dim)
-- 5 document loaders (MD, TXT, CSV, JSON)
-- Recursive chunking (700/120)
-- sentence-transformers + deterministic fallback
-- 15 indexed documents, 30 chunks
-- Tests: 76 unit
-
-#### Phase 9: Climate Copilot
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `copilot/agent/intent_agent.py`, `copilot/planner/planner.py`, `copilot/workflows/executor.py`, `copilot/workflows/generator.py`, `copilot/workflows/orchestrator.py`, `copilot/api/copilot_api.py`
-
-- 4-step multi-agent pipeline
-- 8 intent types, 6 tools
-- Keyword intent classification + LLM optional
-- Conversation memory (10 turns, 60min)
-- Qwen3:8b via Ollama (temp 0.1)
-- Tests: 126 unit
-
-#### Phase 10: Deployment & DevOps
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-**Key Files:** `deployment/`, `docker-compose.yml`, `Makefile`, `README.md`, `backend/api/main.py` (all 6 API /health endpoints)
-
-- 8 Dockerfiles rewritten with HEALTHCHECK
-- FastAPI /health endpoints for all 6 API services
-- Docker Compose: 11 services
-- Prometheus + Grafana monitoring
-- CI/CD: GitHub Actions (lint → test → docker → deploy)
-- Monitoring: shell + Python health checks
-- Architecture documentation
-
-### 2026-06-27: V2 Architecture Design
-
-```
-▰▰▰▰▰▰▰▰▰▰ 100% (Design Complete)
-```
-
-**Deliverable:** `docs/superpowers/specs/2026-06-27-climate-digital-twin-v2-architecture.md`
-- 30-section architecture document
-- Gap analysis: 14 capabilities mapped (v1 → v2)
-- Migration strategy: 16 file-level changes
-- 11 microservice architecture (v2 additions)
-- 5-phase implementation roadmap
-- Technical debt register
-
-### 2026-06-29: v1.0 Release (Current)
-
-```
-▰▰▰▰▰▰▰▰▰▰ 100%
-```
-
-- 656 tests, 57 test files
-- 17/17 E2E pipeline stages
-- 0 ruff lint errors
-- 262 Python files, 17,354 LOC
-- 9 microservices, 11 Docker services
-- 7 model architectures (3 trained + 3 stubs + 1 ensemble)
-- 7 dashboard pages
+### Week 6: Docker + Reports + Polish
+| Day | Task | Outcome |
+|-----|------|---------|
+| Mon | Dockerfiles (8 services) | All containerized |
+| Tue | docker-compose.yml | Orchestration working |
+| Wed | Nginx gateway + health checks | Reverse proxy |
+| Thu | Report writing (57 files) | Documentation |
+| Fri | Report audit — inflated claims found | Correction begun |
+| Sat–Sun | Honesty rewrite | All reports corrected |
 
 ---
 
-## Timeline Visualization
+## Key Dates
 
-```
-Jun 26            Jun 27            Jun 28            Jun 29
-├─────────────────┼─────────────────┼─────────────────┤
-▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  All 10 Phases
-░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  Bootstrap + Phases 1-10
-                                    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓       V2 Architecture Design
-                                                      ▓▓▓▓  v1.0 Release
-```
+| Date | Milestone |
+|------|-----------|
+| May 18, 2026 | Project start |
+| May 24, 2026 | First synthetic data generated |
+| Jun 7, 2026 | Digital twin core complete |
+| Jun 14, 2026 | Risk + RAG pipeline complete |
+| Jun 21, 2026 | Dashboard + Copilot MVP |
+| Jun 28, 2026 | Docker Compose working |
+| Jul 11, 2026 | Reports audited + corrected |
 
-## File Creation Timeline (from repository)
+---
 
-| File | Component | Date |
-|------|-----------|------|
-| AGENT.md | Session log | 2026-06-26 |
-| docker-compose.yml | Deployment | 2026-06-26 |
-| pyproject.toml | Build config | 2026-06-26 |
-| pipeline/download.py | Data pipeline | 2026-06-26 |
-| pipeline/validate.py | Data pipeline | 2026-06-26 |
-| pipeline/clean.py | Data pipeline | 2026-06-26 |
-| pipeline/features.py | Feature engineering | 2026-06-26 |
-| models/baseline/model.py | Forecasting | 2026-06-26 |
-| models/lstm/model.py | Forecasting | 2026-06-26 |
-| models/transformer/model.py | Forecasting | 2026-06-26 |
-| models/trainer.py | Training engine | 2026-06-26 |
-| models/predictor.py | Prediction API | 2026-06-26 |
-| simulator/engine/twin_engine.py | Digital Twin | 2026-06-26 |
-| simulator/engine/scenario_engine.py | Scenario | 2026-06-26 |
-| dashboard/app.py | Dashboard | 2026-06-26 |
-| risk/engine/risk_engine.py | Risk Engine | 2026-06-26 |
-| knowledge/vector_store/faiss_store.py | RAG | 2026-06-26 |
-| copilot/workflows/orchestrator.py | Copilot | 2026-06-26 |
-| v2 architecture doc | V2 Design | 2026-06-27 |
-| Model registry metadata.json | Release | 2026-06-29 |
-| All report files | Documentation | 2026-06-29 |
+## What Took Longer Than Expected
+
+| Task | Expected | Actual | Reason |
+|------|----------|--------|--------|
+| Docker setup | 1 day | 3 days | Dependency chains, port conflicts |
+| LLM integration | 2 days | **Not done** | Ollama 8GB download, never completed |
+| Real data integration | 3 days | **Not done** | API key delays, never circled back |
+| Dashboard polish | 3 days | 5 days | Plotly + Folium learning curve |
+| Report writing | 1 day | 3 days | 57 files, inflated claims discovered |
+
+## What Took Less Time Than Expected
+
+| Task | Expected | Actual | Reason |
+|------|----------|--------|--------|
+| Synthetic data generator | 2 days | 4 hours | Simpler than expected |
+| StateManager versioning | 2 days | 1 day | Clean dataclass design |
+| Risk scoring formulas | 3 days | 1 day | Straightforward weighted sums |

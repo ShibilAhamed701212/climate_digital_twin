@@ -1,104 +1,77 @@
 # Scenario Catalogue
 
-## Preset Scenarios
+> **11 preset scenarios for climate perturbation simulation.**  
+> ⚠️ All results are synthetic deltas from synthetic baselines.
 
-### Temperature Scenarios
+---
 
-| ID | Name | Delta | Description |
-|----|------|-------|-------------|
-| `temp_plus_1` | Temperature +1°C | +1.0°C | Moderate warming scenario |
-| `temp_plus_2` | Temperature +2°C | +2.0°C | Paris Agreement threshold scenario |
-| `temp_minus_1` | Temperature -1°C | -1.0°C | Cooling / La Niña scenario |
+## Temperature Scenarios
 
-### Rainfall Scenarios
+| ID | Name | Parameter | Description |
+|----|------|-----------|-------------|
+| T1 | +1°C Warming | delta=+1.0 | Moderate temperature increase |
+| T2 | +2°C Warming | delta=+2.0 | Significant temperature increase |
+| T3 | +3°C Warming | delta=+3.0 | Extreme temperature increase |
+| T4 | -1°C Cooling | delta=-1.0 | Moderate temperature decrease |
+| T5 | -2°C Cooling | delta=-2.0 | Significant temperature decrease |
 
-| ID | Name | Change | Description |
-|----|------|--------|-------------|
-| `rain_plus_10` | Rainfall +10% | +10% | Moderate wet scenario |
-| `rain_plus_40` | Rainfall +40% | +40% | Extreme wet / flood-prone scenario |
-| `rain_minus_25` | Rainfall -25% | -25% | Moderate drought scenario |
+## Rainfall Scenarios
 
-### Monsoon Scenarios
+| ID | Name | Parameter | Description |
+|----|------|-----------|-------------|
+| R1 | +10% Rainfall | multiplier=1.10 | Slight rainfall increase |
+| R2 | +25% Rainfall | multiplier=1.25 | Moderate rainfall increase |
+| R3 | +40% Rainfall | multiplier=1.40 | Extreme rainfall increase |
+| R4 | -10% Rainfall | multiplier=0.90 | Slight rainfall decrease |
+| R5 | -25% Rainfall | multiplier=0.75 | Moderate rainfall decrease |
+| R6 | -40% Rainfall | multiplier=0.60 | Extreme rainfall decrease |
 
-| ID | Name | Delay | Intensity Change | Description |
-|----|------|-------|-----------------|-------------|
-| `monsoon_delayed_15` | Monsoon Delayed 15 Days | +15 days | -20% | Late onset with weaker monsoon |
-| `monsoon_early_7` | Monsoon Early 7 Days | -7 days | 0% | Early onset scenario |
+---
 
-### Extreme Event Scenarios
+## Monsoon Scenario
 
-| ID | Name | Type | Parameters | Duration |
-|----|------|------|-----------|----------|
-| `heatwave` | Extreme Heat Wave | heatwave | +5.0°C | 7 days |
-| `flood` | Flood Scenario | flood | +200% rainfall | 5 days |
-| `drought` | Drought Condition | drought | -80% rainfall | 30 days |
+| ID | Name | Parameters | Description |
+|----|------|-----------|-------------|
+| M1 | Delayed Monsoon | onset_delay=15, intensity=0.8 | 15-day delay with 80% intensity |
 
-## Scenario Ranges (Configurable)
+---
 
-### Temperature
+## Extreme Event Scenarios
 
-| Property | Min | Max | Step |
-|----------|-----|-----|------|
-| Delta | -5.0°C | +5.0°C | 0.5°C |
+| ID | Name | Parameters | Description |
+|----|------|-----------|-------------|
+| E1 | Heatwave | intensity=0.8, duration=5 | 5-day heatwave (temp +4°C) |
+| E2 | Coldwave | intensity=0.7, duration=5 | 5-day coldwave (temp -5°C) |
+| E3 | Heavy Flood | intensity=0.9, duration=3 | 3-day flood (rainfall x3) |
+| E4 | Severe Drought | intensity=0.8, duration=30 | 30-day drought (rainfall x0.1) |
 
-### Rainfall
-
-| Property | Min | Max | Step |
-|----------|-----|-----|------|
-| Percent Change | -100% | +500% | 5% |
-
-### Monsoon
-
-| Property | Max | 
-|----------|-----|
-| Delay | 30 days |
-| Advance | 15 days |
-| Intensity Reduction | 0–50% |
-
-## Use Cases by Stakeholder
-
-### Agricultural Planners
-| Scenario | Use |
-|----------|-----|
-| rain_minus_25 | Drought preparedness planning |
-| monsoon_delayed_15 | Sowing date adjustment |
-| temp_plus_2 | Crop variety selection |
-
-### Urban Infrastructure
-| Scenario | Use |
-|----------|-----|
-| rain_plus_40 | Drainage capacity planning |
-| heatwave | Heat action plan activation |
-| flood | Flood mapping and evacuation planning |
-
-### Water Resource Managers
-| Scenario | Use |
-|----------|-----|
-| drought | Reservoir level planning |
-| rain_minus_25 | Water allocation strategy |
-| monsoon_early_7 | Dam operation schedule |
-
-### Disaster Management
-| Scenario | Use |
-|----------|-----|
-| flood | Early warning system trigger |
-| heatwave | Health advisory activation |
-| drought | Relief deployment planning |
+---
 
 ## Combined Scenarios
 
-Combined scenarios apply multiple sub-scenarios sequentially:
+| ID | Name | Composition | Description |
+|----|------|-------------|-------------|
+| C1 | Hot + Dry | T2 (+2°C) + R5 (-25%) | Climate change baseline scenario |
+| C2 | Wet + Warm | T1 (+1°C) + R2 (+25%) | Moderate combined change |
+| C3 | Extreme | T3 (+3°C) + R6 (-40%) | Worst-case warming + drying |
 
-```json
-{
-  "scenario_type": "combined",
-  "parameters": {
-    "scenarios": [
-      {"scenario_type": "temperature", "parameters": {"temperature_delta": 2.0}},
-      {"scenario_type": "rainfall", "parameters": {"rainfall_change_pct": -25.0}}
-    ]
-  }
-}
-```
+---
 
-Max 5 sub-scenarios per combined scenario.
+## Parameters
+
+| Parameter | Type | Range | Description |
+|-----------|------|-------|-------------|
+| delta | float | -5.0 to +5.0 | Temperature change in °C |
+| multiplier | float | 0.1 to 3.0 | Rainfall scaling factor |
+| intensity | float | 0.0 to 1.0 | Event severity |
+| duration | int | 1–30 | Event duration in days |
+| onset_delay | int | 0–30 | Monsoon onset delay in days |
+
+---
+
+## Notes
+
+- All scenario parameters are arbitrary choices for demo purposes
+- Not calibrated against climate model projections
+- Results are deterministic: same input → same output
+- Physics constraints (rainfall >= 0) enforced automatically

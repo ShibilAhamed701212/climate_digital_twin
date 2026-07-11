@@ -1,123 +1,90 @@
 # System Overview
 
-## Data Flow (8-Step Pipeline)
+> **Hackathon Proof-of-Concept** — All data synthetic. Not production-ready.
+
+---
+
+## 8-Step Pipeline
+
+The following pipeline runs end-to-end on **synthetic data (np.random.seed(42))**:
 
 ```
-  Dataset → Forecast → Digital Twin → Scenario → Risk → RAG → Copilot → Dashboard → Reports
+Dataset → Forecast → Digital Twin → Scenario → Risk → RAG → Copilot → Dashboard
 ```
 
-### Step 1: Dataset
-- **Source:** NASA POWER API (PRECTOTCORR, T2M_MAX, T2M_MIN) with synthetic fallback
-- **Pipeline:** `pipeline/download.py` → `validate.py` → `clean.py` → `features.py` → `export.py`
-- **Temporal split:** 70/15/15 chronological (train/val/test)
-- **Feature engineering:** 12 features (DayOfYear, Month, Week, Season, Monsoon, RollingRain7/30, RollingTemp7/30, TempDiff, RainfallTrend, PriorRain7/30)
-- **Grid resolution:** 0.25° rainfall, 1.0° temperature
-- **Date range:** 1981-01-01 to 2023-12-31
+| Step | Service | Port | Purpose | Honest Status |
+|------|---------|------|---------|---------------|
+| 1. Dataset | Data Ingestion | (script) | Generate/load synthetic climate data | ✅ Synthetic generation only |
+| 2. Forecast | Forecasting API | 8005 | Predict future climate variables | ✅ Predictions on synthetic data |
+| 3. Digital Twin | Twin API | 8002 | Maintain climate state | ✅ Synthetic state versioning |
+| 4. Scenario | Scenario Engine | 8003 | Apply climate perturbations | ✅ Deterministic deltas |
+| 5. Risk | Risk API | 8004 | Compute hazard scores | ✅ Weighted scoring on synthetic data |
+| 6. RAG | RAG API | 8006 | Retrieve knowledge base context | ⚠️ FAISS empty by default |
+| 7. Copilot | Copilot API | 8007 | Answer natural language queries | ⚠️ Mock responses only |
+| 8. Dashboard | Streamlit UI | 8501 | Visualize and interact | ✅ 7 live pages + 3 mock pages |
 
-### Step 2: Forecast
-- **Engine:** `models/` — 7 architectures (Baseline MLP, LSTM, Transformer, iTransformer, PatchTST, TimeMixer, Ensemble)
-- **Horizons:** 1-day, 3-day, 7-day predictions
-- **Output:** Rainfall, MaxTemp, MinTemp with 95% confidence intervals
-- **Safety:** PhysicsValidator layer clamps rainfall ≥0, ensures Tmin ≤ Tmax
+---
 
-### Step 3: Digital Twin
-- **Engine:** `simulator/engine/twin_engine.py` — DigitalTwinEngine
-- **State management:** Immutable append-only versioning, per-location version history
-- **Storage:** Parquet repository with snappy compression
-- **Events:** Pub/sub EventBus with 5 event types
+## Microservice Architecture (8 Services)
 
-### Step 4: Scenario
-- **Engine:** `simulator/engine/scenario_engine.py` — ScenarioEngine
-- **Types:** Temperature (±1–3°C), Rainfall (±10–40%), Monsoon (delay/advance/intensity), Extreme Events (flood/heatwave/drought), Combined
-- **Presets:** 11 predefined scenarios
-- **Validity:** Deterministic execution <3s, enforced ≥0 rainfall
+| Service | Build Context | Docker Image | Depends On | Honest Status |
+|---------|--------------|--------------|------------|---------------|
+| Gateway | nginx-gateway | nginx:alpine | All services | ✅ Routes to all services |
+| Forecasting API | ./api | climate-api | — | ✅ Synthetic predictions |
+| Twin API | ./digital_twin | climate-twin | — | ✅ Synthetic state |
+| Scenario Engine | ./scenario_engine | climate-scenario | twin-api | ✅ Deterministic <3s |
+| Risk API | ./risk | climate-risk | — | ✅ Synthetic scores |
+| RAG API | ./rag | climate-rag | — | ⚠️ Empty index |
+| Copilot API | ./copilot | climate-copilot | — | ⚠️ Mock responses |
+| Dashboard | ./app | climate-dashboard | All APIs | ✅ 10 pages |
 
-### Step 5: Risk
-- **Engine:** `risk/engine/risk_engine.py` — RiskEngine
-- **Scoring:** Heat (0–100), Flood (0–100), Drought (0–100), Composite (weighted)
-- **Categories:** Very Low (0–20), Low (21–40), Moderate (41–60), High (61–80), Severe (81–100)
-- **Explainability:** Deterministic SHAP estimation with feature attribution
+**Note:** Ollama is a separate container dependency for future LLM integration. Currently not wired to the copilot service.
 
-### Step 6: RAG
-- **Engine:** `knowledge/` — FAISS + sentence-transformers
-- **Documents:** 5 indexed documents (ISRO, IMD, Government, Research, Risk)
-- **Chunking:** Recursive paragraph→sentence→word at 700 chars with 120 overlap
-- **Search:** Top-k=5 with score threshold (0.5) and metadata filtering
+---
 
-### Step 7: Copilot
-- **Engine:** `copilot/` — Multi-agent orchestration
-- **Pipeline:** Intent Classification → Planning → Execution → Response Generation
-- **Tools:** 6 registered (forecast, twin, scenario, risk, RAG, report)
-- **LLM:** Qwen3:8b via Ollama (temperature 0.1, context 8192)
-- **Memory:** Conversation buffer window (10 turns, 60min expiry)
+## Tech Stack
 
-### Step 8: Dashboard & Reports
-- **Dashboard:** 7-page Streamlit app (Overview, Forecast, Twin State, Scenario, Risk, Reports, Copilot)
-- **Reports:** JSON + Markdown from risk engine, scenario engine, conversation history
-- **Maps:** Folium with climate overlays, district boundaries, risk heatmaps
-- **Charts:** Plotly (time series, comparison, distribution, risk trends)
+### Machine Learning
+- **Framework:** PyTorch 2.0+
+- **Models:** MLP, LSTM, Transformer (trained on synthetic data)
+- **Stubs:** PatchTST, TimeMixer, iTransformer (class definitions only)
+- **Ensemble:** Ridge regression meta-learner (mock)
 
-## Microservice Architecture
+### Backend
+- **API Framework:** FastAPI + Uvicorn
+- **Vector Store:** FAISS (IndexFlatIP, 384-dim)
+- **Embeddings:** sentence-transformers (all-MiniLM-L6-v2)
+- **Storage:** Parquet + DuckDB
 
-```
-                        ┌──────────────────┐
-                        │  Streamlit Dash  │
-                        │    Port 8501     │
-                        └────────┬─────────┘
-                                 │
-                        ┌────────▼─────────┐
-                        │   API Gateway    │
-                        │    Port 8000     │
-                        └──┬──┬──┬──┬──┬──┘
-                           │  │  │  │  │
-      ┌─────┐ ┌────┐ ┌────┐│ ┌──┴┐ ┌──┴┐ ┌──────────┐
-      │Twin │ │Fore│ │Scen││ │Rsk│ │RAG│ │ Copilot  │
-      │Core │ │cast│ │Eng ││ │Eng│ │Svc│ │ Agent    │
-      │8001 │ │8006│ │8002││ │800│ │800│ │ 8005     │
-      └─────┘ └────┘ └────┘│ └───┘ └───┘ └──────────┘
-                           │
-                     ┌─────▼──────┐
-                     │   Ollama   │
-                     │  11434     │
-                     └────────────┘
-```
+### Frontend
+- **Dashboard:** Streamlit + Plotly + Folium
 
-## Service Port Mapping
+### Infrastructure
+- **Orchestration:** Docker Compose
+- **Monitoring:** Prometheus + Grafana (defined but not actively used)
 
-| Service | Port | Protocol | Health Endpoint |
-|---------|------|----------|-----------------|
-| fastapi-gateway | 8000 | HTTP | `GET /health` |
-| twin-state-mgr | 8001 | HTTP | `GET /health` |
-| scenario-engine | 8002 | HTTP | `GET /health` |
-| risk-engine | 8003 | HTTP | `GET /health` |
-| rag-service | 8004 | HTTP | `GET /health` |
-| copilot-agent | 8005 | HTTP | `GET /health` |
-| forecast-engine | 8006 | HTTP | `GET /health` |
-| streamlit-dashboard | 8501 | HTTP | — |
-| ollama | 11434 | HTTP | `ollama list` |
-| prometheus | 9090 | HTTP | — |
-| grafana | 3000 | HTTP | — |
+---
 
 ## Pilot Scope
 
-| Dimension | Detail |
-|-----------|--------|
-| **Region** | Karnataka, India |
-| **Bounds** | 11.5–18.5°N, 74.0–78.5°E |
-| **Grid** | 0.25° resolution |
-| **Districts** | Bengaluru Urban, Mysuru, Belagavi, Dakshina Kannada, Kalaburagi |
-| **Variables** | Rainfall (mm), MaxTemp (°C), MinTemp (°C) |
-| **Horizons** | 1-day, 3-day, 7-day |
-| **Data Period** | 1981–2023 (43 years) |
+| Dimension | Value |
+|-----------|-------|
+| Geographic scope | 15 sample Karnataka districts (hardcoded in config) |
+| Data source | Synthetic (no real API calls) |
+| Time period | Simulated 43-year range (1981–2023) |
+| Grid resolution | 48 synthetic grid cells |
+| Feature count | 12 engineered features |
+| Model architectures | 7 defined, 3 trained |
+| Scenario presets | 11 (temperature ±1–3°C, rainfall ±10–40%) |
+| Risk categories | Heat, Flood, Drought, Composite |
+
+---
 
 ## Key Constraints
 
-| Constraint | Specification |
-|-----------|--------------|
-| Temperature bounds | -10°C to 55°C (physics validation) |
-| Rainfall bounds | 0–500 mm/day (physics validation) |
-| Scenario execution | <3000ms |
-| Deterministic | Same inputs always produce same outputs |
-| Offline mode | Full synthetic data fallback without external APIs |
-| Python | >=3.10 required |
-| Docker | All services containerized |
+1. **All data is synthetic.** No real climate observation from NASA POWER, IMD, or ISRO was ever ingested. The download pipeline exists but falls back to synthetic generation on any failure.
+2. **FAISS index starts empty.** Vector store must be populated on first run from 15 bundled documents (PDF stubs, markdown, CSV). `generate_answer()` returns mock responses.
+3. **Copilot is a mock.** The intent classification, planner, executor, and generator stages exist in code but the LLM call to Qwen3:8b is stubbed. All responses are template-based.
+4. **Dashboard has 3 mock pages.** Pages 08 (Knowledge Base), 09 (Feedback), and 10 (BHAI State) display hardcoded placeholder content with no backend connectivity.
+5. **18 test failures are expected.** Due to NumPy/FAISS/Streamlit version incompatibilities in certain environments. Not indicative of code bugs.
+6. **No authentication.** All endpoints are open. No RBAC, no API key validation, no rate limiting.

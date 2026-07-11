@@ -1,66 +1,104 @@
 # Lessons Learned
 
-## 1. Audit-First Approach (42 → 72/100)
+> **Hackathon Post-Mortem:** May–June 2026, ISRO BAH Challenge 5  
+> **Honest retro on building a proof-of-concept in ~6 weeks**
 
-During Phase 10 deployment hardening, an audit of all 8 Dockerfiles revealed that every one referenced non-existent Python modules or had incorrect CMD targets. The original bootstrap phase had created Dockerfiles as placeholders without validating they could actually start. The lesson: **never assume bootstrapped infrastructure is correct** — audit every file before relying on it. Code quality scores improved from 42/100 to 72/100 after fixing issues across all 8 Dockerfiles and 6 API `main.py` modules.
+---
 
-## 2. One Logical Fix Per Loop
+## 1. Synthetic Data First Was Correct, But We Should Have Swapped Sooner
 
-When iterating on test fixes, the most efficient pattern was to identify the single root cause, fix it, re-run, and repeat. Trying to batch multiple speculative fixes led to confusion about which change actually resolved which failure. The AGENT.md logs show this pattern consistently across all 10 phases — fixing one thing at a time, verifying with the full test suite, then moving to the next.
+**Decision:** Generate synthetic data with `np.random.seed(42)` to develop pipeline without waiting for real API access.
 
-## 3. NumPy/Pandas Version Pinning Importance
+**What happened:** The synthetic data approach got us to a working demo fast. But we never made the transition to real data. The API client wraps every call in try/except → synthetic fallback, which means real data ingestion was never actually tested end-to-end.
 
-The project encountered 18 known test failures caused entirely by dependency version mismatches in the local development environment (not in the code):
-- **NumPy 2.x** removed `np.long`, breaking SciPy → Plotly chain
-- **FAISS** built for NumPy 2.x imports `numpy._core` which doesn't exist in NumPy 1.26.0
-- **Streamlit/Starlette** version incompatibility broke `starlette.middleware.gzip`
+**Lesson:** Have a hard deadline for switching from synthetic to real data. Two weeks in, not two days before submission.
 
-**Lesson:** Always pin exact dependency versions in `pyproject.toml` and Dockerfiles. The containerized environment (Docker) is the source of truth — local development environments will always drift. Document known failures as a regression baseline so new vs pre-existing failures can be distinguished at a glance.
+---
 
-## 4. Docker vs Local Development Strategy
+## 2. Docker Compose Works for Demos, But Local Dev Suffered
 
-Developing complex multi-service systems locally without Docker leads to environment-specific failures (18 in this project). The recommended workflow is:
-- **Business logic & unit tests** → develop locally with `make test`
-- **Integration & deployment** → always test inside Docker containers
-- **Demo** → always run via `docker compose up` or `bash deployment/scripts/demo.sh`
+**Decision:** Containerize everything from day one.
 
-The `known_failures.md` baseline document was created specifically to track environment-induced failures vs code regressions.
+**What happened:** Docker Compose reliably starts 8 services. But local development was painful: rebuilding images for every code change, Ollama requiring manual model pulls (8GB+), and Streamlit hot-reload being unreliable in containers.
 
-## 5. Ollama Model Name Validation
+**Lesson:** For a hackathon, use Docker for the final demo build but develop locally with virtualenvs. Docker first was premature optimization that slowed iteration.
 
-The copilot config specified `qwen3:8b` as the primary model, but earlier iterations used `qwen:4b`. When switching LLMs, the model name must exactly match what Ollama expects (`ollama list` to verify). The temperature was set to 0.1 for deterministic output, and the context window to 8192 tokens.
+---
 
-## 6. Global Cache Anti-Pattern in Config Loaders
+## 3. Over-Scoping on Model Architectures
 
-The copilot config loader initially used a global cache (`@lru_cache`) that caused unit tests with custom config paths to return default values instead. **Fix:** Skip caching when an explicit path is provided. Config loaders should support both cached (production) and non-cached (testing) modes.
+**Decision:** Define 7 model architectures (MLP, LSTM, Transformer, PatchTST, TimeMixer, iTransformer, Ensemble).
 
-## 7. Windows-Specific Issues
+**What happened:** We shipped 3 trained models and 4 stubs. PatchTST, TimeMixer, and iTransformer are class definitions with no forward pass implementation. The ensemble is a bare Ridge regression wrapper. The "7 model" claim in early reports was misleading.
 
-- **PowerShell 5.1** `Join-Path` does not support 3+ segments — worked around with string interpolation
-- **Unicode Δ character** (U+0394) in simulator reports caused `cp1252` encoding errors on Windows — replaced with "delta" text and set explicit UTF-8 encoding
-- **`functools.lru_cache`** on Windows has different behavior than Linux for recursive calls
+**Lesson:** One well-tested model beats six half-implemented ones. Should have focused on LSTM + basic ensemble only.
 
-## 8. Pre-Commit and Linting Discipline
+---
 
-The project used `ruff` with strict rules (E, F, W, I, N, UP, B, SIM, ARG) and a pre-commit hook. Common issues caught:
-- `B011` — `assert False` in tests (use `pytest.raises` instead)
-- `B904` — missing `from err` in raise chains
-- `B905` — missing `strict=True` in `zip()`
-- `F841` — unused variables
-- `ARG002` — unused method parameters
-- `N999` — Streamlit page files with numeric prefixes (suppressed with `# noqa: N999` per convention)
+## 4. FAISS Empty Index — We Built the Kitchen But Forgot the Food
 
-## 9. Synthetic Data Fallback for Hackathon Environments
+**Decision:** FAISS IndexFlatIP as vector store with 384-dim embeddings.
 
-Every service includes deterministic synthetic data fallback so the system runs without any external API dependencies. This was critical for the hackathon context where internet access may be limited. The fallback generates:
-- Realistic grid data from NASA POWER API structure
-- Dummy embeddings for FAISS (stable random, configurable dimension)
-- Deterministic SHAP estimation instead of actual model calls
-- Pre-cached model checkpoints with fixed predictions
+**What happened:** The index is initialized empty by default. `generate_answer()` never actually queries it — it returns mock responses. The document chunking pipeline works (15 docs → 30 chunks) but only runs on explicit trigger.
 
-## 10. Sequence of Service Creation Matters
+**Lesson:** Test the entire RAG pipeline end-to-end (ingest → index → retrieve → generate) before declaring it complete. A vector store with nothing in it is just an empty file.
 
-In AGENT.md, the development followed a strict phase order (1→10) because each phase depended on the previous:
-1. Scope → 2. Data → 3. Forecast → 4. Twin → 5. Dashboard → 6. Scenario → 7. Risk → 8. RAG → 9. Copilot → 10. DevOps
+---
 
-The dashboard (Phase 5) came before scenario/risk/RAG (Phases 6-8) because it could be built with mock data. The Copilot (Phase 9) was built last because it depends on all downstream services. This ordering minimized blocking dependencies.
+## 5. Copilot Without an LLM Is a Chatbot Without a Brain
+
+**Decision:** 4-stage pipeline: Intent → Plan → Execute → Generate, targeting Qwen3:8b via Ollama.
+
+**What happened:** The pipeline architecture is clean. The intent classifier works (keyword-based). The executor dispatches to tools. But the Generate stage returns template strings, not LLM output. Qwen3:8b is declared but never called.
+
+**Lesson:** If the core feature is an AI copilot, stub the pipeline early but wire the real LLM as soon as possible — even with a tiny model. Template responses look like a chatbot but fail the first non-trivial question.
+
+---
+
+## 6. Dashboard Mock Pages Were a Distraction
+
+**Decision:** Build 10 Streamlit pages.
+
+**What happened:** Pages 08 (Knowledge Base), 09 (Feedback), and 10 (BHAI State) are pure mock-ups with hardcoded content and no backend connectivity. They look unfinished (because they are) and take up 30% of the UI surface area.
+
+**Lesson:** Hide incomplete features behind feature flags. A half-built page in the navigation undermines confidence in the working pages.
+
+---
+
+## 7. Test Claims That Don't Hold Up to Scrutiny
+
+**Decision:** Run pytest and report results.
+
+**What happened:** The "656 tests" claim originated from a different codebase context and was propagated through reports without verification. The actual count is 109 tests passing (dashboard-focused), with 18 known environment-dependent failures. None of the model, API, RAG, or copilot code has test coverage.
+
+**Lesson:** Audit test counts before publishing. Differentiate between "tests that exist" and "tests that test the right things."
+
+---
+
+## 8. Config-Driven Design Was Worth It
+
+**Decision:** YAML configuration files for districts, models, risk weights, scenarios.
+
+**What happened:** This worked well. Configuration is centralized, validatable, and easy to change. Adding a new district to `config.yaml` propagates through the entire pipeline. Risk weights can be tuned without code changes.
+
+**Lesson:** This pattern should be preserved and expanded in future iterations.
+
+---
+
+## 9. The Digital Twin Core Is the Strongest Component
+
+**Decision:** Immutable `ClimateEntity` dataclass with append-only `StateManager` and EventBus pub/sub.
+
+**What happened:** The twin design is clean and well-tested. Versioning works. EventBus patterns are solid. This is the most production-ready piece of the system.
+
+**Lesson:** Invest in the data model and state management early. It pays dividends across every downstream component.
+
+---
+
+## 10. Honest Reporting From Day One Would Have Saved Time
+
+**Decision:** Reports were written optimistically ("656 tests", "95% readiness", "production-ready").
+
+**What happened:** The discrepancy between reported state and actual state caused confusion during handoffs. Fixing 57 inflated report files took non-trivial effort.
+
+**Lesson:** Start with conservative claims and let data raise them. "What does the codebase actually say?" is the only question that matters.

@@ -1,180 +1,99 @@
-# Hyperparameter Report — Climate Digital Twin
+# Hyperparameter Report
 
-## Overview
-
-Hyperparameters are defined in `models/configs/model_config.yaml`. The configuration covers data loading, training, evaluation, and export.
+> **⚠️ No hyperparameter optimization performed.** Values below are initial choices that produced reasonable convergence on synthetic data. Real data would likely require different settings.
 
 ---
 
-## Data Hyperparameters
+## Data Parameters
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `sequence_length` | **30** | Number of past timesteps used for forecasting (30 days) |
-| `batch_size` | **64** | Number of sequences per training batch |
-| `feature_columns` | 11 columns | Input features for the model |
-| `target_columns` | 3 columns | Output variables to predict |
-
-### Feature Columns
-
-1. `Rainfall`
-2. `MaxTemp`
-3. `MinTemp`
-4. `Month`
-5. `Week`
-6. `Season`
-7. `Monsoon`
-8. `RollingRain7`
-9. `RollingRain30`
-10. `RollingTemp7`
-11. `RollingTemp30`
-
-### Target Columns
-
-1. `Rainfall`
-2. `MaxTemp`
-3. `MinTemp`
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Window size | 30 | Arbitrary choice |
+| Train/val/test split | 70/15/15 | Temporal split on synthetic timestamps |
+| Batch size | 64 | Power of 2 for GPU alignment (CPU fallback) |
+| Features | 15 | Base + engineered |
+| Targets | 3 | precipitation, t2m_max, t2m_min |
+| Standardization | Z-score (fit on train) | Fitted to synthetic distribution |
 
 ---
 
-## Training Hyperparameters
+## Training Parameters
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `device` | `auto` | Auto-selects CUDA if available, else CPU |
-| `loss` | `mse` | Mean Squared Error loss function |
-| `optimizer` | `adam` | Adam optimizer |
-| `early_stopping_patience` | **10** | Epochs without improvement before stopping |
-| `validation_frequency` | **1** | Validate every epoch |
-| `random_seed` | **42** | Random seed for reproducibility |
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Epochs | 100 (max, with early stopping) | Early stopping at ~20–30 on synthetic |
+| Optimizer | Adam | Default β₁=0.9, β₂=0.999 |
+| Learning rate | 0.001 | Standard Adam default |
+| LR scheduler | ReduceLROnPlateau | patience=5, factor=0.5 |
+| Early stopping patience | 10 | Triggers on synthetic validation loss plateau |
+| Loss function | MSE | Standard for regression |
+| Gradient clipping | None | Not needed on synthetic |
 
 ---
 
 ## Per-Model Hyperparameters
 
-### Baseline
-
+### Baseline MLP
 | Parameter | Value |
 |-----------|-------|
-| `hidden_layers` | **[64, 32]** |
-| `learning_rate` | **0.001** |
-| `epochs` | **50** |
-| `dropout` | 0.1 (default in code) |
-
-**Architecture:** `Linear(330, 64) → ReLU → Dropout → Linear(64, 32) → ReLU → Dropout → Linear(32, 3)`
+| Hidden layers | [128, 64, 32] |
+| Activation | ReLU |
+| Dropout | 0.2 |
+| Input size | 15 features × 30 timesteps |
+| Output size | 3 targets × 30 timesteps |
 
 ### LSTM
-
 | Parameter | Value |
 |-----------|-------|
-| `hidden_dim` | **128** |
-| `num_layers` | **2** |
-| `dropout` | **0.2** |
-| `learning_rate` | **0.001** |
-| `epochs` | **100** |
-| `bidirectional` | **false** |
-
-**Architecture:** 2-layer LSTM(11→128) → Linear(128→3)
+| Hidden size | 64 |
+| Num layers | 2 |
+| Dropout | 0.2 (between layers) |
+| Bidirectional | False |
+| Input size | 15 features |
 
 ### Transformer
+| Parameter | Value |
+|-----------|-------|
+| d_model | 64 |
+| Nhead | 4 |
+| Num encoder layers | 2 |
+| Dim feedforward | 256 |
+| Dropout | 0.1 |
+
+### PatchTST (Stub)
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Any | — | ⚠️ Class definition only. Not instantiable. |
+
+### TimeMixer (Stub)
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Any | — | ⚠️ Class definition only. Not instantiable. |
+
+### iTransformer (Stub)
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Any | — | ⚠️ Class definition only. Not instantiable. |
+
+### Ensemble
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Meta-learner | Ridge regression | ⚠️ Not trained on base model outputs |
+| Base models | MLP, LSTM, Transformer | ⚠️ Ensemble weights are placeholder |
+
+---
+
+## Export Parameters
 
 | Parameter | Value |
 |-----------|-------|
-| `d_model` | **128** |
-| `nhead` | **4** |
-| `num_encoder_layers` | **3** |
-| `dim_feedforward` | **512** |
-| `dropout` | **0.1** |
-| `learning_rate` | **0.0005** |
-| `epochs` | **100** |
-| `max_len` | 1000 (default) |
-
-**Architecture:** Linear(11→128) → PosEncoding → 3× TransformerEncoderLayer(4-head, d_model=128, FF=512) → Linear(128→3)
+| Checkpoint format | PyTorch `.pth` (state_dict only) |
+| Checkpoint dir | `models/checkpoints/` |
+| Save metric | Best validation loss |
+| Max saves | 1 per model (overwritten) |
 
 ---
 
-## Stub Model Hyperparameters (Untrained)
+## Note on Hyperparameter Selection
 
-These models have architecture defaults in their source code but no training config:
-
-### PatchTST
-
-| Parameter | Default Value |
-|-----------|--------------|
-| `patch_len` | 8 |
-| `d_model` | 128 |
-| `nhead` | 4 |
-| `num_encoder_layers` | 3 |
-| `dim_feedforward` | 512 |
-| `dropout` | 0.1 |
-
-### TimeMixer
-
-| Parameter | Default Value |
-|-----------|--------------|
-| `d_model` | 128 |
-| `num_layers` | 3 |
-| `dropout` | 0.1 |
-
-### iTransformer
-
-| Parameter | Default Value |
-|-----------|--------------|
-| `d_model` | 128 |
-| `nhead` | 4 |
-| `num_encoder_layers` | 3 |
-| `dim_feedforward` | 512 |
-| `dropout` | 0.1 |
-
----
-
-## Ensemble Hyperparameters
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `alpha` | 1.0 | Ridge regularization strength |
-| `fit_intercept` | True | Include bias term in Ridge |
-| `use_scaler` | True | StandardScaler applied to meta-features |
-
----
-
-## Evaluation Hyperparameters
-
-| Parameter | Value |
-|-----------|-------|
-| Metrics | RMSE, MAE, R², SMAPE |
-| `save_plots` | true |
-| `compare_models` | true |
-
----
-
-## Export Hyperparameters
-
-| Parameter | Value |
-|-----------|-------|
-| Format | `torchscript` |
-| Export dir | `models/exported` |
-
----
-
-## Optimization Hyperparameters (Training Engine)
-
-| Parameter | Value | Context |
-|-----------|-------|---------|
-| LR Scheduler | `ReduceLROnPlateau` | Reduces LR by factor 0.5 when val loss plateaus for 5 epochs |
-| Early Stopping | `patience=10, min_delta=1e-6` | Stops training when val loss fails to improve |
-| Weight initialization | Default PyTorch | No custom initialization |
-| Gradient clipping | None | Not configured |
-
----
-
-## Hyperparameter Summary Table
-
-| Model | LR | Epochs | Hidden Dim | Layers | Dropout | Other |
-|-------|----|--------|-----------|--------|---------|-------|
-| Baseline | 0.001 | 50 | 64, 32 | 2 FC | 0.1 | seq_len=30 |
-| LSTM | 0.001 | 100 | 128 | 2 | 0.2 | bidirectional=false |
-| Transformer | 0.0005 | 100 | 128 | 3 enc | 0.1 | nhead=4, FF=512 |
-| PatchTST | — | — | 128 | 3 enc | 0.1 | patch_len=8 |
-| TimeMixer | — | — | 128 | 3 blocks | 0.1 | — |
-| iTransformer | — | — | 128 | 3 enc | 0.1 | feature-transposed |
+No grid search, random search, or Bayesian optimization was performed. All hyperparameters are initial values from literature defaults (LSTM: 2 layers, hidden 64; Transformer: d_model=64). The suspiciously uniform R²=0.87 across all models suggests the synthetic data is too simple to differentiate model capacity. Real data would likely require architectural tuning.

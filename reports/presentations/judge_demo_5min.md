@@ -1,118 +1,117 @@
 # Judge Demo Script — 5 Minutes
-## AI-Powered Digital Twin of India's Climate
-### ISRO BAH 2026 — Challenge 5
+
+> **⚠️ Honest version. All data is synthetic. Copilot returns mock responses. Not production-ready.**
 
 ---
 
 ## 0:00–0:30 — Problem Statement
 
 **Speaker:**
-"Good morning/afternoon, judges. India is a climate-vulnerable nation where 60% of agriculture depends on monsoon rainfall. Yet, localized climate forecasting remains a challenge. Today, we present an AI-powered Digital Twin of India's Climate — a proof-of-concept system that predicts rainfall and temperature, simulates climate scenarios, assesses risk, and answers natural language queries about climate conditions. Our pilot region is Karnataka, spanning 5 districts: Bengaluru Urban, Mysuru, Belagavi, Dakshina Kannada, and Kalaburagi."
+"Good morning/afternoon, judges. India is a climate-vulnerable nation where 60% of agriculture depends on monsoon rainfall. Yet, localized climate forecasting remains a challenge. Today, we present a **proof-of-concept** AI-powered Digital Twin of India's Climate — a system that demonstrates the architecture for predicting rainfall and temperature, simulating climate scenarios, assessing risk, and answering natural language queries. Our pilot region is Karnataka, with 15 sample districts. **I want to be upfront: this is a working prototype built for this hackathon. All data shown is synthetic — we prioritized building the full pipeline over real data integration in the 6-week timeframe.** "
 
 ---
 
 ## 0:30–1:30 — Architecture
 
 **Speaker:**
-"Our system is built on a 9-microservice architecture orchestrated via Docker Compose. The data flows through an 8-step pipeline:
+"Our system runs 8 Docker services:
 
-1. **Data Pipeline** — ingests 43 years of NASA POWER climate data (1981–2023) at 0.25° grid resolution, engineered into 11 features with 14 total columns
-2. **Forecast Engine** — 7 model architectures including LSTM, Transformer, and ensemble meta-learner
-3. **Digital Twin Core** — immutable state management with append-only versioning and pub/sub event system
-4. **Scenario Engine** — deterministic what-if simulation with 11 presets and 5 scenario types
-5. **Risk Engine** — heat, flood, drought, and composite scoring with SHAP explainability
-6. **RAG Knowledge Base** — FAISS vector store with semantic search over 15 sources
-7. **Climate Copilot** — multi-agent LLM orchestration (Intent->Plan->Execute->Generate)
-8. **Dashboard** — 7-page Streamlit app with interactive Folium maps and Plotly charts
+1. **Data Pipeline** — generates synthetic climate data matching NASA POWER schema
+2. **Forecast Engine** — 7 model architectures defined, 3 trained (MLP, LSTM, Transformer) on synthetic data
+3. **Digital Twin Core** — immutable state management with append-only versioning — the strongest component
+4. **Scenario Engine** — deterministic what-if simulation with 11 presets
+5. **Risk Engine** — heat, flood, drought, and composite scoring
+6. **RAG Knowledge Base** — FAISS vector store indexing 15 demo documents (~30 chunks)
+7. **Climate Copilot** — intent classification → tool dispatch → **mock response** (no LLM wired yet)
+8. **Dashboard** — Streamlit app with 7 live pages + 3 placeholder pages
 
-All services have health checks, synthetic data fallback for offline operation, and communicate through a FastAPI gateway."
+The 8th service is an Nginx gateway. Ollama is available in the compose file but not yet connected to the copilot."
 
 ---
 
 ## 1:30–2:30 — Demo
 
 **Speaker:**
-"Let me show you the live system. [OPEN DASHBOARD]
+"Let me show you the system running. [OPEN DASHBOARD]
 
-**Climate Overview** — Here's our interactive map of Karnataka, showing current temperature and rainfall conditions across the state. We have 40 grid cells at 0.5° resolution.
+**Climate Overview** — Interactive map of Karnataka showing synthetic temperature and rainfall. Data is generated with numpy random seed — looks realistic but is not real observations.
 
-**Forecast Viewer** — Switching to the forecast page, we can see 7-day predictions for any location. The LSTM model — our best performer — generates predictions with 95% confidence intervals.
+**Forecast Viewer** — 7-day predictions from our LSTM model. RMSE 4.53 on the synthetic test set — but this metric is only meaningful relative to other models in our benchmark, not as absolute accuracy.
 
-**Twin State** — This page shows the digital twin's current state, historical data, and version timeline. Every observation is immutably versioned.
+**Twin State** — This is our digital twin with versioned state. Every update creates a new immutable version — this design is production-quality.
 
-**Scenario Simulator** — Here I can simulate what-if scenarios. Let's apply a +2°C temperature increase. The engine computes deltas per location, showing practical impacts.
+**Scenario Simulator** — Applying a +2°C temperature increase. The engine computes deltas per district in <3 seconds deterministically.
 
-**Climate Risk** — The risk page shows a heatmap of composite risk across Karnataka. Our system scores heat, flood, drought, and composite risk on a 0–100 scale.
+**Climate Risk** — Heatmap of composite risk. Scores are computed using configurable weighted formulas — the methodology is sound but uncalibrated against real hazard events.
 
-**Copilot** — Finally, the AI Copilot. I can ask: 'What's the weather forecast for Bengaluru?' or 'What are the flood risks in Mysuru?' — and the multi-agent system classifies the intent, plans tool calls, executes, and generates a response."
-
----
-
-## 2:30–3:30 — Scientific Validation
-
-**Speaker:**
-"Let's talk numbers. We trained 3 model architectures on 628,200 processed data points:
-
-| Model | RMSE | R² | Parameters | Checkpoint |
-|-------|------|-----|-----------|------------|
-| LSTM | **4.53** | 0.87 | 203K | 802 KB |
-| Transformer | 4.57 | 0.87 | 596K | 2,847 KB |
-| Baseline MLP | 4.59 | 0.87 | 21K | 94.5 KB |
-
-All three models achieve R² of 0.87. The LSTM is our best performer with RMSE 4.53. The Transformer is the fastest at inference — 26.8 ms total, 69x faster than baseline.
-
-We also implemented an ensemble meta-learner using Ridge regression that stacks all base model predictions. Three additional architectures — PatchTST, TimeMixer, and iTransformer — are implemented as stubs for future training.
-
-The PhysicsValidator safety layer ensures all predictions are physically plausible: rainfall ≥ 0, Tmin ≤ Tmax, temperatures clamped to [-10, 55]°C."
+**Copilot** — I can ask about forecasts or risks. **The responses are template-based.** We designed the 4-stage pipeline (Intent→Plan→Execute→Generate) but haven't wired the LLM yet. The architecture is ready — the LLM integration is the next step."
 
 ---
 
-## 3:30–4:00 — RAG Knowledge Base
+## 2:30–3:30 — Technical Details
 
 **Speaker:**
-"Our RAG knowledge base indexes 15 documents from 5 source categories: government (Karnataka climate profile), ISRO (INSAT satellite products), IMD (weather data), research (forecasting methods), and risk assessment. Documents are chunked at 700 tokens with 120-token overlap, embedded using all-MiniLM-L6-v2 (384-dimensional vectors), and stored in a FAISS IndexFlatIP vector store.
+"Here's what we built in 6 weeks:
 
-The system handles 30 indexed chunks with retrieval latency under 3 ms. Across 8 benchmark queries, we achieved 100% retrieval rate with mean top score of 0.659.
+| Component | Lines of Code | Status |
+|-----------|--------------|--------|
+| Digital Twin | ~800 | Most complete |
+| Forecasting Models | ~2,000 | 3 trained on synthetic, 3 stubs |
+| Scenario Engine | ~500 | Deterministic, <3s |
+| Risk Engine | ~600 | 4 modules, configurable |
+| RAG Pipeline | ~600 | FAISS, 30 chunks, mock answers |
+| Copilot | ~500 | 4-stage pipeline, mock responses |
+| Dashboard | ~3,000 | 7 live pages + 3 mock |
+| Tests | ~109 passing | 18 known env failures |
 
-The KnowledgeAPI supports index, search, delete, list, rebuild, and retrieve_context operations — all wrapped into the RAG Service on port 8004."
+The LSTM model achieves RMSE 4.53 on synthetic data — but all three trained models show R²=0.87, which tells us the synthetic data is too simple to differentiate model architectures. **Real data would produce different results.** "
+
+---
+
+## 3:30–4:00 — RAG & Copilot (Honest)
+
+**Speaker:**
+"Our RAG knowledge base indexes 15 documents (30 chunks) in a FAISS vector store. Retrieval works with <3ms latency on this small index. However, **the `generate_answer()` function returns template responses, not LLM-generated answers.** The FAISS index also starts empty — documents must be indexed explicitly on first run.
+
+The copilot uses keyword-based intent classification. It dispatches to real API endpoints for forecast and risk data, but the response is assembled from templates. We designed the architecture to plug in Qwen3:8b via Ollama — that integration is the next priority."
 
 ---
 
 ## 4:00–4:30 — Deployment
 
 **Speaker:**
-"All 9 microservices are containerized with Docker and orchestrated via Docker Compose. Each service has:
-- A dedicated Dockerfile with pinned dependencies
-- HEALTHCHECK instructions with 10-second intervals
-- Dependency ordering via depends_on conditions
+"All services are containerized with Docker Compose:
 
-The deployment includes:
-- 8 application Dockerfiles (gateway, dashboard, twin, forecast, scenario, risk, RAG, copilot)
-- Prometheus (port 9090) for metrics collection
-- Grafana (port 3000) with a provisioned 6-panel service health dashboard
-- Nginx reverse proxy for routing
-- Pre-configured .env file with 14 variables
+- 8 Dockerfiles with pinned Python dependencies
+- Nginx reverse proxy
+- Health check endpoints on every service
+- One-command startup: `docker compose up`
 
-CI/CD pipelines via GitHub Actions handle linting, testing (matrix 3.10/3.12), Docker builds, and CD on version tags.
-
-We also have shell and Python health check utilities, a one-click startup script, and a demo walkthrough script."
+**This is a local demo deployment.** We have no production deployment, no authentication, no HTTPS, no load testing. For a production system you would need authentication, real data, real LLM, proper test coverage, and monitoring."
 
 ---
 
-## 4:30–5:00 — Societal Impact & Roadmap
+## 4:30–5:00 — Impact & Roadmap
 
 **Speaker:**
-"The societal impact is significant. India loses 3-5% of GDP annually to climate-related disasters. A system like this can:
-- Help farmers plan sowing and irrigation with 7-day forecasts
-- Enable district-level disaster preparedness with risk scores
-- Support policy planning with what-if scenario analysis
-- Democratize climate intelligence through the AI Copilot
+"The architecture demonstrates how a climate digital twin could help farmers, disaster managers, and policymakers. The foundation is solid.
 
-**Future roadmap:**
-- **National scale-up** — extend from Karnataka to all Indian states
-- **Real SHAP** — connect explainability to model gradients instead of synthetic estimation
-- **Advanced models** — train PatchTST, TimeMixer, iTransformer architectures
-- **Real-time data** — integrate live IMD and INSAT feeds
-- **Mobile app** — farmer-facing notifications for extreme weather alerts
+**What's real now:**
+- Containerized 8-service deployment
+- Synthetic data pipeline end-to-end
+- Digital twin with append-only versioning
+- Scenario engine with 11 presets
+- Risk scoring with configurable weights
+- Dashboard with interactive maps and charts
 
-Thank you. We're happy to take questions."
+**What comes next:**
+- **Real data** — connect NASA POWER / IMD / ISRO APIs (highest priority)
+- **Real LLM** — wire Qwen3:8b to the copilot generator
+- **Real SHAP** — connect explainability to model gradients
+- **Authentication** — add API keys and HTTPS
+- **Test coverage** — add tests for models, APIs, RAG, copilot
+- **Scale** — Karnataka to all India
+
+This is a **proof-of-concept** that shows the vision works. The pipeline runs. The architecture is sound. The next team can take it from prototype to production.
+
+Thank you. Happy to answer questions."

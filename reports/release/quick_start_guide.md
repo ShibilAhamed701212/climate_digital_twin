@@ -1,141 +1,72 @@
-# Quick Start Guide — Climate Digital Twin
+# Quick Start Guide
+
+> **For the synthetic-data demo only. No real data setup required.**
+
+---
 
 ## Prerequisites
 
-- **Docker** 20.10+ ([install](https://docs.docker.com/get-docker/))
-- **Docker Compose** 2.x+ (included with Docker Desktop)
-- **Python** 3.10+ (optional, for local development only)
+- **Docker Desktop** (Windows/Mac) or Docker Engine 24+ (Linux)
+- **8GB+ RAM** (16GB recommended)
+- **10GB free disk space**
+- **Git**
 
-## 5-Step Setup
+---
 
-### Step 1: Clone the Repository
+## 5-Minute Demo Setup
 
 ```bash
-git clone <repository-url> climate-digital-twin
+# 1. Clone and enter
+git clone <repo-url>
 cd climate-digital-twin
+
+# 2. Start all services
+docker compose -f docker/docker-compose.yml up --build -d
+
+# 3. Verify services are healthy
+docker compose ps
+# All 8 services should show "Up"
+
+# 4. Generate synthetic data
+docker exec climate-api python -m scripts.seed_data
+
+# 5. (Optional) Train models on synthetic data
+docker exec climate-api python -m scripts.train_models
+
+# 6. Open dashboard
+open http://localhost:8501
 ```
 
-### Step 2: Configure Environment
+---
+
+## What You'll See
+
+- **Dashboard** at http://localhost:8501 with 10 pages
+  - 7 live pages with synthetic data charts
+  - 3 mock pages (placeholders)
+- **API endpoints** at http://localhost:80 (gateway)
+  - `/predict` — synthetic forecasts
+  - `/risk/heat` — synthetic risk scores
+  - `/scenario/run` — scenario simulation
+  - `/copilot/ask` — mock copilot
+- **Real-time maps** with synthetic risk overlays
+
+---
+
+## Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Port conflict (8501, 8005, etc.) | Another service on same port | Stop conflicting service or change port in docker-compose.yml |
+| Service not starting | Missing dependency | `docker compose logs <service>` |
+| Dashboard shows no data | Data not generated | Run `docker exec climate-api python -m scripts.seed_data` |
+| FAISS index empty | Not populated | Use RAG API `/index` endpoint |
+| Copilot returns generic responses | Mock mode | This is expected — no LLM wired |
+
+---
+
+## Shutdown
 
 ```bash
-cp deployment/configs/.env.example .env
+docker compose -f docker/docker-compose.yml down
 ```
-
-The default configuration uses sensible defaults:
-- All services run on standard ports (8000-8006, 8501, 11434)
-- LLM model: `qwen3:8b` via Ollama
-- Demo mode: `synthetic` (no external API dependencies)
-
-### Step 3: Start All Services
-
-```bash
-docker compose up -d
-```
-
-This builds and starts **11 services** in the background:
-- **8 application services:** twin-state-mgr, forecast-engine, scenario-engine, risk-engine, rag-service, copilot-agent, fastapi-gateway, streamlit-dashboard
-- **LLM backend:** Ollama (Qwen3:8b)
-- **Monitoring:** Prometheus, Grafana
-
-**First-time setup** may take 5-10 minutes to:
-- Download base Docker images (~2 GB total)
-- Download Ollama model (Qwen3:8b, ~4.7 GB)
-- Build service images with Python dependencies
-
-### Step 4: Verify Health
-
-```bash
-python deployment/health/health_check.py
-```
-
-Expected output:
-```
-  ✅ twin-state-mgr
-  ✅ scenario-engine
-  ✅ risk-engine
-  ✅ rag-service
-  ✅ copilot-agent
-  ✅ forecast-engine
-  ✅ fastapi-gateway
-  ✅ streamlit-dashboard
-
-All services healthy!
-```
-
-Or use the shell script:
-```bash
-bash deployment/scripts/health_check.sh
-```
-
-### Step 5: Open the Dashboard
-
-```
-http://localhost:8501
-```
-
-Explore the **7-page dashboard**:
-1. **Climate Overview** — Interactive map with current conditions
-2. **Forecast Viewer** — 7-day predictions with confidence bands
-3. **Digital Twin State** — Entity states, version history
-4. **Scenario Simulator** — What-if analysis with 11 presets
-5. **Climate Risk** — Heat/flood/drought scores with SHAP explanations
-6. **Reports & Insights** — District summaries, data explorer
-7. **Copilot Chat** — Natural-language climate intelligence
-
-## What to Try Next
-
-### Ask the Copilot
-
-Use the API directly:
-```bash
-curl -X POST http://localhost:8005/ask \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is the flood risk for Bengaluru?"}'
-```
-
-### Get a Forecast
-
-```bash
-curl -X POST http://localhost:8006/forecast/predict \
-  -H "Content-Type: application/json" \
-  -d '{"horizon": 7, "model": "transformer"}'
-```
-
-### Search the Knowledge Base
-
-```bash
-curl -X POST http://localhost:8004/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Karnataka monsoon patterns", "top_k": 3}'
-```
-
-### Run a Scenario Simulation
-
-```bash
-curl -X POST http://localhost:8002/scenarios/simulate \
-  -H "Content-Type: application/json" \
-  -d '{"scenario_id": "temp_increase_2", "location_ids": ["KA-BLR-001"]}'
-```
-
-## Include Monitoring (Optional)
-
-```bash
-docker compose --profile monitoring up -d
-```
-
-- **Prometheus:** http://localhost:9090
-- **Grafana:** http://localhost:3000 (admin/admin)
-
-## Stop Everything
-
-```bash
-docker compose down
-```
-
-## One-Click Demo
-
-```bash
-bash deployment/scripts/demo.sh
-```
-
-See `deployment/docs/architecture.md` for full architecture details.

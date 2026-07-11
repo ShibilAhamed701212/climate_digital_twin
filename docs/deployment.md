@@ -1,114 +1,117 @@
 # Deployment Guide
 
-The BHAI platform is deployed as a Docker container for benchmark execution. The deployment uses a minimal `python:3.10-slim` base image with system dependencies for compilation.
+The Climate Digital Twin is deployed as a multi-service Docker stack for the ISRO BAH 2026 hackathon. 7 core microservices + 3 infrastructure services.
 
-## Docker Setup
+## Docker Compose Setup
 
-### Dockerfile
-
-```dockerfile
-FROM python:3.10-slim
-
-WORKDIR /app
-
-# System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy project
-COPY pyproject.toml .
-COPY runtime/ runtime/
-COPY climate/ climate/
-COPY copilot/ copilot/
-
-# Install
-RUN pip install --no-cache-dir -e ".[dev]"
-
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import runtime"
-
-CMD ["pytest", "runtime/benchmarks/", "-v", "--benchmark", "--tb=short"]
-```
-
-### Docker Compose
+### Main Services (`docker-compose.yml`)
 
 ```yaml
-# docker-compose.benchmark.yml
-version: '3.8'
 services:
-  runtime-benchmark:
-    build:
-      context: .
-      dockerfile: Dockerfile.benchmark
-    volumes:
-      - ./reports:/reports
-    environment:
-      - PYTHONUNBUFFERED=1
-      - BENCHMARK_ITERATIONS=100
-    command: >
-      sh -c "python -m pytest runtime/benchmarks/ -v --benchmark --tb=short
-             -o 'addopts=' 2>&1 | tee /reports/benchmark_output.txt"
+  twin-state-mgr:     # Port 8001 — Digital twin state
+  forecast-engine:    # Port 8006 — ML forecast serving
+  scenario-engine:    # Port 8002 — Scenario simulation
+  risk-engine:        # Port 8003 — Risk assessment
+  copilot-agent:      # Port 8005 — Copilot chat
+  rag-service:        # Port 8004 — RAG knowledge
+  report-service:     # Port 8007 — Report generation
+  api-gateway:        # Port 8000 — FastAPI gateway
+  dashboard:          # Port 8051 — Streamlit UI
+  nginx:              # Port 80 — Reverse proxy
+  prometheus:         # Port 9090 — Metrics
+  grafana:            # Port 3000 — Dashboards
 ```
 
-## Container Management
+### Resource Requirements
 
-### Build
+| Service | Memory Limit | CPU Limit |
+|---------|-------------|-----------|
+| twin-state-mgr | 2G | 1.0 |
+| forecast-engine | 4G | 2.0 |
+| scenario-engine | 2G | 1.0 |
+| risk-engine | 2G | 1.0 |
+| other services | 512M–1G | 0.5–1.0 |
+
+Total minimum: ~16GB RAM, 8+ CPU cores recommended.
+
+### Storage Volumes
+
+- `twin_data`: Persistent twin state storage
+- `model_data`: ML model artifacts and weights
+
+## Quick Start
+
+### Prerequisites
+- Docker & Docker Compose v2+
+- 16GB+ RAM recommended
+- Python 3.11+ (for local development only)
+
+### Build and Run
 
 ```bash
-docker compose -f docker-compose.benchmark.yml build
+# Build all services
+docker compose build
+
+# Start all services
+docker compose up -d
+
+# Check service health
+docker compose ps
+
+# View logs
+docker compose logs -f api-gateway
+
+# Stop all services
+docker compose down
 ```
 
-### Run
+### Access Services
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| Dashboard | http://localhost:8501 | Port 8051 in Docker |
+| API Gateway | http://localhost:8000 | REST API |
+| Nginx | http://localhost:80 | Load balancer |
+| Prometheus | http://localhost:9090 | Metrics |
+| Grafana | http://localhost:3000 | Dashboards |
+
+## Production Override (`docker-compose.prod.yml`)
+
+Additional production configuration:
+- Resource limits and reservations
+- Logging configuration (json-file, 10MB max, 3 files)
+- Health checks on all services
+- Restart policy: `unless-stopped`
+
+## Local Development
+
+### Install Dependencies
 
 ```bash
-docker compose -f docker-compose.benchmark.yml up
+pip install -e ".[dev]"
 ```
 
-### View Results
-
-Results are written to `reports/benchmark_output.txt` on the host via the mounted volume.
+### Run Dashboard Locally
 
 ```bash
-cat reports/benchmark_output.txt
+cd dashboard
+streamlit run app.py
+# Dashboard at http://localhost:8501
+# Uses synthetic data fallback — no Docker services needed
 ```
 
-### Health Check
+### Run Tests
 
 ```bash
-docker inspect --format='{{json .State.Health}}' $(docker compose ps -q runtime-benchmark)
-```
-
-### Cleanup
-
-```bash
-docker compose -f docker-compose.benchmark.yml down
-docker compose -f docker-compose.benchmark.yml down --volumes  # Remove volumes
-```
-
-## Docker cp Workflow
-
-For running ad-hoc commands inside the container:
-
-```bash
-# Copy files into container
-docker cp ./runtime/benchmarks/test_e2e_benchmarks.py \
-    $(docker compose ps -q runtime-benchmark):/app/runtime/benchmarks/
-
-# Copy results out
-docker cp $(docker compose ps -q runtime-benchmark):/reports/benchmark_output.txt \
-    ./reports/
+pytest tests/ -v
+# 2,266 tests
 ```
 
 ## Benchmark Execution
 
-67 benchmark tests across 8 suites (WP1-WP8):
-
 ```bash
-# All benchmarks
+# Run runtime benchmarks
 pytest runtime/benchmarks/ -v
-
-# Specific suite
-pytest runtime/benchmarks/test_e2e_benchmarks.py -v
 
 # With benchmark metrics
 pytest runtime/benchmarks/ -v --benchmark
@@ -116,9 +119,13 @@ pytest runtime/benchmarks/ -v --benchmark
 
 ## Known Issues
 
-- The Docker image uses Python 3.10 while `pyproject.toml` requires >=3.11. This is a known inconsistency flagged in the security audit (see `docs/security.md`).
-- pip and wheel in the Docker image have 8 known CVEs in the build toolchain. Upgrade with `pip install --upgrade pip wheel`.
+- Docker Python version may mismatch `pyproject.toml` requirement (>=3.11) — flagged in security audit
+- pip and wheel in Docker image have known CVEs in build toolchain — upgrade with `pip install --upgrade pip wheel`
+- Dashboard uses port **8051** inside Docker (mapped to 8501 externally in override)
+- All data is **synthetic** — no real climate data feeds
+- Copilot agent returns **mock responses** — no real LLM integration
+- Default RAG FAISS index is **empty** — must re-run indexing
 
-## Deployment Architecture
+## Architecture
 
-See `reports/diagrams/deployment.md` for the full Mermaid deployment diagram.
+See `docs/architecture.md` for the full system architecture diagram.
