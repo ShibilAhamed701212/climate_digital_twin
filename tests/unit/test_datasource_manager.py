@@ -129,13 +129,6 @@ class TestDataSourceManager:
         mock_cache = MagicMock()
         mock_cache.get.return_value = cached_obs
         dsm._cache = mock_cache
-        historical_obs = Observation(
-            status=ObservationStatus.HISTORICAL,
-            provider="NASA POWER",
-            location_id="KA-BLR-001",
-            variable="temperature_2m",
-            values={"temperature_2m": 28.5},
-        )
         mock_historical = MagicMock()
         dsm._historical_store = mock_historical
         obs = dsm.get_observation("KA-BLR-001", "temperature_2m")
@@ -164,3 +157,55 @@ class TestDataSourceManager:
         obs = DataSourceManager().get_observation("KA-BLR-001", "rainfall")
         assert obs.retrieved_timestamp != ""
         datetime.fromisoformat(obs.retrieved_timestamp)
+
+
+class TestHistoricalStore:
+    def test_lookup_returns_none_when_no_data(self, tmp_path):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore(data_dir=str(tmp_path))
+        obs = store.lookup("KA-BLR-001", "temperature_2m")
+        assert obs is None
+
+    def test_lookup_returns_none_for_unknown_variable(self):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore()
+        obs = store.lookup("KA-BLR-001", "nonexistent_var")
+        assert obs is None
+
+    def test_lookup_real_data_rainfall(self):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore()
+        obs = store.lookup("KA-BLR-001", "rainfall")
+        assert obs is not None
+        assert obs.status == ObservationStatus.HISTORICAL
+        assert obs.provider == "NASA POWER"
+        assert "rainfall" in obs.values
+        assert obs.dataset_version is not None
+
+    def test_lookup_real_data_temperature(self):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore()
+        obs = store.lookup("KA-BLR-001", "temperature_2m")
+        assert obs is not None
+        assert obs.status == ObservationStatus.HISTORICAL
+        assert obs.provider == "NASA POWER"
+        assert "temperature_2m" in obs.values
+        assert isinstance(obs.values["temperature_2m"], float)
+
+    def test_lookup_real_data_min_temp(self):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore()
+        obs = store.lookup("KA-BLR-001", "temperature_2m_min")
+        assert obs is not None
+        assert obs.status == ObservationStatus.HISTORICAL
+        assert "temperature_2m_min" in obs.values
+
+    def test_is_available_true_when_data_exists(self):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore()
+        assert store.is_available() is True
+
+    def test_is_available_false_when_no_data(self, tmp_path):
+        from pipeline.providers.historical_store import HistoricalStore
+        store = HistoricalStore(data_dir=str(tmp_path))
+        assert store.is_available() is False
