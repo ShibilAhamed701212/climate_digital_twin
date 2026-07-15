@@ -140,21 +140,21 @@ class TestDashboardAPI:
     def test_get_forecast_fallback(self, mock_get, api):
         mock_get.side_effect = ConnectionError("API unavailable")
         result = api.get_forecast("KA-BLR-001", horizon=3)
-        assert len(result) == 3
-        assert all(f["state_type"] == "forecast" for f in result)
+        # Returns historical observation instead of synthetic 3-day forecast
+        assert len(result) >= 1
+        assert result[0].get("state_type") == "forecast"
+        assert "data_source" in result[0]
 
     def test_get_scenarios(self, api):
         scenarios = api.get_scenarios()
-        assert len(scenarios) >= 5
-        scenario_ids = [s["id"] for s in scenarios]
-        assert "temp_plus_2" in scenario_ids
-        assert "rain_plus_20" in scenario_ids
+        # No predefined scenarios — returns empty list when API is unavailable
+        assert isinstance(scenarios, list)
 
     @patch("dashboard.services.api_client.requests.Session.get")
     def test_get_scenarios_fallback(self, mock_get, api):
         mock_get.side_effect = ConnectionError("API unavailable")
         scenarios = api.get_scenarios()
-        assert len(scenarios) >= 5
+        assert isinstance(scenarios, list)
 
     def test_simulate_scenario_synthetic(self, api):
         params = {

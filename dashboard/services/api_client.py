@@ -9,6 +9,8 @@ from typing import Any
 import requests
 
 from dashboard.config.config import SAMPLE_LOCATIONS
+from pipeline.providers.manager import DataSourceManager, Observation, ObservationStatus
+from pipeline.providers.historical_store import HistoricalStore
 
 logger = logging.getLogger(__name__)
 
@@ -18,137 +20,7 @@ FORECAST_ENGINE_URL = "http://forecast-engine:8006"
 SCENARIO_ENGINE_URL = "http://scenario-engine:8002"
 RISK_ASSESSMENT_URL = "http://risk-engine:8003"
 
-# Predefined scenario library for offline/fallback use
-PREDEFINED_SCENARIOS = [
-    {
-        "id": "temp_plus_1",
-        "name": "Temperature +1°C",
-        "description": "Global temp increases by 1°C",
-    },
-    {
-        "id": "temp_plus_2",
-        "name": "Temperature +2°C",
-        "description": "Global temp increases by 2°C",
-    },
-    {
-        "id": "temp_plus_4",
-        "name": "Temperature +4°C",
-        "description": "Global temp increases by 4°C",
-    },
-    {
-        "id": "rain_plus_20",
-        "name": "Rainfall +20%",
-        "description": "Annual rainfall increases by 20%",
-    },
-    {
-        "id": "rain_plus_40",
-        "name": "Rainfall +40%",
-        "description": "Annual rainfall increases by 40%",
-    },
-    {
-        "id": "rain_minus_25",
-        "name": "Rainfall -25%",
-        "description": "Annual rainfall decreases by 25%",
-    },
-    {"id": "heatwave", "name": "Heatwave Event", "description": "Extreme heatwave scenario"},
-    {"id": "flood", "name": "Flood Event", "description": "Extreme flooding scenario"},
-]
 
-
-def _synthetic_forecast(location_id: str, horizon: int) -> list[dict[str, Any]]:
-    """Generate plausible synthetic forecast data."""
-    from dashboard.config.config import SAMPLE_LOCATIONS
-
-    meta = next(
-        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
-        {"lat": 12.97, "lon": 77.59, "district": "Bengaluru Urban"},
-    )
-    results = []
-    for i in range(horizon):
-        results.append(
-            {
-                "location_id": location_id,
-                "latitude": meta["lat"],
-                "longitude": meta["lon"],
-                "district": meta["district"],
-                "timestamp": (datetime.now() + timedelta(days=i + 1)).isoformat(),
-                "rainfall": round(10 - i * 2 + (i % 3) * 5, 1),
-                "max_temp": round(32 + (i % 2) * 2, 1),
-                "min_temp": round(22 - (i % 3), 1),
-                "prediction_confidence": round(max(0.3, 0.85 - (i * 0.05)), 2),
-                "state_type": "forecast",
-                "data_source": "synthetic",
-            }
-        )
-    return results
-
-
-def _synthetic_current_state(location_id: str) -> dict[str, Any]:
-    """Generate plausible synthetic current state data."""
-    from dashboard.config.config import SAMPLE_LOCATIONS
-
-    meta = next(
-        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
-        {"lat": 12.97, "lon": 77.59, "district": "Bengaluru Urban"},
-    )
-    return {
-        "location_id": location_id,
-        "latitude": meta["lat"],
-        "longitude": meta["lon"],
-        "district": meta["district"],
-        "timestamp": datetime.now().isoformat(),
-        "rainfall": 22.5,
-        "max_temp": 32.0,
-        "min_temp": 21.5,
-        "risk_score": 15.0,
-        "prediction_confidence": 0.75,
-        "state_type": "current",
-        "data_source": "synthetic",
-    }
-
-
-def _synthetic_risk(location_id: str) -> dict[str, Any]:
-    """Generate plausible synthetic risk assessment."""
-    from dashboard.config.config import SAMPLE_LOCATIONS
-
-    meta = next(
-        (loc for loc in SAMPLE_LOCATIONS if loc["id"] == location_id),
-        {"district": "unknown"},
-    )
-    composite = 25.0
-    return {
-        "location_id": location_id,
-        "latitude": meta["lat"],
-        "longitude": meta["lon"],
-        "district": meta["district"],
-        "composite_risk": composite,
-        "heat_risk": 32.0,
-        "flood_risk": 18.0,
-        "drought_risk": 14.0,
-        "category": "Moderate",
-        "trend": [composite],
-        "shap_summary": {
-            "Rainfall": round(composite * 0.02, 3),
-            "MaxTemp": round(composite * 0.03, 3),
-            "MinTemp": round(composite * 0.01, 3),
-        },
-    }
-
-
-def _synthetic_scenario_result(scenario_id: str, location_id: str) -> dict[str, Any]:
-    """Generate plausible synthetic scenario simulation result."""
-    return {
-        "status": "success",
-        "data": {
-            "location_id": location_id,
-            "timestamp": datetime.now().isoformat(),
-            "rainfall": 25.0,
-            "max_temp": 34.0,
-            "min_temp": 22.0,
-            "state_type": "scenario",
-            "scenario_id": scenario_id,
-        },
-    }
 
 
 class DashboardAPI:
@@ -159,6 +31,8 @@ class DashboardAPI:
         self.timeout = timeout or 10
         self._session = requests.Session()
         self._fallback_endpoints: dict[str, bool] = {}
+        self._dsm = DataSourceManager(config={"historical": {"data_dir": "data/raw"}})
+        self._dsm._historical_store = HistoricalStore()
 
     def _mark_fallback(self, endpoint: str, triggered: bool = True) -> None:
         if triggered:
@@ -213,7 +87,29 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Twin service unavailable: %s", e)
             self._mark_fallback("current_state")
-            return _synthetic_current_state(location_id)
+            obs = self._dsm.get_observation(location_id, "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "location_id": location_id,
+                    "latitude": meta["lat"],
+                    "longitude": meta["lon"],
+                    "district": meta["district"],
+                    "timestamp": obs.observation_timestamp or datetime.now().isoformat(),
+                    "rainfall": obs.values.get("precipitation_mm", 0),
+                    "max_temp": obs.values.get("temperature_2m", 0),
+                    "min_temp": obs.values.get("temperature_2m_min", 0),
+                    "risk_score": 0,
+                    "prediction_confidence": obs.confidence,
+                    "state_type": "current",
+                    "data_source": obs.status.value,
+                    "provider": obs.provider,
+                    "dataset_version": obs.dataset_version,
+                }
+            return {
+                "status": "unavailable",
+                "message": "No verified climate observations available.",
+                "location_id": location_id,
+            }
 
     # ------------------------------------------------------------------
     # Forecast
@@ -261,7 +157,25 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Forecast service unavailable: %s", e)
             self._mark_fallback("forecast")
-            return _synthetic_forecast(location_id, horizon)
+            obs = self._dsm.get_observation(location_id, "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return [
+                    {
+                        "location_id": location_id,
+                        "latitude": meta["lat"],
+                        "longitude": meta["lon"],
+                        "district": meta["district"],
+                        "timestamp": obs.observation_timestamp or datetime.now().isoformat(),
+                        "rainfall": obs.values.get("precipitation_mm", 0),
+                        "max_temp": obs.values.get("temperature_2m", 0),
+                        "min_temp": obs.values.get("temperature_2m_min", 0),
+                        "prediction_confidence": obs.confidence,
+                        "state_type": "forecast",
+                        "data_source": obs.status.value,
+                        "provider": obs.provider,
+                    }
+                ]
+            return []
 
     # ------------------------------------------------------------------
     # Historical
@@ -305,11 +219,11 @@ class DashboardAPI:
             resp.raise_for_status()
             data = resp.json()
             self._mark_fallback("scenarios_list", False)
-            return data if isinstance(data, list) else PREDEFINED_SCENARIOS
+            return data if isinstance(data, list) else []
         except Exception as e:
             logger.warning("Scenario list unavailable: %s", e)
             self._mark_fallback("scenarios_list")
-            return PREDEFINED_SCENARIOS
+            return []
 
     def simulate_scenario(self, params: dict[str, Any]) -> dict[str, Any] | None:
         """Run a scenario simulation."""
@@ -343,7 +257,23 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Scenario simulation unavailable: %s", e)
             self._mark_fallback("scenario_simulation")
-            return _synthetic_scenario_result(scenario_id, location_id)
+            obs = self._dsm.get_observation(location_id, "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "status": "success",
+                    "data": {
+                        "location_id": location_id,
+                        "timestamp": obs.observation_timestamp or datetime.now().isoformat(),
+                        "rainfall": obs.values.get("precipitation_mm", 0),
+                        "max_temp": obs.values.get("temperature_2m", 0),
+                        "min_temp": obs.values.get("temperature_2m_min", 0),
+                        "state_type": "scenario",
+                        "scenario_id": scenario_id,
+                        "data_source": obs.status.value,
+                        "provider": obs.provider,
+                    },
+                }
+            return {"status": "unavailable", "message": "No verified climate observations available."}
 
     # ------------------------------------------------------------------
     # Monte Carlo Simulation (via FastAPI gateway)
@@ -488,7 +418,30 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Risk service unavailable: %s", e)
             self._mark_fallback("risk")
-            return _synthetic_risk(location_id)
+            obs = self._dsm.get_observation(location_id, "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "location_id": location_id,
+                    "latitude": meta["lat"],
+                    "longitude": meta["lon"],
+                    "district": meta["district"],
+                    "composite_risk": 0,
+                    "heat_risk": obs.values.get("temperature_2m", 0),
+                    "flood_risk": 0,
+                    "drought_risk": 0,
+                    "category": "Unknown",
+                    "trend": [],
+                    "shap_summary": {},
+                    "data_source": obs.status.value,
+                    "provider": obs.provider,
+                }
+            return {
+                "location_id": location_id,
+                "composite_risk": 0,
+                "category": "Unknown",
+                "data_source": "UNAVAILABLE",
+                "message": "No verified climate observations available.",
+            }
 
     # ------------------------------------------------------------------
     # Locations
