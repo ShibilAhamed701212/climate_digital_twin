@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -30,38 +29,6 @@ def _find_district(display_name: str) -> dict[str, Any] | None:
         if f"{d['name']} ({d['state']})" == display_name:
             return d
     return None
-
-
-def _generate_sample_twin_data(entity_id: str) -> dict[str, Any]:
-    np.random.seed(abs(hash(entity_id)) % 10000)
-    return {
-        "entity_id": entity_id,
-        "timestamp": datetime.now(UTC).isoformat(),
-        "temperature_2m": round(float(np.random.uniform(22, 38)), 1),
-        "precipitation_mm": round(float(np.random.exponential(2)), 1),
-        "humidity_pct": round(float(np.random.uniform(40, 90)), 0),
-        "pressure_hpa": round(float(np.random.normal(1013, 5)), 1),
-        "wind_speed_10m": round(float(np.random.exponential(2)), 1),
-        "data_source": "synthetic",
-        "quality_flag": "validated",
-    }
-
-
-def _generate_sample_twin_history(entity_id: str) -> list[dict[str, Any]]:
-    np.random.seed(abs(hash(entity_id)) % 10000)
-    history = []
-    for i in range(5, 0, -1):
-        from datetime import timedelta
-
-        history.append(
-            {
-                "version_number": i,
-                "created_at": (datetime.now(UTC) - timedelta(days=i * 7)).isoformat(),
-                "created_by": np.random.choice(["api", "manual", "sync"]),
-                "description": f"State version {i}",
-            }
-        )
-    return history
 
 
 def render(api: Any, filters: dict) -> None:  # noqa: ARG001
@@ -92,8 +59,8 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
     if view_mode == "Current State":
         if refresh_btn or "twin_state" not in st.session_state:
             with st.spinner(f"Loading state for {district['name']}..."):
-                state = _generate_sample_twin_data(entity_id)
-                st.session_state["twin_state"] = state
+                state = api.get_current_state(entity_id)
+                st.session_state["twin_state"] = state if state and "status" not in state else {}
 
         state = st.session_state.get("twin_state", {})
 
@@ -144,7 +111,7 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
     elif view_mode == "Version History":
         if refresh_btn or "twin_history" not in st.session_state:
             with st.spinner(f"Loading history for {district['name']}..."):
-                history = _generate_sample_twin_history(entity_id)
+                history = api.get_version_history(entity_id) or []
                 st.session_state["twin_history"] = history
 
         history = st.session_state.get("twin_history", [])
@@ -180,46 +147,22 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
 
         if st.button("Compare Versions", type="primary", use_container_width=True):
             with st.spinner("Comparing versions..."):
-                np.random.seed(version_a * 100 + version_b)
+                comparison = api.compare_versions(entity_id, version_a, version_b)
+                if comparison:
+                    delta_df = pd.DataFrame(comparison)
+                    st.dataframe(delta_df, use_container_width=True, hide_index=True)
 
-                delta_data = {
-                    "Variable": [
-                        "Temperature (C)",
-                        "Precipitation (mm)",
-                        "Humidity (%)",
-                        "Pressure (hPa)",
-                        "Wind Speed (m/s)",
-                    ],
-                    "Version A": [
-                        float(np.random.uniform(22, 35)),
-                        float(np.random.exponential(3)),
-                        float(np.random.uniform(40, 80)),
-                        float(np.random.normal(1013, 5)),
-                        float(np.random.exponential(2)),
-                    ],
-                    "Version B": [
-                        float(np.random.uniform(22, 35)),
-                        float(np.random.exponential(3)),
-                        float(np.random.uniform(40, 80)),
-                        float(np.random.normal(1013, 5)),
-                        float(np.random.exponential(2)),
-                    ],
-                }
-
-                delta_df = pd.DataFrame(delta_data)
-                delta_df["Delta"] = delta_df["Version B"] - delta_df["Version A"]
-                delta_df["Change %"] = ((delta_df["Delta"] / delta_df["Version A"]) * 100).round(2)
-
-                st.dataframe(delta_df, use_container_width=True, hide_index=True)
-
-                st.subheader("Visual Comparison")
-                compare_df = delta_df.melt(
-                    id_vars=["Variable"],
-                    value_vars=["Version A", "Version B"],
-                    var_name="Version",
-                    value_name="Value",
-                )
-                st.bar_chart(compare_df, x="Variable", y="Value", color="Version")
+                    st.subheader("Visual Comparison")
+                    if "Version A" in delta_df.columns and "Version B" in delta_df.columns:
+                        compare_df = delta_df.melt(
+                            id_vars=["Variable"],
+                            value_vars=["Version A", "Version B"],
+                            var_name="Version",
+                            value_name="Value",
+                        )
+                        st.bar_chart(compare_df, x="Variable", y="Value", color="Version")
+                else:
+                    st.info("Version comparison unavailable.")
 
     st.divider()
     st.caption(f"Twin state data at {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}")

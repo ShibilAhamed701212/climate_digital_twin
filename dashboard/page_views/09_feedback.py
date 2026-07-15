@@ -5,35 +5,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import streamlit as st
-
-
-def _generate_sample_feedback_data() -> pd.DataFrame:
-    np.random.seed(42)
-    PILOT_DISTRICTS = ["mumbai", "delhi", "chennai", "kolkata", "hyderabad", "bengaluru"]  # noqa: N806
-    records = []
-    for _i in range(100):
-        from datetime import timedelta
-
-        ts = datetime.now(UTC) - timedelta(days=np.random.randint(0, 90))
-        records.append(
-            {
-                "date": ts.date().isoformat(),
-                "rating": int(np.random.choice([1, 2, 3, 4, 5], p=[0.05, 0.1, 0.2, 0.35, 0.3])),
-                "location": np.random.choice(PILOT_DISTRICTS),
-                "type": np.random.choice(["risk", "forecast", "general"]),
-            }
-        )
-    return pd.DataFrame(records)
 
 
 def render(api: Any, filters: dict) -> None:  # noqa: ARG001
     st.header("Feedback Analytics")
     st.markdown("Track model performance, rating trends, and location-specific feedback.")
 
-    df = _generate_sample_feedback_data()
+    try:
+        feedback_data = api.get_feedback_data()
+        df = pd.DataFrame(feedback_data) if feedback_data else pd.DataFrame()
+    except Exception:
+        df = pd.DataFrame()
 
     st.subheader("Overview")
 

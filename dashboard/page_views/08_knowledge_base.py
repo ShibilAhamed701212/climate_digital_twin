@@ -5,34 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-import numpy as np
 import streamlit as st
-
-
-def _query_knowledge_base(query: str, k: int = 5) -> list[dict[str, Any]]:
-    """Synthetic query — returns sample results when no RAG service is available."""
-    np.random.seed(len(query))
-    results = []
-    for i in range(k):
-        results.append(
-            {
-                "chunk_id": f"chunk_{i}",
-                "document_id": f"doc_{np.random.randint(1, 10)}",
-                "text": f"Sample document content related to '{query[:50]}'. "
-                f"This is a simulated result #{i + 1} with relevance "
-                f"to climate patterns and risk assessment.",
-                "score": float(np.random.uniform(0.5, 0.98)),
-                "rank": i + 1,
-                "metadata": {"source": "synthetic", "topic": "climate"},
-            }
-        )
-    return results
-
-
-def _ingest_document(
-    title: str, _source: str, content: str, _tags: list[str] | None = None
-) -> dict[str, Any]:
-    return {"document_id": "syn-" + title[:8].lower(), "chunks": max(1, len(content) // 500)}
 
 
 def render(api: Any, filters: dict) -> None:  # noqa: ARG001
@@ -59,7 +32,7 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
         if search_btn and query.strip():
             with st.spinner("Searching knowledge base..."):
                 try:
-                    results = _query_knowledge_base(query, k)
+                    results = api.search_knowledge(query, k)
                     st.session_state["kb_results"] = results
                 except Exception as exc:
                     st.warning(f"Knowledge base search unavailable: {exc}")
@@ -106,7 +79,7 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
                             if doc_tags
                             else []
                         )
-                        result = _ingest_document(
+                        result = api.ingest_document(
                             doc_title, doc_source or "manual", doc_content, tags
                         )
                         doc_id = result["document_id"]
