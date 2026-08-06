@@ -10,7 +10,7 @@ The HazardEvaluator wires the loaded config into these functions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from risk.models.hazard import DataQuality, Freshness, Severity

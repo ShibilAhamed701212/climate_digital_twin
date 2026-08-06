@@ -15,7 +15,6 @@ import pytest
 
 from climatedt.simulation.engine import CoupledSimulationEngine
 from climatedt.simulation.models import DailyForcing, ForcingSource
-from climatedt.simulation.parameters import SimulationParameters
 from climatedt.simulation.processes.drought import fit_loglogistic, spei_classify, spei_from_monthly
 from climatedt.simulation.processes.evapotranspiration import (
     extraterrestrial_radiation,

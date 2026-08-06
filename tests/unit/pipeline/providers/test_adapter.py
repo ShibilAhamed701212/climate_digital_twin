@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pipeline.providers.adapter import to_observation
 from pipeline.providers.authenticity import DataAuthenticity
 from pipeline.providers.manager import ObservationStatus
-from simulator.models.weather import DataSource, QualityFlag, WeatherObservation
+from simulator.models.weather import DataSource, WeatherObservation
 
 
 def _make_wo(

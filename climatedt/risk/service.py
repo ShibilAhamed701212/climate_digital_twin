@@ -13,9 +13,7 @@ from risk.evaluation.hazard_evaluator import HazardEvaluator
 from risk.evaluation.twin_adapter import TwinInputs, extract_twin_inputs
 from risk.evaluation.forecast_adapter import extract_forecast_inputs
 from risk.evaluation.quality_gate import severity_from_score
-from risk.models.hazard import HazardAssessment, AssessmentType
-from risk.store.hazard_store import HazardStore
-from risk.store.alert_store import AlertStore
+from risk.models.hazard import HazardAssessment
 
 logger = logging.getLogger(__name__)
 

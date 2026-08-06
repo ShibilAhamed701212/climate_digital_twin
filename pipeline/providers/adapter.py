@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
 
 from pipeline.providers.authenticity import DataAuthenticity
 from pipeline.providers.manager import Observation, ObservationStatus
-from simulator.models.weather import DataSource, QualityFlag, WeatherObservation
+from simulator.models.weather import DataSource, WeatherObservation
 
 
 def _classify_observation_status(

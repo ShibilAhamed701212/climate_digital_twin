@@ -83,8 +83,8 @@ class ForecastInference:
             )
         except KeyError as exc:
             raise DatasetNotFoundError(
-                f"No REAL + VALIDATED model in registry. Train one with "
-                f"'python -m models.forecast_cli train' first."
+                "No REAL + VALIDATED model in registry. Train one with "
+                "'python -m models.forecast_cli train' first."
             ) from exc
         logger.info("Selected production model '%s'", entry["name"])
         return entry

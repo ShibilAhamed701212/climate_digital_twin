@@ -10,8 +10,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from risk.models.hazard import DataQuality, Freshness
-from risk.evaluation.quality_gate import check_quality, check_freshness
 
 
 @dataclass

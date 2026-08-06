@@ -10,7 +10,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import sys
 import urllib.request
 from datetime import UTC, datetime, timedelta

@@ -1,9 +1,7 @@
 """Tests for models/forecast_provenance.py."""
 
-import json
 from pathlib import Path
 
-import pytest
 
 from models.forecast_provenance import ForecastResult, ForecastStore
 

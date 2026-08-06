@@ -18,7 +18,6 @@ from climatedt.simulation.models import (
     SimulationRun,
     build_provenance,
     compute_run_id,
-    new_run_id,
 )
 from climatedt.simulation.parameters import SimulationParameters
 from climatedt.simulation.store import SimulationStore

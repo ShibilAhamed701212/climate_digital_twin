@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pipeline.providers.adapter import to_observation
-from pipeline.providers.fetch_result import AUTH_REQUIRED, FetchResult
+from pipeline.providers.fetch_result import FetchResult
 from pipeline.providers.imd_status import fetch_imd
 from pipeline.providers.nasa_power_provider import fetch_nasa_power
 from pipeline.providers.open_meteo_provider import fetch_open_meteo

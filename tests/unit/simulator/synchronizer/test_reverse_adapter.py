@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 
 from pipeline.providers.authenticity import DataAuthenticity
 from pipeline.providers.manager import Observation

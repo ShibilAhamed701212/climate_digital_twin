@@ -1,18 +1,15 @@
 import tempfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pipeline.providers.authenticity import DataAuthenticity
 from pipeline.providers.manager import Observation
 from pipeline.sources.location_registry import Location, LocationRegistry
-from pipeline.stores.observation_store import ObservationStore
 from simulator.events.event_bus import EventBus
-from simulator.models.twin_state import TwinState
 from simulator.repository.versioned_state_store import VersionedStateStore
 from simulator.synchronizer.checkpoint import SyncCheckpoint
 from simulator.synchronizer.sync_result import (
     CREATED,
-    FAILED,
     NO_STATE_CHANGE,
     OUT_OF_ORDER,
     REJECTED_QUALITY,

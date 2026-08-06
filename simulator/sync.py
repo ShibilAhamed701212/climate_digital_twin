@@ -6,7 +6,6 @@ import logging
 import sys
 
 from pipeline.stores.observation_store import ObservationStore
-from simulator.synchronizer.checkpoint import SyncCheckpoint
 from simulator.synchronizer.sync_result import SyncResult
 from simulator.synchronizer.twin_health import get_all_twin_health, get_twin_health
 from simulator.synchronizer.twin_sync_service import TwinSyncService

@@ -1,6 +1,6 @@
 """OPERATIONAL PIPELINE: Twin synchronization against Docker twin-state-mgr."""
 
-import urllib.request, json, datetime, sys
+import urllib.request, json, sys
 
 TWIN_URL = "http://localhost:8001"
 GATEWAY_URL = "http://localhost:8000"
@@ -148,7 +148,7 @@ try:
     resp3 = urllib.request.urlopen(req3, timeout=10)
     scenario_result = json.loads(resp3.read())
     print(f"  HTTP {resp3.status} — version_id={scenario_result.get('version_id')}")
-    print(f"  Scenario ID: live_scenario_heat+5C")
+    print("  Scenario ID: live_scenario_heat+5C")
     print("  STAGE 6: PASS")
 except Exception as e:
     print(f"  FAILED: {e}")

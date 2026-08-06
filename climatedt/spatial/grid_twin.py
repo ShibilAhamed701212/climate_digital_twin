@@ -9,13 +9,11 @@ for efficient spatial operations.
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 import os
 import tempfile
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 

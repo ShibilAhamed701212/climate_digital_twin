@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "climate-digital-twin"
 version = "0.1.0"
 description = "AI-Powered Digital Twin of India's Climate using Indian National Data (ISRO BAH 2026 — Challenge 5)"
-readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [

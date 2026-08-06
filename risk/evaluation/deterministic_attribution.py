@@ -7,9 +7,6 @@ No AI, no heuristics pretending to be SHAP.
 from __future__ import annotations
 
 from risk.models.hazard import DeterministicAttribution, EvidenceFactor
-from risk.scoring.heat_risk import calculate_heat_risk
-from risk.scoring.flood_risk import calculate_flood_risk
-from risk.scoring.drought_risk import calculate_drought_risk
 
 
 def build_heat_attribution(

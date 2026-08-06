@@ -8,7 +8,6 @@ from __future__ import annotations
 import yaml
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Any
 
 from risk.models.hazard import Alert, AlertStatus, HazardAssessment, Severity
 

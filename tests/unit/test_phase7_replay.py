@@ -8,7 +8,6 @@ never touches REAL stores.
 
 from __future__ import annotations
 
-import datetime as dt
 import os
 
 import pytest
@@ -76,7 +75,7 @@ def test_grid_cell_replay_2022_event():
     # 2022-08-18 extreme event cell (12.5N, 78.0E), antecedent ~0.39mm/5d.
     days, source = load_grid_forcing(12.5, 78.0, "2021-06-01", "2023-05-31")
     engine = CoupledSimulationEngine(spinup_days=90)
-    run = engine.run(days, location_id=f"grid-12.5-78.0", forcing_source=source)
+    run = engine.run(days, location_id="grid-12.5-78.0", forcing_source=source)
     event = [s for s in run.steps if s.date == "2022-08-18"]
     assert event, "2022-08-18 must be in the replay window"
     step = event[0]

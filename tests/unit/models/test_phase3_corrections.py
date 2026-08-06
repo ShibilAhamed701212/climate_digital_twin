@@ -3,15 +3,11 @@
 All torch-dependent tests run in subprocesses to avoid C++ SEH crashes.
 """
 
-import json
 import os
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
 
 import pytest
-import yaml
 
 from tests.helpers.torch_guard import safe_import_torch
 

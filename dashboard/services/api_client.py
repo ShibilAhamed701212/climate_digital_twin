@@ -43,7 +43,7 @@ WMO_CODES = {
 }
 
 from dashboard.config.config import SAMPLE_LOCATIONS
-from pipeline.providers.manager import DataSourceManager, Observation, ObservationStatus
+from pipeline.providers.manager import DataSourceManager, ObservationStatus
 from pipeline.providers.historical_store import HistoricalStore
 
 logger = logging.getLogger(__name__)

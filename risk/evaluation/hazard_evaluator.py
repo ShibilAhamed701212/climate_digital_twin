@@ -7,14 +7,13 @@ existing risk engine, deterministic attribution, alert policy.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 import yaml
 from pathlib import Path
 
 from risk.engine.risk_engine import RiskEngine
-from risk.models.risk_models import categorize_risk
 from risk.models.hazard import (
     AssessmentType,
     DataQuality,
@@ -22,7 +21,6 @@ from risk.models.hazard import (
     HazardAssessment,
     HazardType,
     Severity,
-    UNSUPPORTED_HAZARDS,
 )
 from risk.evaluation.historical_context import HistoricalContextService
 from risk.evaluation.quality_gate import (
@@ -37,8 +35,8 @@ from risk.evaluation.deterministic_attribution import (
     build_heavy_rain_attribution,
     build_dryness_attribution,
 )
-from risk.evaluation.twin_adapter import TwinInputs, extract_twin_inputs
-from risk.evaluation.forecast_adapter import ForecastInputs, extract_forecast_inputs
+from risk.evaluation.twin_adapter import TwinInputs
+from risk.evaluation.forecast_adapter import ForecastInputs
 from risk.evaluation.alert_policy import AlertPolicy
 from risk.store.hazard_store import HazardStore
 from risk.store.alert_store import AlertStore

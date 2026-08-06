@@ -12,13 +12,11 @@ from pipeline.stores.observation_store import ObservationStore
 from simulator.events.event_bus import EventBus
 from simulator.events.events import TwinEvent
 from simulator.models.twin_state import TwinState
-from simulator.models.weather import QualityFlag
 from simulator.repository.versioned_state_store import VersionedStateStore
 from simulator.synchronizer.checkpoint import SyncCheckpoint
 from simulator.synchronizer.sync_result import (
     CREATED,
     FAILED,
-    LOCATION_MISMATCH,
     NO_STATE_CHANGE,
     OUT_OF_ORDER,
     REJECTED_QUALITY,

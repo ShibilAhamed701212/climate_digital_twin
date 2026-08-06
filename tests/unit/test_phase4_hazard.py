@@ -8,7 +8,6 @@ HazardStore persistence, idempotency, trend history.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -35,9 +34,7 @@ from risk.models.hazard import (
     AssessmentType,
     HazardAssessment,
     UNSUPPORTED_HAZARDS,
-    DeterministicAttribution,
     EvidenceFactor,
-    HistoricalContext,
 )
 from risk.store.hazard_store import HazardStore
 from risk.store.alert_store import AlertStore

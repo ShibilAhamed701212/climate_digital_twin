@@ -8,7 +8,6 @@ from __future__ import annotations
 import numpy as np
 import xarray as xr
 
-import climatedt.spatial.grid_twin  # registers GridTwinAccessor
 
 
 def nearest_neighbor(ds: xr.Dataset, target_lat: float, target_lon: float) -> dict:
