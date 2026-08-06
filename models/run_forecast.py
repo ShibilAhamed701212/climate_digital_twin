@@ -66,7 +66,7 @@ def run_forecast(config_path: str = CONFIG_PATH) -> int:
     try:
         logger.info("--- Step 1/4: Data Loading ---")
         train_loader, val_loader, test_loader, feat_scaler, tgt_scaler = load_data(
-            config
+            config, require_real=True
         )
         n_features = len(config["data"]["feature_columns"])
         n_targets = len(config["data"]["target_columns"])
@@ -93,9 +93,7 @@ def run_forecast(config_path: str = CONFIG_PATH) -> int:
             model = create_model(model_name, n_features, n_targets, config)
             ckpt_path = Path("models/checkpoints") / f"{model_name}_best.pt"
             if ckpt_path.exists():
-                model.load_state_dict(
-                    torch.load(ckpt_path, map_location="cpu", weights_only=True)
-                )
+                model.load_state_dict(torch.load(ckpt_path, map_location="cpu", weights_only=True))
             model = model.to(device)
             eval_result = evaluate_model(model, test_loader, device)
             comparison[model_name] = eval_result["metrics"]
@@ -108,13 +106,13 @@ def run_forecast(config_path: str = CONFIG_PATH) -> int:
         save_evaluation_report(comparison)
         logger.info("--- Step 4/4: Export ---")
         best_model_name = min(comparison, key=lambda k: comparison[k]["rmse"])
-        logger.info("Best model: %s (RMSE: %.4f)", best_model_name, comparison[best_model_name]["rmse"])
+        logger.info(
+            "Best model: %s (RMSE: %.4f)", best_model_name, comparison[best_model_name]["rmse"]
+        )
         best_model = create_model(best_model_name, n_features, n_targets, config)
         best_ckpt = Path("models/checkpoints") / f"{best_model_name}_best.pt"
         if best_ckpt.exists():
-            best_model.load_state_dict(
-                torch.load(best_ckpt, map_location="cpu", weights_only=True)
-            )
+            best_model.load_state_dict(torch.load(best_ckpt, map_location="cpu", weights_only=True))
             export_path = f"models/exported/{best_model_name}_best.pt"
             export_model(best_model, export_path)
         elapsed = time.time() - start_time

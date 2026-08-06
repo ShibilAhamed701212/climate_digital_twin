@@ -40,50 +40,50 @@ def _page_imports_from_file(filepath: str) -> tuple[bool, str]:
 
 
 def test_climate_overview_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/01_climate_overview.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/01_climate_overview.py")
     assert success, f"Climate Overview page failed to import: {msg}"
 
 
 def test_forecast_viewer_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/02_forecast_viewer.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/02_forecast_viewer.py")
     assert success, f"Forecast Viewer page failed to import: {msg}"
 
 
 def test_twin_state_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/03_twin_state.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/03_twin_state.py")
     assert success, f"Twin State page failed to import: {msg}"
 
 
 def test_scenario_simulator_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/04_scenario_simulator.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/04_scenario_simulator.py")
     assert success, f"Scenario Simulator page failed to import: {msg}"
 
 
 def test_climate_risk_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/05_climate_risk.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/05_climate_risk.py")
     assert success, f"Climate Risk page failed to import: {msg}"
 
 
 def test_reports_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/06_reports.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/06_reports.py")
     assert success, f"Reports page failed to import: {msg}"
 
 
 def test_copilot_chat_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/07_copilot_chat.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/07_copilot_chat.py")
     assert success, f"Copilot Chat page failed to import: {msg}"
 
 
 def test_knowledge_base_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/08_knowledge_base.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/08_knowledge_base.py")
     assert success, f"Knowledge Base page failed to import: {msg}"
 
 
 def test_feedback_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/09_feedback.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/09_feedback.py")
     assert success, f"Feedback page failed to import: {msg}"
 
 
 def test_twin_state_bhai_page_imports():
-    success, msg = _page_imports_from_file("dashboard/pages/10_twin_state_bhai.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/10_twin_state_bhai.py")
     assert success, f"Twin State (BHAI) page failed to import: {msg}"

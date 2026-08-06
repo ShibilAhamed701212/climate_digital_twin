@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -165,6 +166,7 @@ async def get_state_history(
                     "created_at": v.created_at.isoformat(),
                     "created_by": v.created_by,
                     "description": v.description,
+                    "state": _version_state_dict(v.state),
                 }
             )
 
@@ -184,6 +186,27 @@ async def get_state_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Version history retrieval failed",
         ) from exc
+
+
+def _version_state_dict(state: Any) -> dict[str, Any] | None:
+    """Extract the weather snapshot stored in a twin state version, if any."""
+    if state is None:
+        return None
+    temperature = getattr(state, "temperature_2m", None)
+    if temperature is None:
+        return None
+    ts = getattr(state, "timestamp", None)
+    timestamp = ts.isoformat() if isinstance(ts, datetime) else ""
+    return {
+        "timestamp": timestamp,
+        "temperature_2m": float(temperature),
+        "precipitation_mm": float(getattr(state, "precipitation_mm", 0.0) or 0.0),
+        "humidity_pct": float(getattr(state, "humidity_pct", 0.0) or 0.0),
+        "pressure_hpa": float(getattr(state, "pressure_hpa", 0.0) or 0.0),
+        "wind_speed_10m": float(getattr(state, "wind_speed_10m", 0.0) or 0.0),
+        "data_source": getattr(state, "data_source", ""),
+        "quality_flag": getattr(state, "quality_flag", ""),
+    }
 
 
 @router.post(

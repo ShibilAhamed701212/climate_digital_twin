@@ -17,7 +17,12 @@ data:
   log_dir: "data/logs"
 
 sources:
-  primary: nasa_power
+  primary: open_meteo
+  open_meteo:
+    endpoint: "https://api.open-meteo.com/v1/forecast"
+    archive_endpoint: "https://archive-api.open-meteo.com/v1/archive"
+    max_concurrent: 5
+    cache_ttl_seconds: 3600
   nasa_power:
     endpoint: "https://power.larc.nasa.gov/api/temporal/daily/point"
     community: "AG"
@@ -28,6 +33,22 @@ sources:
       rainfall: PRECTOTCORR
       max_temp: T2M_MAX
       min_temp: T2M_MIN
+  imd:
+    auth_required: true
+    registration_url: "https://dsp.imd.gov.in/"
+    note: "IMD requires registration and API credentials"
+
+provider_priority:
+  recent: [open_meteo, nasa_power]
+  forecast: [open_meteo]
+  historical: [nasa_power, open_meteo]
+
+data_dirs:
+  real_raw: "data/real/raw"
+  real_normalized: "data/real/normalized"
+  real_validated: "data/real/validated"
+  real_rejected: "data/real/rejected"
+  manifests: "data/manifests"
 
 datasets:
   rainfall:

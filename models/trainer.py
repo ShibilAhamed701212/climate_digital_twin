@@ -30,6 +30,7 @@ def set_random_seed(seed: int = 42) -> None:
     import random
 
     import numpy as np
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -126,6 +127,28 @@ def validate_one_epoch(
     return total_loss / max(num_batches, 1)
 
 
+_ARCH_TO_CONFIG = {
+    "baseline": "baseline",
+    "lstm": "lstm",
+    "transformer": "transformer",
+}
+
+
+def _resolve_model_config(model_type: str, config: dict[str, Any]) -> dict[str, Any]:
+    section = _ARCH_TO_CONFIG.get(model_type)
+    if section is None:
+        raise ValueError(
+            f"Unknown model type '{model_type}'. Valid types: {list(_ARCH_TO_CONFIG.keys())}"
+        )
+    cfg = config.get(section)
+    if cfg is None:
+        raise ValueError(
+            f"Model type '{model_type}' maps to config section '{section}' "
+            f"but that section is missing from model_config.yaml"
+        )
+    return cfg
+
+
 def train_model(
     model: nn.Module,
     train_loader: DataLoader,
@@ -133,11 +156,17 @@ def train_model(
     config: dict[str, Any],
     checkpoint_dir: str = "models/checkpoints",
     model_name: str = "model",
+    model_type: str | None = None,
 ) -> dict[str, Any]:
     """Full training loop with early stopping and checkpointing.
 
+    Args:
+        model_type: Maps to config section (baseline/lstm/transformer).
+                    Required — raises ValueError if None.
     Returns training history dict.
     """
+    if model_type is None:
+        raise ValueError("model_type is required — must be 'baseline', 'lstm', or 'transformer'")
     device_name = config["training"].get("device", "auto")
     device = get_device(device_name)
     seed = config["training"].get("random_seed", 42)
@@ -146,7 +175,7 @@ def train_model(
     loss_name = config["training"].get("loss", "mse")
     loss_fn = get_loss_fn(loss_name)
     opt_name = config["training"].get("optimizer", "adam")
-    model_cfg = config.get("baseline", config.get("lstm", config.get("transformer", {})))
+    model_cfg = _resolve_model_config(model_type, config)
     lr = model_cfg.get("learning_rate", 0.001)
     optimizer = get_optimizer(opt_name, model.parameters(), lr)
     scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=5)
@@ -179,7 +208,10 @@ def train_model(
         if epoch % 5 == 0 or epoch == 1:
             logger.info(
                 "Epoch %d/%d | Train Loss: %.6f | Val Loss: %.6f",
-                epoch, epochs, train_loss, val_loss,
+                epoch,
+                epochs,
+                train_loss,
+                val_loss,
             )
         early_stopping(val_loss)
         if early_stopping.early_stop:
@@ -190,7 +222,9 @@ def train_model(
     history["elapsed_seconds"] = round(elapsed, 2)
     logger.info(
         "Training complete: %d epochs in %.2fs | Best val loss: %.6f",
-        epoch, elapsed, history["best_val_loss"],
+        epoch,
+        elapsed,
+        history["best_val_loss"],
     )
     return history
 

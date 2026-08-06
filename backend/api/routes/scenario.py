@@ -116,6 +116,14 @@ async def run_scenario(
             summary_statistics=result.summary_statistics,
             time_steps=[ts.isoformat() for ts in result.time_steps],
             execution_time_ms=result.execution_time_ms,
+            authenticity=getattr(result, "authenticity", "SCENARIO"),
+            mode=getattr(result, "mode", "REAL"),
+            baseline=dict(result.baseline_state),
+            scenario=dict(result.scenario_state),
+            deltas=dict(result.deltas),
+            baseline_hazard=result.baseline_hazard,
+            scenario_hazard=result.scenario_hazard,
+            hazard_deltas=dict(result.hazard_deltas),
         )
     except HTTPException:
         raise
@@ -762,6 +770,42 @@ async def generate_scenario(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Scenario generation failed: {exc}",
+        ) from exc
+
+
+@router.get(
+    "/list",
+    summary="List saved scenario definitions",
+)
+async def list_scenarios(
+    scenario_service: Any = Depends(get_scenario_service),  # noqa: B008
+) -> dict[str, list[dict[str, Any]]]:
+    try:
+        definitions = await scenario_service.list_scenarios()
+        return {"scenarios": [d.to_dict() for d in definitions]}
+    except Exception as exc:
+        _logger.exception("Scenario list failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Scenario list failed",
+        ) from exc
+
+
+@router.get(
+    "/history",
+    summary="List saved scenario results",
+)
+async def list_scenario_history(
+    scenario_service: Any = Depends(get_scenario_service),  # noqa: B008
+) -> dict[str, list[dict[str, Any]]]:
+    try:
+        results = await scenario_service.list_results()
+        return {"results": [r.to_dict() for r in results]}
+    except Exception as exc:
+        _logger.exception("Scenario history failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Scenario history failed",
         ) from exc
 
 

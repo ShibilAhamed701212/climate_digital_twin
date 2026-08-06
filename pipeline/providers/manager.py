@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum
+from enum import StrEnum
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,10 +18,11 @@ if TYPE_CHECKING:
     from pipeline.providers.cache import ObservationCache
 
 
-class ObservationStatus(Enum):
+class ObservationStatus(StrEnum):
     LIVE = "LIVE"
     CACHED = "CACHED"
     HISTORICAL = "HISTORICAL"
+    FORECAST = "FORECAST"
     UNAVAILABLE = "UNAVAILABLE"
 
 
@@ -31,6 +32,8 @@ class Observation:
 
     status: ObservationStatus = ObservationStatus.UNAVAILABLE
     provider: str = ""
+    source_dataset: str = ""
+    authenticity: str = "REAL"
     observation_timestamp: str = ""
     retrieved_timestamp: str = ""
     age_seconds: float = 0.0
@@ -38,8 +41,14 @@ class Observation:
     data_source_identifier: str = ""
     dataset_version: str = ""
     values: dict[str, float] = field(default_factory=dict)
+    units: dict[str, str] = field(default_factory=dict)
     location_id: str = ""
     variable: str = ""
+    latitude: float = 0.0
+    longitude: float = 0.0
+    run_id: str = ""
+    schema_version: str = "1.0.0"
+    quality_flag: str = "raw"
     message: str = ""
 
     @classmethod
@@ -69,7 +78,9 @@ class DataSourceManager:
         self._historical_store: HistoricalStore | None = None
         self._cache: ObservationCache | None = None
 
-    def get_observation(self, location_id: str, variable: str, timestamp: str | None = None) -> Observation:
+    def get_observation(
+        self, location_id: str, variable: str, timestamp: str | None = None
+    ) -> Observation:
         """Get the best available observation for a location/variable.
 
         Returns the highest-priority observation available, following
@@ -105,7 +116,9 @@ class DataSourceManager:
         if self._cache is not None:
             self._cache.save(obs)
 
-    def _get_from_cache(self, location_id: str, variable: str, timestamp: str | None) -> Observation | None:
+    def _get_from_cache(
+        self, location_id: str, variable: str, timestamp: str | None
+    ) -> Observation | None:
         if self._cache is None:
             return None
         return self._cache.get(location_id, variable, timestamp)

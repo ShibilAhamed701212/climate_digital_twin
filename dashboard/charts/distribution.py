@@ -44,7 +44,6 @@ def scatter_plot(
         y=y_col,
         color=color_col,
         title=title,
-        trendline="ols",
         labels={x_col: x_col, y_col: y_col},
     )
     fig.update_layout(

@@ -16,7 +16,9 @@ env
 .vscode
 .idea
 node_modules
-data/
+data/*
+!data/real/
+!data/validation/era5/
 logs/
 output/
 *.md

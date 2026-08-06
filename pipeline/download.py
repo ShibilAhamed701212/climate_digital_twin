@@ -1,4 +1,11 @@
-"""Module 1: Dataset Downloader.
+"""
+# LEGACY / SYNTHETIC / DEMO ONLY
+# Use `python -m pipeline.ingest` for production real-data ingestion.
+# This module downloads NASA POWER data with synthetic fallback.
+# It is preserved for backward compatibility and demo environments.
+# Do NOT call this from the production real-data pipeline.
+
+Module 1: Dataset Downloader.
 
 Downloads climate datasets from configured sources (NASA POWER API)
 with synthetic data fallback when offline.

@@ -20,22 +20,36 @@ class TestApiClientHistorical:
     @patch("dashboard.services.api_client.requests.Session.get")
     def test_get_historical_success(self, mock_get, api):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = [
-            {
-                "location_id": "KA-BLR-001",
-                "timestamp": "2024-01-01",
-                "rainfall": 10,
-                "max_temp": 30,
-                "min_temp": 20,
-            },
-            {
-                "location_id": "KA-BLR-001",
-                "timestamp": "2024-01-02",
-                "rainfall": 15,
-                "max_temp": 32,
-                "min_temp": 22,
-            },
-        ]
+        mock_resp.json.return_value = {
+            "versions": [
+                {
+                    "version_id": 1,
+                    "created_at": "2024-01-01T00:00:00",
+                    "state": {
+                        "timestamp": "2024-01-01T00:00:00",
+                        "temperature_2m": 30,
+                        "precipitation_mm": 10,
+                        "humidity_pct": 70,
+                        "pressure_hpa": 900,
+                        "data_source": "open_meteo",
+                        "quality_flag": "validated",
+                    },
+                },
+                {
+                    "version_id": 2,
+                    "created_at": "2024-01-02T00:00:00",
+                    "state": {
+                        "timestamp": "2024-01-02T00:00:00",
+                        "temperature_2m": 32,
+                        "precipitation_mm": 15,
+                        "humidity_pct": 72,
+                        "pressure_hpa": 901,
+                        "data_source": "open_meteo",
+                        "quality_flag": "validated",
+                    },
+                },
+            ]
+        }
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
 
@@ -43,13 +57,16 @@ class TestApiClientHistorical:
         assert len(result) == 2
         assert result[0]["state_type"] == "historical"
         assert result[0]["rainfall"] == 10
+        assert result[0]["max_temp"] == 30
 
+    @patch("dashboard.services.api_client.DashboardAPI._historical_from_parquet")
     @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_historical_empty_response(self, mock_get, api):
+    def test_get_historical_empty_response(self, mock_get, mock_parquet, api):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = []
+        mock_resp.json.return_value = {"versions": []}
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
+        mock_parquet.return_value = []
 
         result = api.get_historical("KA-BLR-001")
         assert result == []
@@ -58,14 +75,29 @@ class TestApiClientHistorical:
     def test_get_historical_fallback(self, mock_get, api):
         mock_get.side_effect = ConnectionError("API unavailable")
         result = api.get_historical("KA-BLR-001")
-        assert result == []
+        assert len(result) == 90
         assert api.get_fallback_status()["historical"] is True
 
     @patch("dashboard.services.api_client.requests.Session.get")
     def test_get_historical_truncates_to_90(self, mock_get, api):
-        many = [{"timestamp": f"2024-01-{d:02d}", "rainfall": d} for d in range(1, 200)]
+        versions = [
+            {
+                "version_id": d,
+                "created_at": f"2024-01-{d % 28 + 1:02d}T00:00:00",
+                "state": {
+                    "timestamp": f"2024-01-{d % 28 + 1:02d}T00:00:00",
+                    "temperature_2m": d,
+                    "precipitation_mm": d,
+                    "humidity_pct": 70,
+                    "pressure_hpa": 900,
+                    "data_source": "open_meteo",
+                    "quality_flag": "validated",
+                },
+            }
+            for d in range(1, 200)
+        ]
         mock_resp = MagicMock()
-        mock_resp.json.return_value = many
+        mock_resp.json.return_value = {"versions": versions}
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
 
@@ -79,7 +111,7 @@ class TestApiClientScenariosSuccess:
     @patch("dashboard.services.api_client.requests.Session.get")
     def test_get_scenarios_success_list(self, mock_get, api):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = [{"id": "custom_1", "name": "Custom"}]
+        mock_resp.json.return_value = {"scenarios": [{"scenario_id": "custom_1", "name": "Custom"}]}
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
 
@@ -88,15 +120,15 @@ class TestApiClientScenariosSuccess:
         assert result[0]["id"] == "custom_1"
 
     @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_scenarios_success_non_list(self, mock_get, api):
+    def test_get_scenarios_success_no_key(self, mock_get, api):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"not": "a list"}
+        mock_resp.json.return_value = {"not": "scenarios"}
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
 
         result = api.get_scenarios()
-        assert len(result) > 5
-        assert not api.get_fallback_status()
+        assert result == []
+        assert not api.get_fallback_status().get("scenarios_list")
 
 
 class TestApiClientMonteCarlo:
@@ -198,39 +230,47 @@ class TestApiClientDistrictSummary:
         assert result["error"] == "District not found"
         assert result["rainy_days"] == 0
 
-    @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_district_summary_low_risk(self, mock_get, api):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"composite_risk": 10, "category": "Low"}
-        mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_current_state",
+        return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
+    )
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 10}
+    )
+    def test_get_district_summary_low_risk(self, mock_risk, mock_state, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Low"
 
-    @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_district_summary_moderate_risk(self, mock_get, api):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"composite_risk": 30, "category": "Moderate"}
-        mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_current_state",
+        return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
+    )
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 30}
+    )
+    def test_get_district_summary_moderate_risk(self, mock_risk, mock_state, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Moderate"
 
-    @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_district_summary_high_risk(self, mock_get, api):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"composite_risk": 60, "category": "High"}
-        mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_current_state",
+        return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
+    )
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 60}
+    )
+    def test_get_district_summary_high_risk(self, mock_risk, mock_state, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "High"
 
-    @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_district_summary_severe_risk(self, mock_get, api):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"composite_risk": 80, "category": "Severe"}
-        mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_current_state",
+        return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
+    )
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 80}
+    )
+    def test_get_district_summary_severe_risk(self, mock_risk, mock_state, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Severe"
 
@@ -239,15 +279,12 @@ class TestApiClientDistrictSummary:
             result = api.get_district_summary("Bengaluru Urban")
             assert result["error"] == "No data available"
 
-    @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_district_summary_no_risk(self, mock_get, api):
-        mock_resp = MagicMock()
-        mock_resp.json.side_effect = [
-            {"location_id": "KA-BLR-001", "rainfall": 50, "max_temp": 32, "min_temp": 20},
-            ValueError("no risk"),
-        ]
-        mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_current_state",
+        return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
+    )
+    @patch("dashboard.services.api_client.DashboardAPI.get_risk", return_value=None)
+    def test_get_district_summary_no_risk(self, mock_risk, mock_state, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Moderate"
 
@@ -260,19 +297,31 @@ class TestApiClientCreateClient:
 
         client = create_api_client()
         assert isinstance(client, DashboardAPI)
-        assert client.base_url == "http://twin-state-mgr:8001/api/v1"
+        assert client.base_url == "http://localhost:8000"
 
 
 class TestApiClientSimulateScenarioSuccessWithNoResults:
-    """Cover simulate_scenario when results_list is empty."""
+    """Cover simulate_scenario via gateway (create + run)."""
 
     @patch("dashboard.services.api_client.requests.Session.post")
     def test_simulate_scenario_no_results(self, mock_post, api):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"results": [], "completed_at": "2024-01-01T00:00:00"}
-        mock_resp.raise_for_status.return_value = None
-        mock_post.return_value = mock_resp
+        create_resp = MagicMock()
+        create_resp.json.return_value = {"scenario_id": "s1"}
+        create_resp.raise_for_status.return_value = None
+        run_resp = MagicMock()
+        run_resp.json.return_value = {
+            "result_id": "r1",
+            "scenario": {"precipitation_mm": 12.5, "temperature_2m": 25.1},
+            "authenticity": "SCENARIO",
+            "mode": "REAL",
+            "baseline": {"precipitation_mm": 0.0, "temperature_2m": 22.1},
+            "deltas": {"precipitation_mm": 12.5, "temperature_2m": 3.0},
+            "time_steps": ["2024-01-01T00:00:00"],
+        }
+        run_resp.raise_for_status.return_value = None
+        mock_post.side_effect = [create_resp, run_resp]
 
         result = api.simulate_scenario({"scenario_id": "temp_plus_2", "location_id": "KA-BLR-001"})
         assert result["status"] == "success"
-        assert result["data"] == {}
+        assert result["data"]["rainfall"] == 12.5
+        assert result["data"]["authenticity"] == "SCENARIO"

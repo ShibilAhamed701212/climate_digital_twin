@@ -44,6 +44,24 @@ _DEFAULT_MAX_CONCURRENT = 5
 _DEFAULT_CACHE_TTL = 3600
 
 
+def _get(arr: list[Any] | None, idx: int, default: float = 0.0) -> float:
+    if arr is None or idx >= len(arr) or arr[idx] is None:
+        return float("nan")
+    try:
+        return float(arr[idx])
+    except (ValueError, TypeError):
+        return float("nan")
+
+
+def _get_opt(arr: list[Any] | None, idx: int) -> float | None:
+    if arr is None or idx >= len(arr) or arr[idx] is None:
+        return None
+    try:
+        return float(arr[idx])
+    except (ValueError, TypeError):
+        return None
+
+
 @dataclass
 class _CachedResponse:
     data: dict[str, Any]
@@ -267,22 +285,26 @@ class OpenMeteoConnector(DataConnector):
                     timestamp = timestamp.replace(tzinfo=UTC)
             except (ValueError, TypeError):
                 continue
-            obs = WeatherObservation(
-                location_id=location_id,
-                latitude=latitude,
-                longitude=longitude,
-                timestamp=timestamp,
-                temperature_2m=temps[i] if i < len(temps) else 0.0,
-                precipitation_mm=precips[i] if i < len(precips) else 0.0,
-                humidity_pct=humidities[i] if i < len(humidities) else 0.0,
-                pressure_hpa=pressures[i] if i < len(pressures) else 1013.0,
-                wind_speed_10m=wind_speeds[i] if i < len(wind_speeds) else 0.0,
-                wind_direction_10m=wind_dirs[i] if i < len(wind_dirs) else 0.0,
-                solar_radiation=radiations[i] if i < len(radiations) else None,
-                cloud_cover_pct=clouds[i] if i < len(clouds) else None,
-                soil_moisture=soils[i] if i < len(soils) else None,
-                data_source=self.data_source,
-            )
+            try:
+                obs = WeatherObservation(
+                    location_id=location_id,
+                    latitude=latitude,
+                    longitude=longitude,
+                    timestamp=timestamp,
+                    temperature_2m=_get(temps, i),
+                    precipitation_mm=_get(precips, i),
+                    humidity_pct=_get(humidities, i),
+                    pressure_hpa=_get(pressures, i, default=1013.0),
+                    wind_speed_10m=_get(wind_speeds, i),
+                    wind_direction_10m=_get(wind_dirs, i),
+                    solar_radiation=_get_opt(radiations, i),
+                    cloud_cover_pct=_get_opt(clouds, i),
+                    soil_moisture=_get_opt(soils, i),
+                    data_source=self.data_source,
+                )
+            except (ValueError, TypeError):
+                _logger.debug("Skipping observation at index %d due to invalid values", i)
+                continue
             observations.append(obs)
         return observations
 
@@ -318,14 +340,14 @@ class OpenMeteoConnector(DataConnector):
                 longitude=longitude,
                 forecast_timestamp=forecast_ts,
                 issue_timestamp=issue_timestamp,
-                temperature_2m=temps[i] if i < len(temps) else 0.0,
-                precipitation_mm=precips[i] if i < len(precips) else 0.0,
-                humidity_pct=humidities[i] if i < len(humidities) else 0.0,
-                pressure_hpa=pressures[i] if i < len(pressures) else 1013.0,
-                wind_speed_10m=wind_speeds[i] if i < len(wind_speeds) else 0.0,
-                wind_direction_10m=wind_dirs[i] if i < len(wind_dirs) else 0.0,
-                cloud_cover_pct=clouds[i] if i < len(clouds) else None,
-                solar_radiation=radiations[i] if i < len(radiations) else None,
+                temperature_2m=_get(temps, i),
+                precipitation_mm=_get(precips, i),
+                humidity_pct=_get(humidities, i),
+                pressure_hpa=_get(pressures, i, default=1013.0),
+                wind_speed_10m=_get(wind_speeds, i),
+                wind_direction_10m=_get(wind_dirs, i),
+                cloud_cover_pct=_get_opt(clouds, i),
+                solar_radiation=_get_opt(radiations, i),
                 model_name="open_meteo",
             )
             forecast_points.append(fp)
@@ -350,6 +372,44 @@ class OpenMeteoConnector(DataConnector):
     def clear_cache(self) -> None:
         self._cache.clear()
         _logger.debug("Cache cleared")
+
+
+OPEN_METEO_CANONICAL_UNITS: dict[str, str] = {
+    "temperature_2m": "°C",
+    "precipitation": "mm",
+    "relative_humidity_2m": "%",
+    "surface_pressure": "hPa",
+    "wind_speed_10m": "km/h",
+    "wind_direction_10m": "°",
+    "shortwave_radiation": "W/m²",
+    "cloud_cover": "%",
+    "soil_moisture_0_to_7cm": "m³/m³",
+}
+
+
+def normalize_units(data: dict[str, Any]) -> dict[str, Any]:
+    return data
+
+
+def validate_schema(data: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
+    if not isinstance(data, dict):
+        issues.append("response is not a dict")
+        return issues
+    if "hourly" not in data and "daily" not in data:
+        issues.append("response missing hourly and daily keys")
+        return issues
+    hourly = data.get("hourly", {})
+    if not isinstance(hourly, dict):
+        issues.append("hourly is not a dict")
+        return issues
+    time_vals = hourly.get("time")
+    if not time_vals or not isinstance(time_vals, list):
+        issues.append("hourly.time is missing or not a list")
+        return issues
+    if len(time_vals) == 0:
+        issues.append("hourly.time is empty")
+    return issues
 
 
 def get_openmeteo_connector(

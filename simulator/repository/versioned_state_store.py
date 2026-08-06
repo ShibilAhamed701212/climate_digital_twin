@@ -57,6 +57,11 @@ _TWIN_STATE_SCHEMA = pa.schema(
         pa.field("soil_moisture", pa.float64()),
         pa.field("data_source", pa.string()),
         pa.field("quality_flag", pa.string()),
+        pa.field("observation_id", pa.string()),
+        pa.field("run_id", pa.string()),
+        pa.field("source_dataset", pa.string()),
+        pa.field("authenticity", pa.string()),
+        pa.field("ingestion_timestamp", pa.timestamp("us", tz="UTC")),
     ]
 )
 
@@ -95,6 +100,11 @@ class VersionedStateStore:
     def save_state(
         self, state: TwinState, created_by: str = "system", description: str = ""
     ) -> TwinStateVersion:
+        if state.authenticity.upper() != "REAL":
+            raise ValueError(
+                f"Refusing to persist non-REAL '{state.authenticity}' state "
+                f"into the authoritative twin store"
+            )
         entity_dir = self._get_entity_dir(state.entity_id)
         with self._lock:
             index = self._read_version_index()
@@ -119,6 +129,7 @@ class VersionedStateStore:
                 parent_version_id=parent_version_id,
                 description=description,
             )
+            ing_ts = state.ingestion_timestamp if state.ingestion_timestamp else datetime.now(UTC)
             state_table = pa.Table.from_pydict(
                 {
                     "entity_id": [state.entity_id],
@@ -134,6 +145,11 @@ class VersionedStateStore:
                     "soil_moisture": [state.soil_moisture],
                     "data_source": [state.data_source],
                     "quality_flag": [state.quality_flag],
+                    "observation_id": [state.observation_id],
+                    "run_id": [state.run_id],
+                    "source_dataset": [state.source_dataset],
+                    "authenticity": [state.authenticity],
+                    "ingestion_timestamp": [ing_ts],
                 },
                 schema=_TWIN_STATE_SCHEMA,
             )
@@ -203,7 +219,10 @@ class VersionedStateStore:
             return None
         latest = entity_index.sort_by([("version_number", "descending")]).slice(0, 1)
         file_path = str(latest.column("file_path")[0].as_py())
-        return self._read_state_file(file_path)
+        state = self._read_state_file(file_path)
+        if state is not None:
+            state.version_number = int(latest.column("version_number")[0].as_py())
+        return state
 
     def get_version_history(self, entity_id: str) -> list[TwinStateVersion]:
         index = self._read_version_index()
@@ -244,6 +263,15 @@ class VersionedStateStore:
             if table.num_rows == 0:
                 return None
             row = table.slice(0, 1)
+            ing_ts = None
+            try:
+                ing_ts = (
+                    row.column("ingestion_timestamp")[0].as_py()
+                    if "ingestion_timestamp" in row.schema.names
+                    else None
+                )
+            except Exception:
+                ing_ts = None
             return TwinState(
                 entity_id=str(row.column("entity_id")[0].as_py()),
                 timestamp=row.column("timestamp")[0].as_py(),
@@ -258,6 +286,11 @@ class VersionedStateStore:
                 soil_moisture=row.column("soil_moisture")[0].as_py(),
                 data_source=str(row.column("data_source")[0].as_py()),
                 quality_flag=str(row.column("quality_flag")[0].as_py()),
+                observation_id=str(row.column("observation_id")[0].as_py()),
+                run_id=str(row.column("run_id")[0].as_py()),
+                source_dataset=str(row.column("source_dataset")[0].as_py()),
+                authenticity=str(row.column("authenticity")[0].as_py()),
+                ingestion_timestamp=ing_ts,
             )
         except Exception as e:
             _logger.warning("Failed to read state file %s: %s", file_path, e)
@@ -451,7 +484,7 @@ class VersionedStateStore:
                         break
                     except PermissionError:
                         if attempt < max_retries - 1:
-                            time.sleep(0.1 * (2 ** attempt))
+                            time.sleep(0.1 * (2**attempt))
                             gc.collect()
                         else:
                             raise

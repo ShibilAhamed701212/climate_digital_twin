@@ -96,20 +96,14 @@ class ScenarioService:
         baseline_data = self._collect_baseline(location_ids)
         run = self.scenario_engine.run_simulation(scenario, baseline_data)
 
-        for result in run.results:
-            if result.success:
-                from simulator.entities.climate_entity import ClimateEntity
-
-                entity = ClimateEntity.deserialize(result.simulated)
-                try:
-                    self.twin.apply_scenario(entity, scenario_id)
-                except ValueError as e:
-                    logger.warning(
-                        "Failed to apply scenario %s to %s: %s",
-                        scenario_id,
-                        result.location_id,
-                        e,
-                    )
+        # Isolation: simulated scenario states are NEVER persisted into the
+        # twin repository.  Results stay in-memory in the ScenarioRun; the
+        # authoritative REAL twin (and the demo twin store) are untouched.
+        logger.info(
+            "Scenario %s simulated in-memory for %d locations; no twin writes",
+            scenario_id,
+            run.location_count,
+        )
 
         self.event_bus.publish(
             TwinEvent(

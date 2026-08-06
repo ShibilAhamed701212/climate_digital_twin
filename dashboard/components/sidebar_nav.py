@@ -12,7 +12,15 @@ def render_sidebar_nav() -> None:
     st.sidebar.divider()
     st.sidebar.subheader("Navigation")
 
+    valid = {p["file"] for p in PAGES}
+    aliases = {"10_twin_state_bhai": "03_twin_state"}
     current = st.session_state.get("page", PAGES[0]["file"])
+    if current in aliases:
+        current = aliases[current]
+        st.session_state.page = current
+    if current not in valid:
+        current = PAGES[0]["file"]
+        st.session_state.page = current
 
     opts = {p["title"]: p["file"] for p in PAGES}
     current_idx = next(i for i, p in enumerate(PAGES) if p["file"] == current)

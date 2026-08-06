@@ -27,9 +27,11 @@ class TwinEvent:
             "ScenarioDeleted",
             "RiskUpdated",
             "TwinRefreshed",
+            "TwinStateCreated",
+            "TwinStateUpdated",
+            "TwinStateSyncFailed",
         }
         if self.event_type not in valid_types:
             raise ValueError(
-                f"Invalid event type: {self.event_type}. "
-                f"Must be one of: {valid_types}"
+                f"Invalid event type: {self.event_type}. Must be one of: {valid_types}"
             )

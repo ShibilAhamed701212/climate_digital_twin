@@ -41,16 +41,24 @@ def status_badge(label: str, status: str) -> None:
 
 
 def entity_detail_table(entity: dict[str, Any]) -> None:
+    def _v(v: Any, unit: str = "") -> Any:
+        if v is None or v == "":
+            return "Unavailable"
+        if isinstance(v, (int, float)):
+            return f"{v:.1f} {unit}".strip()
+        return v
+
+    risk_score = entity.get("risk_score")
     fields = [
         ("Location ID", entity.get("location_id", "")),
         ("District", entity.get("district", "")),
         ("Latitude", entity.get("latitude", "")),
         ("Longitude", entity.get("longitude", "")),
         ("Timestamp", entity.get("timestamp", "")),
-        ("Rainfall (mm)", entity.get("rainfall", 0)),
-        ("Max Temp (°C)", entity.get("max_temp", 0)),
-        ("Min Temp (°C)", entity.get("min_temp", 0)),
-        ("Risk Score", f"""{entity.get("risk_score", 0):.1f}"""),
+        ("Rainfall (mm)", _v(entity.get("rainfall"), "mm")),
+        ("Max Temp (°C)", _v(entity.get("max_temp"), "°C")),
+        ("Min Temp (°C)", _v(entity.get("min_temp"), "°C")),
+        ("Risk Score", f"{risk_score:.1f}" if risk_score is not None else "Unavailable"),
         ("Confidence", f"""{entity.get("prediction_confidence", 0):.2f}"""),
         ("Data Source", entity.get("data_source", "")),
         ("State Type", entity.get("state_type", "")),

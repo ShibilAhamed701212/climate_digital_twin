@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from models.data_loader import (
     ClimateDataset,
     DataShapeError,
+    DatasetNotFoundError,
     Scaler,
     _generate_synthetic_training_data,
     load_data,
@@ -103,3 +104,16 @@ class TestLoadData:
         assert isinstance(test_loader, DataLoader)
         assert feat_scaler is not None
         assert tgt_scaler is not None
+
+    def test_require_real_raises_on_missing_data(self):
+        config = {
+            "data": {
+                "sequence_length": 10,
+                "batch_size": 8,
+                "feature_columns": ["Rainfall", "MaxTemp", "MinTemp"],
+                "target_columns": ["Rainfall", "MaxTemp", "MinTemp"],
+            },
+            "training": {"random_seed": 42},
+        }
+        with pytest.raises(DatasetNotFoundError):
+            load_data(config, data_dir="/tmp/nonexistent", require_real=True)

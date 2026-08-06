@@ -5,6 +5,7 @@ creates PyTorch Dataset and DataLoader with configurable batch size
 and sequence length. Supports feature scaling and target normalization.
 """
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,49 @@ import yaml
 from torch.utils.data import DataLoader, Dataset
 
 logger = logging.getLogger(__name__)
+
+_SCALER_DIR = "models/checkpoints"
+
+
+def save_scalers(
+    feat_scaler: "Scaler",
+    tgt_scaler: "Scaler",
+    model_name: str,
+    scaler_dir: str = _SCALER_DIR,
+) -> tuple[str, str]:
+    """Persist feature and target scalers alongside checkpoints."""
+    import pickle as _pickle
+
+    dir_path = Path(scaler_dir)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    feat_path = str(dir_path / f"{model_name}_feat_scaler.pkl")
+    tgt_path = str(dir_path / f"{model_name}_tgt_scaler.pkl")
+    with open(feat_path, "wb") as f:
+        _pickle.dump(feat_scaler, f)
+    with open(tgt_path, "wb") as f:
+        _pickle.dump(tgt_scaler, f)
+    logger.info("Scalers saved: %s, %s", feat_path, tgt_path)
+    return feat_path, tgt_path
+
+
+def load_scalers(
+    model_name: str,
+    scaler_dir: str = _SCALER_DIR,
+) -> tuple:
+    """Load persisted scalers. Returns (None, None) if not found."""
+    import pickle as _pickle
+
+    feat_path = Path(scaler_dir) / f"{model_name}_feat_scaler.pkl"
+    tgt_path = Path(scaler_dir) / f"{model_name}_tgt_scaler.pkl"
+    feat: Scaler | None = None
+    tgt: Scaler | None = None
+    if feat_path.exists():
+        with open(feat_path, "rb") as f:
+            feat = _pickle.load(f)
+    if tgt_path.exists():
+        with open(tgt_path, "rb") as f:
+            tgt = _pickle.load(f)
+    return feat, tgt
 
 
 class ClimateDataset(Dataset):
@@ -94,6 +138,29 @@ def load_config(config_path: str = "models/configs/model_config.yaml") -> dict[s
         return yaml.safe_load(f)
 
 
+class DatasetNotFoundError(Exception):
+    """Raised when required dataset files are missing."""
+
+
+def verify_dataset_manifest(data_dir: str) -> dict[str, Any]:
+    manifest_path = Path(data_dir) / "dataset_manifest.json"
+    if not manifest_path.exists():
+        raise DatasetNotFoundError(f"No dataset manifest found at {manifest_path}")
+    manifest = json.loads(manifest_path.read_text())
+    for fname, expected_cs in manifest.get("checksums", {}).items():
+        actual = Path(data_dir) / fname
+        if not actual.exists():
+            raise DatasetNotFoundError(f"Dataset file missing: {actual}")
+        import hashlib
+
+        actual_cs = hashlib.sha256(actual.read_bytes()).hexdigest()[:16]
+        if actual_cs != expected_cs:
+            raise DatasetNotFoundError(
+                f"Checksum mismatch for {fname}: expected {expected_cs}, got {actual_cs}"
+            )
+    return manifest
+
+
 def _generate_synthetic_training_data(
     num_samples: int = 5000,
     sequence_length: int = 30,
@@ -119,11 +186,28 @@ def _generate_synthetic_training_data(
     return data
 
 
+NEURAL_FAMILIES = {"lstm", "transformer", "patchtst", "itransformer", "timemixer"}
+
+
+def needs_scaling(model_type: str | None) -> bool:
+    if model_type is None:
+        return False
+    return model_type in NEURAL_FAMILIES
+
+
 def load_data(
     config: dict[str, Any],
     data_dir: str | None = None,
+    require_real: bool = False,
+    scale: bool = False,
 ) -> tuple[DataLoader, DataLoader, DataLoader, Scaler, Scaler]:
     """Load train/val/test splits and create DataLoaders.
+
+    When require_real=True, the data_dir must contain dataset_manifest.json
+    with valid checksums — fails instead of falling back to synthetic data.
+
+    When scale=True, features and targets are min-max scaled using TRAIN-only
+    statistics.  Neural models (LSTM, Transformer, etc.) require scaling.
 
     Returns (train_loader, val_loader, test_loader, feature_scaler, target_scaler).
     """
@@ -142,7 +226,15 @@ def load_data(
         val_df = pd.read_csv(val_path)
         test_df = pd.read_csv(test_path)
         logger.info("Loaded data from %s", data_dir)
+        if require_real:
+            verify_dataset_manifest(data_dir)
+            logger.info("Dataset manifest verified for %s", data_dir)
     else:
+        if require_real:
+            raise DatasetNotFoundError(
+                f"Real data required but not found at {data_dir}. "
+                "Run 'python -m models.build_dataset' first."
+            )
         logger.warning("Processed data not found, generating synthetic data")
         syn = _generate_synthetic_training_data(5000, seq_len)
         train_df = syn.iloc[:3500].copy()
@@ -177,6 +269,23 @@ def load_data(
     train_tgt = torch.tensor(train_df[tgt_cols].values, dtype=torch.float32)
     feat_scaler.fit(train_feat)
     tgt_scaler.fit(train_tgt)
+    if scale:
+        train_feat_scaled = feat_scaler.transform(train_feat)
+        train_tgt_scaled = tgt_scaler.transform(train_tgt)
+        train_df = train_df.copy()
+        train_df[feat_cols] = train_feat_scaled.numpy()
+        train_df[tgt_cols] = train_tgt_scaled.numpy()
+        val_feat = torch.tensor(val_df[feat_cols].values, dtype=torch.float32)
+        val_tgt = torch.tensor(val_df[tgt_cols].values, dtype=torch.float32)
+        val_df = val_df.copy()
+        val_df[feat_cols] = feat_scaler.transform(val_feat).numpy()
+        val_df[tgt_cols] = tgt_scaler.transform(val_tgt).numpy()
+        test_feat = torch.tensor(test_df[feat_cols].values, dtype=torch.float32)
+        test_tgt = torch.tensor(test_df[tgt_cols].values, dtype=torch.float32)
+        test_df = test_df.copy()
+        test_df[feat_cols] = feat_scaler.transform(test_feat).numpy()
+        test_df[tgt_cols] = tgt_scaler.transform(test_tgt).numpy()
+        logger.info("Features and targets scaled using TRAIN statistics")
     train_dataset = ClimateDataset(train_df, feat_cols, tgt_cols, seq_len)
     val_dataset = ClimateDataset(val_df, feat_cols, tgt_cols, seq_len)
     test_dataset = ClimateDataset(test_df, feat_cols, tgt_cols, seq_len)

@@ -11,20 +11,6 @@ from copilot.tools.base import BaseTool
 logger = logging.getLogger(__name__)
 
 
-def _synthetic_twin_state(location: str) -> dict[str, Any]:
-    """Generate plausible synthetic twin state when the service is unavailable."""
-    return {
-        "location": location,
-        "max_temp": 34.2,
-        "min_temp": 21.5,
-        "rainfall_mm": 12.8,
-        "humidity_pct": 62.0,
-        "soil_moisture": 0.45,
-        "wind_speed_kmh": 14.3,
-        "timestamp": "2025-01-15T10:30:00",
-    }
-
-
 class DigitalTwinTool(BaseTool):
     def __init__(self) -> None:
         self._name = "digital_twin_tool"
@@ -44,13 +30,29 @@ class DigitalTwinTool(BaseTool):
             }
         except (ConnectionError, Timeout, HTTPError) as e:
             logger.warning("Twin service unavailable: %s", e)
-            fallback = _synthetic_twin_state(location)
+            from pipeline.providers.manager import DataSourceManager, ObservationStatus
+            dsm = DataSourceManager()
+            obs = dsm.get_observation(location.lower(), "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "tool": self._name,
+                    "location": location,
+                    "state": {
+                        "location": location,
+                        "max_temp": obs.values.get("temperature_2m", 0),
+                        "min_temp": obs.values.get("temperature_2m_min", 0),
+                        "rainfall_mm": obs.values.get("precipitation_mm", 0),
+                    },
+                    "available": True,
+                    "data_source": obs.status.value,
+                    "provider": obs.provider,
+                }
             return {
                 "tool": self._name,
                 "location": location,
-                "state": fallback,
+                "state": {},
                 "available": False,
-                "fallback": True,
+                "error": "No verified climate observation is available.",
             }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:

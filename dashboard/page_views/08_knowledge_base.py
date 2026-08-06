@@ -82,8 +82,8 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
                         result = api.ingest_document(
                             doc_title, doc_source or "manual", doc_content, tags
                         )
-                        doc_id = result["document_id"]
-                        chunks = result["chunks"]
+                        doc_id = result.get("document_id", "unknown")
+                        chunks = result.get("chunks", 0)
                         st.success(f"Document ingested! ID: {doc_id}, Chunks: {chunks}")
                     except Exception as exc:
                         st.error(f"Ingestion failed: {exc}")

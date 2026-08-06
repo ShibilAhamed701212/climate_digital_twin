@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Phase 2 — Data Pipeline Orchestrator.
+"""
+# LEGACY / SYNTHETIC / DEMO ONLY
+# Use `python -m pipeline.ingest` for production real-data ingestion.
+# This pipeline orchestrates download → validate → clean → features → export
+# using potentially synthetic data. Preserved for backward compatibility.
+# Do NOT call this from the production real-data pipeline.
+
+Phase 2 — Data Pipeline Orchestrator.
 
 Runs the complete data pipeline end-to-end:
   Download → Validation → Cleaning → Feature Engineering → Export

@@ -1,0 +1,84 @@
+{
+  "downloaded_months": {
+    "2021-01": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202101.nc",
+      "size_mb": 23.11,
+      "elapsed_s": 87.9,
+      "downloaded_at": "2026-08-01T17:56:31.347777+00:00"
+    },
+    "2021-02": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202102.nc",
+      "size_mb": 20.65,
+      "elapsed_s": 83.4,
+      "downloaded_at": "2026-08-01T17:57:56.626923+00:00"
+    },
+    "2021-03": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202103.nc",
+      "size_mb": 23.04,
+      "elapsed_s": 84.8,
+      "downloaded_at": "2026-08-01T17:59:23.055102+00:00"
+    },
+    "2021-04": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202104.nc",
+      "size_mb": 22.88,
+      "elapsed_s": 125.6,
+      "downloaded_at": "2026-08-01T18:01:29.333252+00:00"
+    },
+    "2021-05": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202105.nc",
+      "size_mb": 24.34,
+      "elapsed_s": 123.4,
+      "downloaded_at": "2026-08-01T18:03:33.422174+00:00"
+    },
+    "2021-06": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202106.nc",
+      "size_mb": 23.72,
+      "elapsed_s": 164.2,
+      "downloaded_at": "2026-08-01T18:06:18.910990+00:00"
+    },
+    "2021-07": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202107.nc",
+      "size_mb": 24.56,
+      "elapsed_s": 98.7,
+      "downloaded_at": "2026-08-01T18:07:58.618409+00:00"
+    },
+    "2021-08": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202108.nc",
+      "size_mb": 24.38,
+      "elapsed_s": 85.2,
+      "downloaded_at": "2026-08-01T18:09:24.551891+00:00"
+    },
+    "2021-09": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202109.nc",
+      "size_mb": 23.57,
+      "elapsed_s": 103.8,
+      "downloaded_at": "2026-08-01T18:11:09.076139+00:00"
+    },
+    "2021-10": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202110.nc",
+      "size_mb": 23.72,
+      "elapsed_s": 61.3,
+      "downloaded_at": "2026-08-01T18:12:13.357729+00:00"
+    },
+    "2021-11": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202111.nc",
+      "size_mb": 22.76,
+      "elapsed_s": 92.0,
+      "downloaded_at": "2026-08-01T18:13:47.242496+00:00"
+    },
+    "2021-12": {
+      "path": "data\\validation\\era5\\india\\raw\\era5_202112.nc",
+      "size_mb": 23.02,
+      "elapsed_s": 88.9,
+      "downloaded_at": "2026-08-01T18:15:16.905365+00:00"
+    }
+  },
+  "failed_months": {},
+  "started_at": "2026-08-01T17:55:02.546743+00:00",
+  "bbox": {
+    "north": 38.0,
+    "south": 6.0,
+    "west": 68.0,
+    "east": 98.0
+  }
+}

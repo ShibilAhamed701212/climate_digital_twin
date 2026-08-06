@@ -71,6 +71,11 @@ class TwinState:
         soil_moisture: Current soil moisture in m³/m³ (optional).
         data_source: Source of the current state data.
         quality_flag: Quality flag for this state snapshot.
+        observation_id: Source observation ID for provenance.
+        run_id: Ingestion run ID for provenance.
+        source_dataset: Source dataset name (e.g., OPEN_METEO_FORECAST).
+        authenticity: Data authenticity marker (REAL or SYNTHETIC).
+        ingestion_timestamp: When the observation was ingested.
         metadata: Additional state metadata.
     """
 
@@ -87,7 +92,13 @@ class TwinState:
     soil_moisture: float | None = None
     data_source: str = "open_meteo"
     quality_flag: str = "raw"
+    observation_id: str = ""
+    run_id: str = ""
+    source_dataset: str = ""
+    authenticity: str = "REAL"
+    ingestion_timestamp: datetime | None = None
     metadata: dict[str, str] = field(default_factory=dict)
+    version_number: int = 0
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.humidity_pct <= 100.0:

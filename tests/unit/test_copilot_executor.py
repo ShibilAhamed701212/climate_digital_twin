@@ -14,10 +14,7 @@ class TestExecutor:
 
     @patch("copilot.tools.forecast_tool.ForecastClient.predict")
     def test_execute_forecast_plan(self, mock_predict):
-        mock_predict.return_value = [
-            {"day": 1, "rainfall": 10.0, "max_temp": 30.0},
-            {"day": 2, "rainfall": 5.0, "max_temp": 32.0},
-        ]
+        mock_predict.return_value = [[10.0, 30.0, 20.0], [5.0, 32.0, 21.0]]
         plan = Plan(
             intent=IntentType.FORECAST,
             steps=[
@@ -61,7 +58,7 @@ class TestExecutor:
 
     @patch("copilot.tools.forecast_tool.ForecastClient.predict")
     def test_execution_time_tracked(self, mock_predict):
-        mock_predict.return_value = [{"day": 1, "rainfall": 0.0, "max_temp": 25.0}]
+        mock_predict.return_value = [[0.0, 25.0, 18.0]]
         plan = Plan(
             intent=IntentType.FORECAST,
             steps=[
@@ -79,7 +76,7 @@ class TestExecutor:
     @patch("copilot.tools.risk_tool.RiskClient.assess")
     def test_execute_multiple_tools(self, mock_risk, mock_forecast):
         """Test execution of multiple sequential tools."""
-        mock_forecast.return_value = [{"day": 1, "rainfall": 0.0, "max_temp": 25.0}]
+        mock_forecast.return_value = [[0.0, 25.0, 18.0]]
         mock_risk.return_value = {
             "heat": 20,
             "flood": 15,

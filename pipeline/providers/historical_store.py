@@ -43,7 +43,12 @@ class HistoricalStore:
     }
 
     def __init__(self, data_dir: str | Path | None = None) -> None:
-        self._data_dir = Path(data_dir) if data_dir else Path("data/raw")
+        if data_dir:
+            self._data_dir = Path(data_dir)
+        else:
+            # Resolve relative to project root (3 levels up from this file)
+            _project_root = Path(__file__).resolve().parent.parent.parent
+            self._data_dir = _project_root / "data" / "raw"
         self._datasets: dict[str, pd.DataFrame] = {}
 
     def lookup(self, location_id: str, variable: str, timestamp: str | None = None) -> Observation | None:
@@ -64,8 +69,20 @@ class HistoricalStore:
         if col not in df.columns:
             return None
 
+        sub_df = df
+        lat_lon = self._resolve_lat_lon(location_id)
+        if lat_lon is not None and "Latitude" in df.columns and "Longitude" in df.columns:
+            target_lat, target_lon = lat_lon
+            lats = df["Latitude"].unique()
+            lons = df["Longitude"].unique()
+            c_lat = min(lats, key=lambda x: abs(x - target_lat))
+            c_lon = min(lons, key=lambda x: abs(x - target_lon))
+            matched = df[(df["Latitude"] == c_lat) & (df["Longitude"] == c_lon)]
+            if not matched.empty:
+                sub_df = matched
+
         # Use the most recent row as the current observation
-        latest = df.iloc[-1]
+        latest = sub_df.iloc[-1]
         value = float(latest[col])
 
         return Observation(
@@ -81,6 +98,27 @@ class HistoricalStore:
             location_id=location_id,
             variable=variable,
         )
+
+    def _resolve_lat_lon(self, location_id: str) -> tuple[float, float] | None:
+        """Resolve location_id to (latitude, longitude)."""
+        try:
+            from pipeline.sources.location_registry import LocationRegistry
+            registry = LocationRegistry()
+            coords = registry.get_coordinates(location_id)
+            if coords:
+                return (coords[0], coords[1])
+        except Exception:
+            pass
+
+        try:
+            from dashboard.config.config import SAMPLE_LOCATIONS
+            for loc in SAMPLE_LOCATIONS:
+                if loc["id"] == location_id:
+                    return (loc["lat"], loc["lon"])
+        except Exception:
+            pass
+
+        return None
 
     def _load_dataset(self, file_stem: str) -> pd.DataFrame | None:
         if file_stem in self._datasets:

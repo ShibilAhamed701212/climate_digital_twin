@@ -1,12 +1,13 @@
 """NASA POWER API client for fetching historical daily climate data.
 
 Provides grid-based retrieval of precipitation and temperature data
-with concurrent API calls and synthetic fallback when offline.
+with concurrent API calls and retry logic.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any
@@ -30,6 +31,63 @@ COLUMN_MAP: dict[str, str] = {
     "max_temp": "MaxTemp",
     "min_temp": "MinTemp",
 }
+
+_REQUEST_TIMEOUT = 30
+_MAX_RETRIES = 3
+_RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
+
+
+def _request_with_retry(url: str, params: dict[str, Any]) -> requests.Response | None:
+    last_exc: Exception | None = None
+    for attempt in range(1, _MAX_RETRIES + 1):
+        try:
+            resp = requests.get(url, params=params, timeout=_REQUEST_TIMEOUT)
+            if resp.status_code == 200:
+                ct = resp.headers.get("Content-Type", "")
+                if "json" not in ct.lower() and "text" not in ct.lower():
+                    logger.warning("NASA POWER returned non-JSON content-type: %s", ct)
+                    return None
+                return resp
+            if resp.status_code in _RETRYABLE_STATUSES:
+                logger.warning(
+                    "NASA POWER HTTP %d (attempt %d/%d)", resp.status_code, attempt, _MAX_RETRIES
+                )
+                last_exc = requests.RequestException(f"HTTP {resp.status_code}")
+                if attempt < _MAX_RETRIES:
+                    time.sleep(2.0**attempt)
+                continue
+            logger.warning("NASA POWER non-retryable HTTP %d", resp.status_code)
+            return None
+        except requests.ConnectionError as e:
+            last_exc = e
+            logger.warning(
+                "NASA POWER connection error (attempt %d/%d): %s", attempt, _MAX_RETRIES, e
+            )
+            if attempt < _MAX_RETRIES:
+                time.sleep(2.0**attempt)
+        except requests.Timeout as e:
+            last_exc = e
+            logger.warning("NASA POWER timeout (attempt %d/%d): %s", attempt, _MAX_RETRIES, e)
+            if attempt < _MAX_RETRIES:
+                time.sleep(2.0**attempt)
+        except requests.RequestException as e:
+            last_exc = e
+            logger.warning("NASA POWER request error (attempt %d/%d): %s", attempt, _MAX_RETRIES, e)
+            if attempt < _MAX_RETRIES:
+                time.sleep(2.0**attempt)
+    logger.error("NASA POWER request failed after %d retries: %s", _MAX_RETRIES, last_exc)
+    return None
+
+
+def _validate_response_body(body: str) -> bool:
+    if not body or len(body) < 10:
+        return False
+    stripped = body.strip().lower()
+    if stripped.startswith("<!doctype") or stripped.startswith("<html"):
+        return False
+    if stripped.startswith("<?xml"):
+        return False
+    return True
 
 
 def generate_grid(resolution: float, bounds: dict[str, float]) -> list[dict[str, float]]:
@@ -57,12 +115,18 @@ def fetch_point(
         "longitude": lon,
     }
     url = source_config.get("endpoint", NASA_POWER_URL)
+    resp = _request_with_retry(url, params)
+    if resp is None:
+        logger.warning("NASA POWER request failed for lat=%.4f lon=%.4f", lat, lon)
+        return None
+    body = resp.text
+    if not _validate_response_body(body):
+        logger.warning("NASA POWER invalid response body for lat=%.4f lon=%.4f", lat, lon)
+        return None
     try:
-        resp = requests.get(url, params=params, timeout=60)
-        resp.raise_for_status()
         return resp.json()
-    except requests.RequestException:
-        logger.warning("NASA POWER request failed for lat=%.4f lon=%.4f", lat, lon, exc_info=True)
+    except ValueError:
+        logger.warning("NASA POWER malformed JSON for lat=%.4f lon=%.4f", lat, lon, exc_info=True)
         return None
 
 
@@ -92,19 +156,23 @@ def parse_response(
                 raw = params.get(nasa_key, {}).get(date_str)
                 if raw is not None:
                     col_name = COLUMN_MAP.get(ds_key, ds_key)
-                    all_records[ds_key].append({
-                        "Date": dt,
-                        "Latitude": lat,
-                        "Longitude": lon,
-                        col_name: float(raw),
-                    })
+                    all_records[ds_key].append(
+                        {
+                            "Date": dt,
+                            "Latitude": lat,
+                            "Longitude": lon,
+                            col_name: float(raw),
+                        }
+                    )
         result: dict[str, pd.DataFrame] = {}
         for ds_key in param_map:
             if all_records[ds_key]:
                 result[ds_key] = pd.DataFrame(all_records[ds_key])
         return result
     except (KeyError, ValueError, TypeError):
-        logger.warning("Failed to parse NASA POWER response for lat=%.4f lon=%.4f", lat, lon, exc_info=True)
+        logger.warning(
+            "Failed to parse NASA POWER response for lat=%.4f lon=%.4f", lat, lon, exc_info=True
+        )
         return None
 
 
@@ -132,7 +200,9 @@ def fetch_nasa_power_grid(
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_map = {
-            executor.submit(fetch_point, p["latitude"], p["longitude"], start_str, end_str, source_config): p
+            executor.submit(
+                fetch_point, p["latitude"], p["longitude"], start_str, end_str, source_config
+            ): p
             for p in points
         }
         for future in as_completed(future_map):
@@ -145,15 +215,26 @@ def fetch_nasa_power_grid(
                         if key in parsed and not parsed[key].empty:
                             all_records[key].append(parsed[key])
                 else:
-                    logger.debug("No NASA POWER data for lat=%.4f lon=%.4f", point["latitude"], point["longitude"])
+                    logger.debug(
+                        "No NASA POWER data for lat=%.4f lon=%.4f",
+                        point["latitude"],
+                        point["longitude"],
+                    )
             except Exception:
-                logger.error("Failed to process NASA POWER point lat=%.4f lon=%.4f", point["latitude"], point["longitude"], exc_info=True)
+                logger.error(
+                    "Failed to process NASA POWER point lat=%.4f lon=%.4f",
+                    point["latitude"],
+                    point["longitude"],
+                    exc_info=True,
+                )
 
     result: dict[str, pd.DataFrame] = {}
     for key in param_map:
         if all_records[key]:
             result[key] = pd.concat(all_records[key], ignore_index=True)
-            logger.info("NASA POWER %s: %d records from %d points", key, len(result[key]), len(points))
+            logger.info(
+                "NASA POWER %s: %d records from %d points", key, len(result[key]), len(points)
+            )
         else:
             logger.warning("NASA POWER returned no data for %s", key)
     return result

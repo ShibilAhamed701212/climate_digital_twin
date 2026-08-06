@@ -14,6 +14,7 @@ from backend.api.models import (
     ForecastPredictResponse,
     RetrainResponse,
 )
+from climatedt.pipeline.forecast_pipeline import ForecastUnavailableError
 
 _logger = logging.getLogger(__name__)
 
@@ -31,21 +32,30 @@ async def predict_forecast(
 ) -> ForecastPredictResponse:
     try:
         series = await pipeline.predict_with_best(
-            _location_id=request.location_id,
-            _target_variable=request.target_variable,
-            _horizon=request.horizon_hours,
+            location_id=request.location_id,
+            target_variable=request.target_variable,
+            horizon=request.horizon_hours,
         )
 
+        raw_values = getattr(series, "values", [])
+        tolist = getattr(raw_values, "tolist", None)
+        values = tolist() if tolist is not None else list(raw_values)
         return ForecastPredictResponse(
             location_id=request.location_id,
             target_variable=request.target_variable,
             timestamps=[ts.isoformat() for ts in getattr(series, "timestamps", [])],
-            values=getattr(series, "values", []).tolist()
-            if hasattr(getattr(series, "values", []), "tolist")
-            else list(getattr(series, "values", [])),
+            values=values,
             model_id=getattr(series, "model_id", ""),
             created_at=datetime.now(UTC).isoformat(),
+            confidence=getattr(series, "confidence", 0.0),
+            forecast_id=getattr(series, "forecast_id", ""),
+            authenticity=getattr(series, "authenticity", ""),
         )
+    except ForecastUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"message": str(exc), "error_code": exc.code},
+        ) from exc
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -75,15 +85,24 @@ async def list_forecast_models(
         for m in models:
             model_list.append(
                 {
-                    "model_id": getattr(m, "model_id", ""),
-                    "model_type": getattr(m, "model_type", ""),
-                    "target_variable": getattr(m, "target_variable", ""),
-                    "status": getattr(m, "status", ""),
-                    "training_date": (
-                        getattr(m, "training_date", datetime.now(UTC)).isoformat()
-                        if hasattr(m, "training_date")
-                        else ""
+                    "model_id": m.get("name", "")
+                    if isinstance(m, dict)
+                    else getattr(m, "name", ""),
+                    "model_type": (
+                        m.get("architecture", "")
+                        if isinstance(m, dict)
+                        else getattr(m, "architecture", "")
                     ),
+                    "target_variable": "",
+                    "status": m.get("status", "")
+                    if isinstance(m, dict)
+                    else getattr(m, "status", ""),
+                    "authenticity": (
+                        m.get("authenticity", "")
+                        if isinstance(m, dict)
+                        else getattr(m, "authenticity", "")
+                    ),
+                    "training_date": m.get("registered_at", "") if isinstance(m, dict) else "",
                 }
             )
 
@@ -123,6 +142,11 @@ async def retrain_model(
             status=getattr(report, "status", "success"),
             metrics=getattr(report, "metrics", {}),
         )
+    except ForecastUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail={"message": str(exc), "error_code": exc.code},
+        ) from exc
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

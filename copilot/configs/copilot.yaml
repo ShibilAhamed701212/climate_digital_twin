@@ -1,9 +1,10 @@
 llm:
   host: "${OLLAMA_HOST:-http://localhost:11434}"
-  primary_model: "llama3.2:3b"
+  primary_model: "qwen3:4b"
   temperature: 0.1
   max_tokens: 1024
   context_window: 8192
+  timeout: 120
 
 memory:
   type: "conversation_buffer_window"

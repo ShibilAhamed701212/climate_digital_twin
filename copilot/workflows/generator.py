@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 from copilot.llm.ollama_client import OllamaClient
@@ -31,10 +32,43 @@ class ResponseGenerator:
 
         llm_response = self._try_llm(intent, plan, results)
         if llm_response is not None:
-            return llm_response
+            cleaned = self._strip_reasoning(llm_response)
+            if cleaned and len(cleaned) > 40:
+                return cleaned
 
         generator = self._get_generator(intent.intent)
         return generator(intent, results)
+
+    def _strip_reasoning(self, text: str) -> str:
+        """Remove chain-of-thought leakage so only the final answer remains."""
+        reasoning_markers = [
+            "we are given",
+            "the intent is",
+            "tool results:",
+            "steps:",
+            "looking at the data",
+            "we can say",
+            "let's draft",
+            "option:",
+            "however, note",
+            "paragraph ",
+            "we must use only",
+            "the rule says",
+            "we don't have",
+            "we have the tool name",
+            "let me try",
+        ]
+        kept: list[str] = []
+        for block in text.split("\n\n"):
+            lower = block.strip().lower()
+            if any(marker in lower for marker in reasoning_markers):
+                continue
+            if re.match(r"^\d+\.\s", block.strip()) and any(
+                k in lower for k in ["we ", "the ", "looking", "trend", "must", "rule"]
+            ):
+                continue
+            kept.append(block.strip())
+        return "\n\n".join(b for b in kept if b).strip()
 
     def _try_llm(self, intent: IntentResult, _plan: Plan, results: list[ToolResult]) -> str | None:
         if self._llm is None:
@@ -122,12 +156,14 @@ class ResponseGenerator:
         for r in results:
             if r.success and "risk_assessment" in r.data:
                 ra = r.data["risk_assessment"]
+                if not isinstance(ra, dict) or "heat_risk" not in ra:
+                    continue
                 return (
-                    f"**Climate Risk Assessment — {ra['location']}**\n\n"
+                    f"**Climate Risk Assessment — {ra.get('location', 'Karnataka')}**\n\n"
                     f"- Heat Risk: {ra['heat_risk']}/100\n"
-                    f"- Flood Risk: {ra['flood_risk']}/100\n"
-                    f"- Drought Risk: {ra['drought_risk']}/100\n"
-                    f"- **Composite Risk: {ra['composite_risk']}/100 ({ra['category']})**"
+                    f"- Heavy Rain Risk: {ra.get('flood_risk', 0)}/100\n"
+                    f"- Dryness Risk: {ra.get('drought_risk', 0)}/100\n"
+                    f"- **Composite Risk: {ra.get('composite_risk', 0)}/100 ({ra.get('category', 'Unknown')})**"
                 )
         return "Risk assessment unavailable."
 

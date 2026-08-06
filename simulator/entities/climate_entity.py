@@ -51,6 +51,7 @@ class ClimateEntity:
     scenario_id: str = ""
     data_source: str = "IMD"
     state_type: str = StateType.CURRENT.value
+    authenticity: str = ""
 
     def update_state(self, **kwargs: Any) -> "ClimateEntity":
         """Create a new entity with updated fields (immutable pattern).
@@ -73,6 +74,7 @@ class ClimateEntity:
             "scenario_id": kwargs.pop("scenario_id", self.scenario_id),
             "data_source": kwargs.pop("data_source", self.data_source),
             "state_type": kwargs.pop("state_type", self.state_type),
+            "authenticity": kwargs.pop("authenticity", self.authenticity),
         }
         return ClimateEntity(**new_data)
 
@@ -92,6 +94,7 @@ class ClimateEntity:
             "scenario_id": self.scenario_id,
             "data_source": self.data_source,
             "state_type": self.state_type,
+            "authenticity": self.authenticity,
         }
 
     @classmethod

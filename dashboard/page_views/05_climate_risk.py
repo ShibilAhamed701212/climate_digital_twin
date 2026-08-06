@@ -19,7 +19,12 @@ from dashboard.services.api_client import DashboardAPI
 
 def render(api: DashboardAPI, filters: dict) -> None:
     st.header("⚠️ Climate Risk")
-    st.caption("Risk scores, SHAP explainability, and district rankings")
+    st.caption("Risk scores, deterministic feature attribution, and district rankings")
+    st.info(
+        "Scores come from the live twin/Open-Meteo pipeline through `/risk/assess` "
+        "(heat + heavy rain + dryness → weighted composite). "
+        "They are not synthetic placeholders."
+    )
 
     location_id = filters.get("location_id", "KA-BLR-001")
 
@@ -34,7 +39,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
     current = api.get_current_state(location_id)
 
     tab1, tab2, tab3, tab4 = st.tabs(
-        ["Risk Map", "District Ranking", "Risk Analysis", "SHAP Explanation"]
+        ["Risk Map", "District Ranking", "Risk Analysis", "Feature Attribution"]
     )
 
     with tab1:
@@ -68,10 +73,11 @@ def render(api: DashboardAPI, filters: dict) -> None:
                     {
                         "Rank": i,
                         "District": r.get("district", ""),
-                        "Composite": r.get("composite_risk", 0),
-                        "Heat": r.get("heat_risk", 0),
-                        "Flood": r.get("flood_risk", 0),
-                        "Drought": r.get("drought_risk", 0),
+                        "Composite": round(float(r.get("composite_risk", 0) or 0), 2),
+                        "Heat": round(float(r.get("heat_risk", 0) or 0), 2),
+                        "Heavy Rain": round(float(r.get("flood_risk", 0) or 0), 2),
+                        "Dryness": round(float(r.get("drought_risk", 0) or 0), 2),
+                        "Source": (r.get("inputs") or {}).get("data_source", r.get("data_source", "")),
                     }
                 )
             st.dataframe(rank_data, use_container_width=True)
@@ -100,11 +106,14 @@ def render(api: DashboardAPI, filters: dict) -> None:
             st.info("No risk analysis data available")
 
     with tab4:
-        st.subheader("SHAP Feature Importance")
+        st.subheader("Deterministic Feature Attribution")
         if risk_data and "shap_summary" in risk_data:
             fig = shap_waterfall(risk_data["shap_summary"])
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("SHAP values show each feature's contribution to the risk prediction")
+            st.caption(
+                "These are real rule-based attribution values from the validated hazard assessment, "
+                "not model SHAP values."
+            )
 
             st.divider()
             st.info(
@@ -121,6 +130,6 @@ def render(api: DashboardAPI, filters: dict) -> None:
             with col1:
                 metric_card("Rainfall", f"{current.get('rainfall', 0):.1f} mm")
             with col2:
-                metric_card("Max Temp", f"{current.get('max_temp', 0):.1f} °C")
+                metric_card("Current Temp", f"{current.get('current_temp', 0):.1f} °C")
             with col3:
-                metric_card("Min Temp", f"{current.get('min_temp', 0):.1f} °C")
+                metric_card("Daily Extremes", "Unavailable")

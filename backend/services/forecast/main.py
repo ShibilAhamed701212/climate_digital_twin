@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from backend.services.forecast.inference import ForecastInference
+from models.data_loader import DatasetNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,14 @@ def health():
 
 @app.post("/forecast/predict", response_model=PredictResponse)
 def predict(req: PredictRequest) -> PredictResponse:
-    inf = _get_inference()
-    result = inf.predict()
+    try:
+        inf = _get_inference()
+        result = inf.predict()
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"message": str(exc), "error_code": "MODEL_UNAVAILABLE"},
+        ) from exc
     return PredictResponse(
         location_id=req.location_id,
         horizon=req.horizon,
@@ -58,11 +65,23 @@ def predict(req: PredictRequest) -> PredictResponse:
 
 @app.get("/forecast/models")
 def list_models():
-    inf = _get_inference()
+    try:
+        inf = _get_inference()
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"message": str(exc), "error_code": "MODEL_UNAVAILABLE"},
+        ) from exc
     return {"models": inf.get_available_models()}
 
 
 @app.get("/forecast/model-info")
 def model_info():
-    inf = _get_inference()
+    try:
+        inf = _get_inference()
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"message": str(exc), "error_code": "MODEL_UNAVAILABLE"},
+        ) from exc
     return inf.get_model_info()

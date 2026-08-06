@@ -31,7 +31,9 @@ def climate_overlay_map(
     m = create_base_map(center, zoom)
     var_key = variable_to_field(variable)
     for loc in locations:
-        value = loc.get(var_key, loc.get("rainfall", 0))
+        value = _numeric_value(loc, var_key)
+        if value is None:
+            continue
         color = _value_color(value, variable)
         folium.CircleMarker(
             location=[loc.get("latitude", 12.97), loc.get("longitude", 77.59)],
@@ -53,7 +55,9 @@ def district_boundary_map(
     m = create_base_map()
     var_key = variable_to_field(variable)
     for loc in locations:
-        value = loc.get(var_key, loc.get("rainfall", 0))
+        value = _numeric_value(loc, var_key)
+        if value is None:
+            continue
         color = _value_color(value, variable)
         folium.CircleMarker(
             location=[loc.get("latitude", 12.97), loc.get("longitude", 77.59)],
@@ -92,7 +96,9 @@ def forecast_map(
 ) -> folium.Map:
     m = create_base_map()
     var_key = variable_to_field(variable)
-    c_val = current.get(var_key, current.get("rainfall", 0))
+    c_val = _numeric_value(current, var_key)
+    if c_val is None:
+        c_val = 0.0
     c_color = _value_color(c_val, variable)
     folium.CircleMarker(
         location=[current.get("latitude", 12.97), current.get("longitude", 77.59)],
@@ -105,7 +111,9 @@ def forecast_map(
         tooltip="Current",
     ).add_to(m)
     for f in forecasts:
-        f_val = f.get(var_key, f.get("rainfall", 0))
+        f_val = _numeric_value(f, var_key)
+        if f_val is None:
+            continue
         f_color = _value_color(f_val, variable)
         folium.CircleMarker(
             location=[f.get("latitude", 12.97), f.get("longitude", 77.59)],
@@ -139,6 +147,16 @@ def _value_color(value: float, variable: str) -> str:
             return "#cc0000"
         else:
             return "#660000"
+
+
+def _numeric_value(loc: dict[str, Any], field: str) -> float | None:
+    value = loc.get(field)
+    if value is None and field in {"max_temp", "min_temp"}:
+        value = loc.get("current_temp")
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _popup_html(loc: dict[str, Any], variable: str, value: float) -> str:

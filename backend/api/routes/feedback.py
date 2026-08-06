@@ -156,6 +156,26 @@ async def get_feedback_stats(
 
 
 @router.get(
+    "/entries",
+    summary="List feedback entries for dashboard analytics",
+)
+async def list_feedback_entries(
+    analyzer: Any = Depends(get_feedback_analyzer),  # noqa: B008
+) -> dict[str, Any]:
+    try:
+        entries = []
+        if hasattr(analyzer, "list_dashboard_rows"):
+            entries = analyzer.list_dashboard_rows()
+        return {"entries": entries, "total": len(entries)}
+    except Exception as exc:
+        _logger.exception("Feedback entries retrieval failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Feedback entries retrieval failed",
+        ) from exc
+
+
+@router.get(
     "/trend",
     response_model=FeedbackTrendResponse,
     summary="Get feedback trend",

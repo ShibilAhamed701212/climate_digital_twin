@@ -409,3 +409,43 @@ class TestGenerateScenario:
             },
         )
         assert resp.status_code == 422
+
+
+class TestScenarioDetailRetrieval:
+    """Regression: GET /scenario/{id} must not 500 when the definition's
+    ``parameters`` mix types (e.g. string ``location_id`` and ``None`` deltas)."""
+
+    def test_get_created_scenario(self, tmp_path: Any) -> None:
+        from climatedt.scenario.service import ScenarioService
+        from climatedt.scenario.store import ScenarioStore
+
+        store = ScenarioStore(base_dir=tmp_path)
+        svc = ScenarioService(store=store)
+        app = FastAPI()
+        app.include_router(scenario.router)
+        app.dependency_overrides[get_scenario_service] = lambda: svc
+        client = TestClient(app, raise_server_exceptions=False)
+
+        create_resp = client.post(
+            "/scenario/create",
+            json={
+                "name": "Regression",
+                "description": "get-after-create",
+                "scenario_type": "temperature",
+                "location_id": "KA-BLR-001",
+                "latitude": 12.97,
+                "longitude": 77.59,
+                "duration_days": 1,
+                "temperature_delta": 3.0,
+            },
+        )
+        assert create_resp.status_code == 201, create_resp.text
+        scenario_id = create_resp.json()["scenario_id"]
+
+        resp = client.get(f"/scenario/{scenario_id}")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["scenario_id"] == scenario_id
+        assert data["location_id"] == "KA-BLR-001"
+        assert data["parameters"]["location_id"] == "KA-BLR-001"
+        assert data["parameters"]["temperature_delta"] == 3.0

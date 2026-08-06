@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import yaml
+import os
 
 _CONFIG_CACHE: dict[str, Any] | None = None
 
@@ -22,9 +23,10 @@ DASHBOARD_TITLE = "Climate Digital Twin — Karnataka"
 DASHBOARD_ICON = "🌍"
 PAGE_ICON = "🌤"
 
-API_BASE_URL = "http://localhost:8000"
-COPILOT_API_URL = "http://localhost:8005"
-API_TIMEOUT = 10
+API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
+COPILOT_API_URL = os.environ.get("COPILOT_API_URL", "http://localhost:8005")
+API_TIMEOUT = int(os.environ.get("API_TIMEOUT", "30"))
+RAG_SERVICE_URL = os.environ.get("RAG_SERVICE_URL", "http://localhost:8004")
 
 KARNATAKA_BOUNDS = {"min_lat": 11.5, "max_lat": 18.5, "min_lon": 74.0, "max_lon": 78.5}
 
@@ -77,9 +79,9 @@ PAGES = [
     {"title": "Climate Risk", "file": "05_climate_risk", "icon": "⚠️"},
     {"title": "Reports & Insights", "file": "06_reports", "icon": "📊"},
     {"title": "AI Copilot", "file": "07_copilot_chat", "icon": "🤖"},
+    {"title": "Spatial Grid", "file": "08_spatial_grid", "icon": "🗺️"},
     {"title": "Knowledge Base", "file": "08_knowledge_base", "icon": "📚"},
     {"title": "Feedback", "file": "09_feedback", "icon": "💬"},
-    {"title": "Twin State (BHAI)", "file": "10_twin_state_bhai", "icon": "🔷"},
 ]
 
 HORIZONS = {"1-Day": 1, "3-Day": 3, "7-Day": 7}

@@ -26,7 +26,7 @@ class CopilotOrchestrator:
         self.executor = Executor(self.registry)
         llm_cfg = config.get("llm", {})
         self.llm_client = OllamaClient(
-            model=llm_cfg.get("primary_model", "llama3.2:3b"),
+            model=llm_cfg.get("primary_model", "qwen3:4b"),
             temperature=llm_cfg.get("temperature", 0.1),
             max_tokens=llm_cfg.get("max_tokens", 1024),
         )

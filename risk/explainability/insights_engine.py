@@ -82,7 +82,7 @@ def _flood_insights(flood: FloodRiskScore) -> list[ClimateInsight]:
                 direction="heavy",
                 magnitude=flood.rainfall_intensity,
                 description=f"Rainfall intensity at {flood.rainfall_intensity:.1f}mm — above heavy rain threshold.",
-                risk_implication="Elevated flash flood risk in urban and low-lying areas.",
+                risk_implication="Elevated surface water accumulation risk — localized pooling possible in low-lying areas.",
             )
         )
 
@@ -93,7 +93,7 @@ def _flood_insights(flood: FloodRiskScore) -> list[ClimateInsight]:
                 direction="high",
                 magnitude=flood.multi_day_accumulation,
                 description=f"Multi-day accumulation of {flood.multi_day_accumulation:.1f}mm.",
-                risk_implication="Sustained rainfall increases river flooding and waterlogging risk.",
+                risk_implication="Sustained rainfall increases surface water accumulation — may cause waterlogging in poor drainage areas.",
             )
         )
 
@@ -110,7 +110,7 @@ def _drought_insights(drought: DroughtRiskScore) -> list[ClimateInsight]:
                 direction="deficit",
                 magnitude=abs(drought.rainfall_deficit_percent),
                 description=f"Rainfall deficit of {abs(drought.rainfall_deficit_percent):.1f}% below historical mean.",
-                risk_implication="Reduced water availability may impact agriculture and drinking water supply.",
+                risk_implication="Below-normal rainfall — drier-than-usual conditions may affect local soil moisture.",
             )
         )
 

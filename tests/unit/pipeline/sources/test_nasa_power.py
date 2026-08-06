@@ -57,6 +57,8 @@ class TestFetchPoint:
         source_config = {"parameters": NASA_PARAM_MAP}
         with patch("pipeline.sources.nasa_power.requests.get") as mock_get:
             mock_get.return_value.status_code = 200
+            mock_get.return_value.headers = {"Content-Type": "application/json"}
+            mock_get.return_value.text = '{"properties": {"parameter": {}}}'
             mock_get.return_value.json.return_value = mock_data
             result = fetch_point(10.0, 20.0, "20200101", "20200131", source_config)
         assert result == mock_data

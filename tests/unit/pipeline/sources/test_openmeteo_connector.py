@@ -133,18 +133,11 @@ class TestParseHistorical:
         result = connector._parse_historical_response(data, "loc1", 0.0, 0.0)
         assert result == []
 
-    def test_partial_data_defaults(self, connector):
+    def test_partial_data_skipped(self, connector):
         times = ["2024-01-01T00:00"]
         data = {"hourly": {"time": times, "temperature_2m": [25.0]}}
         result = connector._parse_historical_response(data, "loc1", 0.0, 0.0)
-        assert len(result) == 1
-        obs = result[0]
-        assert obs.temperature_2m == 25.0
-        assert obs.precipitation_mm == 0.0
-        assert obs.humidity_pct == 0.0
-        assert obs.solar_radiation is None
-        assert obs.cloud_cover_pct is None
-        assert obs.soil_moisture is None
+        assert len(result) == 0
 
     def test_utc_aware(self, connector):
         times = ["2024-01-01T00:00"]

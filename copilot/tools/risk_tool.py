@@ -11,18 +11,6 @@ from copilot.tools.base import BaseTool
 logger = logging.getLogger(__name__)
 
 
-def _synthetic_risk(location: str) -> dict[str, Any]:
-    """Generate plausible synthetic risk scores when the service is unavailable."""
-    return {
-        "location": location,
-        "heat_risk": 32.0,
-        "flood_risk": 18.0,
-        "drought_risk": 14.0,
-        "composite_risk": 22.0,
-        "category": "LOW",
-    }
-
-
 class RiskAssessorTool(BaseTool):
     def __init__(self) -> None:
         self._name = "risk_assessor"
@@ -51,13 +39,29 @@ class RiskAssessorTool(BaseTool):
             }
         except (ConnectionError, Timeout, HTTPError) as e:
             logger.warning("Risk service unavailable: %s", e)
-            fallback = _synthetic_risk(location)
+            from pipeline.providers.manager import DataSourceManager, ObservationStatus
+            dsm = DataSourceManager()
+            obs = dsm.get_observation(location.lower(), "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "tool": self._name,
+                    "location": location,
+                    "risk_assessment": {
+                        "location": location,
+                        "heat_risk": obs.values.get("temperature_2m", 0),
+                        "composite_risk": 0,
+                        "category": "Unknown",
+                    },
+                    "available": True,
+                    "data_source": obs.status.value,
+                    "provider": obs.provider,
+                }
             return {
                 "tool": self._name,
                 "location": location,
-                "risk_assessment": fallback,
+                "risk_assessment": {},
                 "available": False,
-                "fallback": True,
+                "error": "No verified climate observation is available.",
             }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:

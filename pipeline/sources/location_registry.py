@@ -79,6 +79,51 @@ _DEFAULT_LOCATIONS: list[dict[str, Any]] = [
         "elevation_m": 820.0,
         "state": "Karnataka",
     },
+    {
+        "location_id": "KA-GUL-001",
+        "name": "Kalaburagi",
+        "latitude": 17.33,
+        "longitude": 76.83,
+        "district": "Kalaburagi",
+        "elevation_m": 454.0,
+        "state": "Karnataka",
+    },
+    {
+        "location_id": "KA-UDP-001",
+        "name": "Udupi",
+        "latitude": 13.34,
+        "longitude": 74.75,
+        "district": "Udupi",
+        "elevation_m": 27.0,
+        "state": "Karnataka",
+    },
+    {
+        "location_id": "KA-SHM-001",
+        "name": "Shivamogga",
+        "latitude": 13.42,
+        "longitude": 75.25,
+        "district": "Shivamogga",
+        "elevation_m": 570.0,
+        "state": "Karnataka",
+    },
+    {
+        "location_id": "KA-HBL-001",
+        "name": "Dharwad",
+        "latitude": 15.49,
+        "longitude": 75.01,
+        "district": "Dharwad",
+        "elevation_m": 640.0,
+        "state": "Karnataka",
+    },
+    {
+        "location_id": "KA-HAS-001",
+        "name": "Hassan",
+        "latitude": 13.01,
+        "longitude": 76.10,
+        "district": "Hassan",
+        "elevation_m": 972.0,
+        "state": "Karnataka",
+    },
 ]
 
 
@@ -144,6 +189,16 @@ class LocationRegistry:
     def get_location(self, location_id: str) -> Location | None:
         return self._locations.get(location_id)
 
+    def find_by_name(self, name: str) -> Location | None:
+        """Case-insensitive match against location name or district."""
+        if not name:
+            return None
+        key = name.strip().lower()
+        for loc in self._locations.values():
+            if loc.name.lower() == key or loc.district.lower() == key:
+                return loc
+        return None
+
     def get_coordinates(self, location_id: str) -> tuple[float, float, str] | None:
         loc = self.get_location(location_id)
         if loc is None:
@@ -172,6 +227,22 @@ class LocationRegistry:
 
     def count(self) -> int:
         return len(self._locations)
+
+    def find_nearest(
+        self, latitude: float, longitude: float, tolerance_km: float = 25.0
+    ) -> Location | None:
+        best: Location | None = None
+        best_dist: float = float("inf")
+        for loc in self._locations.values():
+            dlat = loc.latitude - latitude
+            dlon = loc.longitude - longitude
+            dist_km = (dlat * dlat + dlon * dlon) ** 0.5 * 111.0
+            if dist_km < best_dist:
+                best_dist = dist_km
+                best = loc
+        if best is not None and best_dist <= tolerance_km:
+            return best
+        return None
 
     def clear(self) -> None:
         with self._lock:

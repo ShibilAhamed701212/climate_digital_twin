@@ -30,7 +30,7 @@ def load_copilot_config(path: str | None = None) -> dict[str, Any]:
 def _defaults() -> dict[str, Any]:
     return {
         "llm": {
-            "primary_model": "llama3.2:3b",
+            "primary_model": "qwen3:4b",
             "temperature": 0.1,
             "max_tokens": 1024,
             "context_window": 8192,

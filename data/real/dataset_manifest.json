@@ -1,0 +1,78 @@
+{
+  "source": "open-meteo-archive",
+  "source_url": "https://archive-api.open-meteo.com/v1/archive?latitude=12.97&longitude=77.59&start_date=2021-07-30&end_date=2026-07-30&daily=temperature_2m_max,temperature_2m_min,precipitation_sum",
+  "location": {
+    "name": "Bengaluru",
+    "latitude": 12.97,
+    "longitude": 77.59
+  },
+  "date_range": {
+    "start": "2021-07-30",
+    "end": "2026-07-30"
+  },
+  "total_records": 1827,
+  "splits": {
+    "training": {
+      "records": 1278,
+      "date_range": {
+        "start": "2021-07-30",
+        "end": "2025-01-27"
+      }
+    },
+    "validation": {
+      "records": 274,
+      "date_range": {
+        "start": "2025-01-28",
+        "end": "2025-10-28"
+      }
+    },
+    "testing": {
+      "records": 275,
+      "date_range": {
+        "start": "2025-10-29",
+        "end": "2026-07-30"
+      }
+    }
+  },
+  "columns": [
+    "Date",
+    "MaxTemp",
+    "MinTemp",
+    "Rainfall",
+    "Latitude",
+    "Longitude",
+    "LocationName",
+    "Month",
+    "Week",
+    "Season",
+    "Monsoon",
+    "RollingRain7",
+    "RollingRain30",
+    "RollingTemp7",
+    "RollingTemp30"
+  ],
+  "feature_columns": [
+    "Rainfall",
+    "MaxTemp",
+    "MinTemp",
+    "Month",
+    "Week",
+    "Season",
+    "Monsoon",
+    "RollingRain7",
+    "RollingRain30",
+    "RollingTemp7",
+    "RollingTemp30"
+  ],
+  "target_columns": [
+    "Rainfall",
+    "MaxTemp",
+    "MinTemp"
+  ],
+  "checksums": {
+    "training.csv": "9b33677778e432d6",
+    "validation.csv": "5404f456122aa774",
+    "testing.csv": "2f918b854cd41f3d"
+  },
+  "built_at": "2026-07-30T14:55:07.367204+00:00"
+}

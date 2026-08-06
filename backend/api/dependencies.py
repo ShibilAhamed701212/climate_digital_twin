@@ -16,10 +16,21 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 _risk_service: Any = None
 _scenario_service: Any = None
 _rag_service: Any = None
+_feedback_store: Any = None
 _feedback_capture: Any = None
 _feedback_analyzer: Any = None
 _twin_manager: Any = None
 _forecast_pipeline: Any = None
+
+
+def get_feedback_store() -> Any:
+    global _feedback_store
+    if _feedback_store is None:
+        from climatedt.feedback.storage import FeedbackStore
+
+        _feedback_store = FeedbackStore()
+        _logger.info("FeedbackStore initialized")
+    return _feedback_store
 
 
 def get_risk_service() -> Any:
@@ -43,26 +54,68 @@ def get_scenario_service() -> Any:
 
 
 def get_rag_service() -> Any:
+    """Use the indexed knowledge FAISS store (same source as :8004)."""
     global _rag_service
     if _rag_service is None:
-        from climatedt.rag.embeddings import EmbeddingService
-        from climatedt.rag.ingestion import DocumentIngestion
-        from climatedt.rag.knowledge_base import KnowledgeBase
-        from climatedt.rag.retrieval import RetrievalService
-        from climatedt.rag.service import RAGService
-        from climatedt.rag.vector_store import VectorStore
+        from types import SimpleNamespace
 
-        vector_store = VectorStore(dimension=384)
-        embed_service = EmbeddingService()
-        ingestion = DocumentIngestion(embed_service=embed_service, vector_store=vector_store)
-        retrieval = RetrievalService(vector_store=vector_store)
-        knowledge_base = KnowledgeBase(vector_store=vector_store, retrieval_service=retrieval)
-        _rag_service = RAGService(
-            ingestion=ingestion,
-            retrieval=retrieval,
-            knowledge_base=knowledge_base,
-        )
-        _logger.info("RAGService initialized")
+        from knowledge.api.search_api import KnowledgeAPI
+
+        knowledge_api = KnowledgeAPI()
+
+        class _KnowledgeRAGAdapter:
+            def __init__(self, api: KnowledgeAPI) -> None:
+                self._api = api
+
+            async def ask(self, query: str, k: int = 5, _collection_id: str | None = None) -> list[Any]:
+                results = self._api.search(query=query, top_k=k, score_threshold=0.0)
+                adapted: list[Any] = []
+                for rank, item in enumerate(results, start=1):
+                    data = item.to_dict() if hasattr(item, "to_dict") else dict(item)
+                    chunk = SimpleNamespace(
+                        chunk_id=data.get("chunk_id", ""),
+                        document_id=data.get("document_id", ""),
+                        text=data.get("content", data.get("text", "")),
+                        metadata={
+                            "title": data.get("title", ""),
+                            "source": data.get("source", ""),
+                            "category": data.get("category", ""),
+                        },
+                    )
+                    adapted.append(
+                        SimpleNamespace(chunk=chunk, score=float(data.get("score", 0)), rank=rank)
+                    )
+                return adapted
+
+            async def ingest(self, doc: Any) -> list[Any]:
+                from pathlib import Path
+
+                title = getattr(doc, "title", "untitled")
+                content = getattr(doc, "content", "")
+                source = getattr(doc, "source", "manual")
+                docs = Path("knowledge/documents/manual")
+                docs.mkdir(parents=True, exist_ok=True)
+                safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in title.lower())[:60]
+                path = docs / f"{safe or 'doc'}.md"
+                path.write_text(f"# {title}\n\nSource: {source}\n\n{content}", encoding="utf-8")
+                result = self._api.index_document(
+                    str(path), category="manual", title=title, source=source
+                )
+                n_chunks = int(getattr(result, "num_chunks", 0) or 0)
+                doc_id = getattr(result, "document_id", None) or getattr(doc, "document_id", path.stem)
+                if hasattr(doc, "document_id"):
+                    doc.document_id = doc_id
+                return [SimpleNamespace(chunk_id=f"{doc_id}-{i}") for i in range(max(n_chunks, 1))]
+
+            async def ingest_batch(self, documents: list[Any]) -> dict[str, list[Any]]:
+                out: dict[str, list[Any]] = {}
+                for doc in documents:
+                    chunks = await self.ingest(doc)
+                    out[getattr(doc, "document_id", "")] = chunks
+                return out
+
+        _rag_service = _KnowledgeRAGAdapter(knowledge_api)
+        _logger.info("RAGService initialized via KnowledgeAPI adapter")
     return _rag_service
 
 
@@ -71,7 +124,7 @@ def get_feedback_capture() -> Any:
     if _feedback_capture is None:
         from climatedt.feedback.capture import FeedbackCaptureService
 
-        _feedback_capture = FeedbackCaptureService()
+        _feedback_capture = FeedbackCaptureService(store=get_feedback_store())
         _logger.info("FeedbackCaptureService initialized")
     return _feedback_capture
 
@@ -80,10 +133,8 @@ def get_feedback_analyzer() -> Any:
     global _feedback_analyzer
     if _feedback_analyzer is None:
         from climatedt.feedback.analysis import FeedbackAnalyzer
-        from climatedt.feedback.storage import FeedbackStore
 
-        store = FeedbackStore()
-        _feedback_analyzer = FeedbackAnalyzer(feedback_store=store)
+        _feedback_analyzer = FeedbackAnalyzer(feedback_store=get_feedback_store())
         _logger.info("FeedbackAnalyzer initialized")
     return _feedback_analyzer
 

@@ -11,17 +11,6 @@ from copilot.tools.base import BaseTool
 logger = logging.getLogger(__name__)
 
 
-def _synthetic_scenario(scenario_type: str, value: float, location: str) -> dict[str, Any]:
-    """Generate plausible synthetic scenario result when the service is unavailable."""
-    return {
-        "scenario_id": f"synthetic_{scenario_type}",
-        "location": location,
-        "max_temp_delta": round(value * 0.8, 1),
-        "rainfall_delta": round(value * 2.5 if scenario_type == "rainfall" else 0, 1),
-        "confidence": 0.65,
-    }
-
-
 class ScenarioSimulatorTool(BaseTool):
     def __init__(self) -> None:
         self._name = "scenario_simulator"
@@ -46,15 +35,34 @@ class ScenarioSimulatorTool(BaseTool):
             }
         except (ConnectionError, Timeout, HTTPError) as e:
             logger.warning("Scenario service unavailable: %s", e)
-            fallback = _synthetic_scenario(scenario_type, value, location)
+            from pipeline.providers.manager import DataSourceManager, ObservationStatus
+            dsm = DataSourceManager()
+            obs = dsm.get_observation(location.lower(), "temperature_2m")
+            if obs.status != ObservationStatus.UNAVAILABLE:
+                return {
+                    "tool": self._name,
+                    "scenario_type": scenario_type,
+                    "value": value,
+                    "location": location,
+                    "result": {
+                        "scenario_id": f"historical_{scenario_type}",
+                        "location": location,
+                        "max_temp_delta": obs.values.get("temperature_2m", 0),
+                        "rainfall_delta": obs.values.get("precipitation_mm", 0),
+                        "confidence": obs.confidence,
+                    },
+                    "available": True,
+                    "data_source": obs.status.value,
+                    "provider": obs.provider,
+                }
             return {
                 "tool": self._name,
                 "scenario_type": scenario_type,
                 "value": value,
                 "location": location,
-                "result": fallback,
+                "result": {},
                 "available": False,
-                "fallback": True,
+                "error": "No verified climate observation is available.",
             }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:

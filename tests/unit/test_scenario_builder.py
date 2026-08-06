@@ -78,9 +78,9 @@ class TestPresetScenarios:
         assert "temp_plus_1" in preset_ids
         assert "temp_plus_2" in preset_ids
         assert "rain_plus_40" in preset_ids
-        assert "heatwave" in preset_ids
-        assert "flood" in preset_ids
-        assert "drought" in preset_ids
+        assert "extreme_heat" in preset_ids
+        assert "extreme_rainfall" in preset_ids
+        assert "dry_spell" in preset_ids
 
     def test_get_preset_scenario(self):
         from simulator.scenarios.scenario_builder import get_preset_scenario
@@ -100,8 +100,8 @@ class TestPresetScenarios:
     def test_preset_has_all_fields(self):
         from simulator.scenarios.scenario_builder import get_preset_scenario
 
-        s = get_preset_scenario("flood")
+        s = get_preset_scenario("extreme_rainfall")
         assert s is not None
-        assert s.name == "Flood Scenario"
+        assert s.name == "Extreme Rainfall"
         assert s.description != ""
         assert s.parameters["event_type"] == "flood"

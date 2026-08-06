@@ -22,7 +22,7 @@ def _ask_copilot(query: str, conversation_id: str | None = None) -> dict[str, An
         resp = requests.post(
             f"{_get_api_url()}/ask",
             json={"query": query, "conversation_id": conversation_id},
-            timeout=15,
+            timeout=360,
         )
         resp.raise_for_status()
         return resp.json()

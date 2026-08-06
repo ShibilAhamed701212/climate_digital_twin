@@ -23,6 +23,21 @@ from simulator.repository.versioned_state_store import VersionedStateStore
 
 _logger = logging.getLogger(__name__)
 
+_AUTHORITATIVE_SOURCES = {"manual", "api", "era5", "open_meteo", "twin_synchronizer"}
+
+
+def _reject_non_authoritative_source(source: str) -> None:
+    """Reject sources that must never be persisted into the authoritative twin store.
+
+    Scenario/synthetic/demo states live in separate stores and must not reach the
+    REAL twin repository even via the delta-update path.
+    """
+    if source.lower() not in _AUTHORITATIVE_SOURCES:
+        raise ValueError(
+            f"Refusing to persist non-REAL state from source '{source}' "
+            "into the authoritative twin store"
+        )
+
 
 class TwinStateManager:
     """Manages the complete lifecycle of Digital Twin entity states.
@@ -154,8 +169,11 @@ class TwinStateManager:
             The newly created TwinStateVersion.
 
         Raises:
-            ValueError: If no current state exists.
+            ValueError: If no current state exists, or if the source is not
+            an authoritative data source.
         """
+        _reject_non_authoritative_source(source)
+
         current: TwinState | None = None
         try:
             current = await self.get_current_state(location_id)

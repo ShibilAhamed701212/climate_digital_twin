@@ -110,6 +110,26 @@ class RunScenarioResponse(BaseModel):
     )
     time_steps: list[str] = Field(..., description="Timestamps")
     execution_time_ms: float | None = Field(None, description="Execution time")
+    authenticity: str = Field("SCENARIO", description="Data authenticity of the result")
+    mode: str = Field("REAL", description="Execution mode: REAL or DEMO")
+    baseline: dict[str, float] = Field(
+        default_factory=dict, description="Baseline variable values (REAL twin)"
+    )
+    scenario: dict[str, float] = Field(
+        default_factory=dict, description="Hypothetical scenario variable values"
+    )
+    deltas: dict[str, float] = Field(
+        default_factory=dict, description="Variable deltas (scenario - baseline)"
+    )
+    baseline_hazard: dict[str, Any] | None = Field(
+        None, description="Baseline hazard assessment (OBSERVED)"
+    )
+    scenario_hazard: dict[str, Any] | None = Field(
+        None, description="Scenario hazard assessment (SCENARIO, non-operational)"
+    )
+    hazard_deltas: dict[str, Any] = Field(
+        default_factory=dict, description="Hazard score deltas per hazard type"
+    )
 
 
 class CompareScenariosRequest(BaseModel):
@@ -133,7 +153,7 @@ class ScenarioDetailResponse(BaseModel):
     scenario_type: str = Field(..., description="Scenario type")
     location_id: str = Field(..., description="Target location")
     duration_days: int = Field(..., description="Duration in days")
-    parameters: dict[str, float] = Field(..., description="Scenario parameters")
+    parameters: dict[str, Any] = Field(..., description="Scenario parameters")
 
 
 class GenerateFromTemplateRequest(BaseModel):
@@ -376,9 +396,12 @@ class ForecastPredictResponse(BaseModel):
     location_id: str = Field(..., description="Location identifier")
     target_variable: str = Field(..., description="Forecast variable")
     timestamps: list[str] = Field(..., description="Forecast timestamps")
-    values: list[float] = Field(..., description="Forecast values")
+    values: list[Any] = Field(..., description="Forecast values (one entry per day)")
     model_id: str = Field(..., description="Model used")
     created_at: str = Field(..., description="Generation timestamp")
+    confidence: float = Field(0.0, description="Model confidence (0-1)")
+    forecast_id: str = Field("", description="Provenance store forecast id")
+    authenticity: str = Field("", description="Input data authenticity (REAL/SYNTHETIC)")
 
 
 class ForecastModelsResponse(BaseModel):

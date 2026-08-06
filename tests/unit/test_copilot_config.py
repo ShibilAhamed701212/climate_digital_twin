@@ -12,7 +12,7 @@ class TestCopilotConfig:
 
         config = load_copilot_config()
         assert "llm" in config
-        assert config["llm"]["primary_model"] == "llama3.2:3b"
+        assert config["llm"]["primary_model"] == "qwen3:4b"
         assert config["llm"]["temperature"] == 0.1
 
     def test_load_custom_config(self):

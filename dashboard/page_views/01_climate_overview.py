@@ -26,18 +26,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
         if state:
             current_data.append(state)
         else:
-            current_data.append(
-                {
-                    "location_id": loc["id"],
-                    "latitude": loc["lat"],
-                    "longitude": loc["lon"],
-                    "district": loc["district"],
-                    "rainfall": 0,
-                    "max_temp": 25,
-                    "min_temp": 18,
-                    "risk_score": 0,
-                }
-            )
+            current_data.append({**loc, "status": "unavailable"})
 
     col1, col2 = st.columns([3, 2])
 
@@ -49,21 +38,37 @@ def render(api: DashboardAPI, filters: dict) -> None:
     with col2:
         st.subheader("Current Conditions")
         current = api.get_current_state(location_id)
-        if current:
+        if current and current.get("status") != "unavailable":
+            risk = api.get_risk(location_id)
             metric_card(
                 "Rainfall", f"{current.get('rainfall', 0):.1f} mm", help_text="Last 24 hours"
             )
-            metric_card(
-                "Max Temp", f"{current.get('max_temp', 0):.1f} °C", help_text="Today's maximum"
-            )
-            metric_card(
-                "Min Temp", f"{current.get('min_temp', 0):.1f} °C", help_text="Today's minimum"
-            )
+            metric_card("Current Temp", f"{current.get('current_temp', 0):.1f} °C")
             metric_card(
                 "Risk Score",
-                f"{current.get('risk_score', 0):.1f}",
-                help_text="Composite climate risk",
+                f"{risk['composite_risk']:.1f}" if risk else "Unavailable",
+                help_text="Validated composite risk score",
             )
+
+            ext = api.get_extended_conditions(location_id)
+            if ext and ext.get("status") != "unavailable":
+                with st.expander("More Live Conditions"):
+                    _fmt = lambda v, u="": (  # noqa: E731
+                        f"{v:.1f} {u}".strip() if isinstance(v, (int, float)) else "Unavailable"
+                    )
+                    _fmt_t = lambda v: v if isinstance(v, str) and v else "Unavailable"  # noqa: E731
+                    st.markdown(
+                        f"**Apparent Temperature:** {_fmt(ext.get('apparent_temperature'), '°C')}  \n"
+                        f"**Daily Max / Min:** {_fmt(ext.get('daily_max_temp'), '°C')} / "
+                        f"{_fmt(ext.get('daily_min_temp'), '°C')}  \n"
+                        f"**Condition:** {ext.get('weather_code', 'Unavailable')}  \n"
+                        f"**Wind Gusts:** {_fmt(ext.get('wind_gusts_10m'), 'km/h')}  \n"
+                        f"**Precipitation Probability:** "
+                        f"{_fmt(ext.get('precipitation_probability'), '%')}  \n"
+                        f"**UV Index:** {_fmt(ext.get('uv_index'))}  \n"
+                        f"**Sunrise / Sunset:** {_fmt_t(ext.get('sunrise'))} / "
+                        f"{_fmt_t(ext.get('sunset'))}"
+                    )
         else:
             st.info("No data available for selected location")
 
@@ -74,7 +79,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
             if s:
                 st.markdown(
                     f"**{loc['district']}** — Rain: {s.get('rainfall', 0):.1f}mm, "
-                    f"Max: {s.get('max_temp', 0):.1f}°C, Min: {s.get('min_temp', 0):.1f}°C"
+                    f"Current: {s.get('current_temp', 0):.1f}°C"
                 )
 
     st.divider()

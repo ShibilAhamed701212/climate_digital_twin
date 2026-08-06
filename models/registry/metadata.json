@@ -3,36 +3,355 @@
     "name": "baseline",
     "architecture": "BaselineModel",
     "version": "1.0.0",
-    "checkpoint_path": "models\\checkpoints\\baseline_best.pt",
+    "checkpoint_path": "models/checkpoints/baseline_best.pt",
     "metrics": {
       "rmse": 4.59,
       "r2": 0.87
     },
     "config": {},
-    "registered_at": "2026-06-29T01:06:26.330627"
+    "registered_at": "2026-06-29T01:06:26.330627",
+    "status": "REJECTED",
+    "reason": "LEGACY_SYNTHETIC_NO_REAL_PROVENANCE",
+    "updated_at": "2026-07-31T16:19:06.287523",
+    "authenticity": "SYNTHETIC"
   },
   "lstm": {
     "name": "lstm",
     "architecture": "LSTMModel",
     "version": "1.0.0",
-    "checkpoint_path": "models\\checkpoints\\lstm_best.pt",
+    "checkpoint_path": "models/checkpoints/lstm_best.pt",
     "metrics": {
       "rmse": 4.53,
       "r2": 0.87
     },
     "config": {},
-    "registered_at": "2026-06-29T01:06:26.330627"
+    "registered_at": "2026-06-29T01:06:26.330627",
+    "status": "REJECTED",
+    "reason": "LEGACY_SYNTHETIC_NO_REAL_PROVENANCE",
+    "updated_at": "2026-07-31T16:19:06.287523",
+    "authenticity": "SYNTHETIC"
   },
   "transformer": {
     "name": "transformer",
     "architecture": "TransformerModel",
     "version": "1.0.0",
-    "checkpoint_path": "models\\checkpoints\\transformer_best.pt",
+    "checkpoint_path": "models/checkpoints/transformer_best.pt",
     "metrics": {
       "rmse": 4.57,
       "r2": 0.87
     },
     "config": {},
-    "registered_at": "2026-06-29T01:06:26.330627"
+    "registered_at": "2026-06-29T01:06:26.330627",
+    "status": "REJECTED",
+    "reason": "LEGACY_SYNTHETIC_NO_REAL_PROVENANCE",
+    "updated_at": "2026-07-31T16:19:06.287523",
+    "authenticity": "SYNTHETIC"
+  },
+  "lstm-real-v1": {
+    "name": "lstm-real-v1",
+    "architecture": "LSTMModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models/checkpoints/lstm-real-v1_best.pt",
+    "metrics": {
+      "rmse": 3.2456,
+      "mae": 2.7004,
+      "r2": 0.9291,
+      "smape": 58.5547
+    },
+    "config": {
+      "data": {
+        "sequence_length": 30,
+        "batch_size": 64,
+        "feature_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp",
+          "Month",
+          "Week",
+          "Season",
+          "Monsoon",
+          "RollingRain7",
+          "RollingRain30",
+          "RollingTemp7",
+          "RollingTemp30"
+        ],
+        "target_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp"
+        ]
+      },
+      "baseline": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "learning_rate": 0.001,
+        "epochs": 50
+      },
+      "lstm": {
+        "hidden_dim": 128,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "learning_rate": 0.001,
+        "epochs": 100,
+        "bidirectional": false
+      },
+      "transformer": {
+        "d_model": 128,
+        "nhead": 4,
+        "num_encoder_layers": 3,
+        "dim_feedforward": 512,
+        "dropout": 0.1,
+        "learning_rate": 0.0005,
+        "epochs": 100
+      },
+      "training": {
+        "device": "auto",
+        "loss": "mse",
+        "optimizer": "adam",
+        "early_stopping_patience": 10,
+        "validation_frequency": 1,
+        "random_seed": 42
+      },
+      "evaluation": {
+        "metrics": [
+          "rmse",
+          "mae",
+          "r2",
+          "smape"
+        ],
+        "save_plots": true,
+        "compare_models": true
+      },
+      "export": {
+        "format": "torchscript",
+        "export_dir": "models/exported"
+      }
+    },
+    "dataset_id": "https://archive-api.open-meteo.com/v1/archive?latitude=12.97&longitude=77.59&start_date=2021-07-30&end_date=2026-07-30&daily=temperature_2m_max,temperature_2m_min,precipitation_sum",
+    "training_run_id": "56c8c9589c36",
+    "authenticity": "REAL",
+    "data_provenance": {
+      "source": "open-meteo-archive",
+      "location": {
+        "name": "Bengaluru",
+        "latitude": 12.97,
+        "longitude": 77.59
+      },
+      "date_range": {
+        "start": "2021-07-30",
+        "end": "2026-07-30"
+      },
+      "total_records": 1827
+    },
+    "registered_at": "2026-07-30T20:26:27.803182",
+    "status": "REJECTED",
+    "reason": "MODEL_COLLAPSE / TRAINING_PREPROCESSING_BUG",
+    "updated_at": "2026-07-30T20:58:33.152962"
+  },
+  "baseline-real-v1": {
+    "name": "baseline-real-v1",
+    "architecture": "BaselineModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models/checkpoints/baseline-real-v1_best.pt",
+    "metrics": {
+      "rmse": 2.0624,
+      "mae": 1.3623,
+      "r2": 0.9714,
+      "smape": 55.5797
+    },
+    "config": {
+      "data": {
+        "sequence_length": 30,
+        "batch_size": 64,
+        "feature_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp",
+          "Month",
+          "Week",
+          "Season",
+          "Monsoon",
+          "RollingRain7",
+          "RollingRain30",
+          "RollingTemp7",
+          "RollingTemp30"
+        ],
+        "target_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp"
+        ]
+      },
+      "baseline": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "learning_rate": 0.001,
+        "epochs": 50
+      },
+      "lstm": {
+        "hidden_dim": 128,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "learning_rate": 0.001,
+        "epochs": 100,
+        "bidirectional": false
+      },
+      "transformer": {
+        "d_model": 128,
+        "nhead": 4,
+        "num_encoder_layers": 3,
+        "dim_feedforward": 512,
+        "dropout": 0.1,
+        "learning_rate": 0.0005,
+        "epochs": 100
+      },
+      "training": {
+        "device": "auto",
+        "loss": "mse",
+        "optimizer": "adam",
+        "early_stopping_patience": 10,
+        "validation_frequency": 1,
+        "random_seed": 42
+      },
+      "evaluation": {
+        "metrics": [
+          "rmse",
+          "mae",
+          "r2",
+          "smape"
+        ],
+        "save_plots": true,
+        "compare_models": true
+      },
+      "export": {
+        "format": "torchscript",
+        "export_dir": "models/exported"
+      }
+    },
+    "dataset_id": "https://archive-api.open-meteo.com/v1/archive?latitude=12.97&longitude=77.59&start_date=2021-07-30&end_date=2026-07-30&daily=temperature_2m_max,temperature_2m_min,precipitation_sum",
+    "training_run_id": "64eb84857e00",
+    "authenticity": "REAL",
+    "data_provenance": {
+      "source": "open-meteo-archive",
+      "location": {
+        "name": "Bengaluru",
+        "latitude": 12.97,
+        "longitude": 77.59
+      },
+      "date_range": {
+        "start": "2021-07-30",
+        "end": "2026-07-30"
+      },
+      "total_records": 1827
+    },
+    "registered_at": "2026-07-30T20:28:44.761692",
+    "status": "VALIDATED",
+    "reason": "",
+    "updated_at": "2026-07-30T21:41:42.451282"
+  },
+  "lstm-real-v2": {
+    "name": "lstm-real-v2",
+    "architecture": "LSTMModel",
+    "version": "1.0.0",
+    "checkpoint_path": "models/checkpoints/lstm-real-v2_best.pt",
+    "metrics": {
+      "rmse": 1.9482,
+      "mae": 1.1613,
+      "r2": 0.9744,
+      "smape": 53.2394
+    },
+    "config": {
+      "data": {
+        "sequence_length": 30,
+        "batch_size": 64,
+        "feature_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp",
+          "Month",
+          "Week",
+          "Season",
+          "Monsoon",
+          "RollingRain7",
+          "RollingRain30",
+          "RollingTemp7",
+          "RollingTemp30"
+        ],
+        "target_columns": [
+          "Rainfall",
+          "MaxTemp",
+          "MinTemp"
+        ]
+      },
+      "baseline": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "learning_rate": 0.001,
+        "epochs": 50
+      },
+      "lstm": {
+        "hidden_dim": 128,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "learning_rate": 0.001,
+        "epochs": 100,
+        "bidirectional": false
+      },
+      "transformer": {
+        "d_model": 128,
+        "nhead": 4,
+        "num_encoder_layers": 3,
+        "dim_feedforward": 512,
+        "dropout": 0.1,
+        "learning_rate": 0.0005,
+        "epochs": 100
+      },
+      "training": {
+        "device": "auto",
+        "loss": "mse",
+        "optimizer": "adam",
+        "early_stopping_patience": 10,
+        "validation_frequency": 1,
+        "random_seed": 42
+      },
+      "evaluation": {
+        "metrics": [
+          "rmse",
+          "mae",
+          "r2",
+          "smape"
+        ],
+        "save_plots": true,
+        "compare_models": true
+      },
+      "export": {
+        "format": "torchscript",
+        "export_dir": "models/exported"
+      }
+    },
+    "dataset_id": "https://archive-api.open-meteo.com/v1/archive?latitude=12.97&longitude=77.59&start_date=2021-07-30&end_date=2026-07-30&daily=temperature_2m_max,temperature_2m_min,precipitation_sum",
+    "training_run_id": "5a4d89cf179f",
+    "authenticity": "REAL",
+    "data_provenance": {
+      "source": "open-meteo-archive",
+      "location": {
+        "name": "Bengaluru",
+        "latitude": 12.97,
+        "longitude": 77.59
+      },
+      "date_range": {
+        "start": "2021-07-30",
+        "end": "2026-07-30"
+      },
+      "total_records": 1827
+    },
+    "status": "VALIDATED",
+    "registered_at": "2026-07-30T20:59:45.814526"
   }
 }

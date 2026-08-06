@@ -1,17 +1,27 @@
+"""Forecast engine inference — REAL data and REAL+VALIDATED models only.
+
+Phase 6: the synthetic-input fallback is removed. If REAL input or a
+REAL+VALIDATED model is unavailable, a DatasetNotFoundError is raised
+instead of fabricating a prediction from random data.
+"""
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 from typing import Any
 
-import joblib
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import yaml
 
-from models.data_loader import Scaler
+from models.data_loader import (
+    DatasetNotFoundError,
+    Scaler,
+    load_scalers,
+    needs_scaling,
+    verify_dataset_manifest,
+)
 from models.physics import PhysicsValidator
 from models.predictor import load_model, predict
 from models.registry import ModelRegistry
@@ -19,9 +29,13 @@ from models.registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = "models/configs/model_config.yaml"
-CHECKPOINT_DIR = Path("models/checkpoints")
-EXPORTED_DIR = Path("models/exported")
-PROCESSED_DIR = Path("data/processed")
+REAL_DATA_DIR = "data/real"
+
+_ARCH_TO_MODEL = {
+    "BaselineModel": "baseline",
+    "LSTMModel": "lstm",
+    "TransformerModel": "transformer",
+}
 
 
 def load_config() -> dict[str, Any]:
@@ -30,112 +44,121 @@ def load_config() -> dict[str, Any]:
 
 
 class ForecastInference:
-    def __init__(self, model_name: str = "transformer") -> None:
-        self.model_name = model_name
-        self.config = load_config()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        n_features = len(self.config["data"]["feature_columns"])
-        n_targets = len(self.config["data"]["target_columns"])
-        self.n_features = n_features
-        self.n_targets = n_targets
-        self.seq_len = self.config["data"]["sequence_length"]
-        self.model = self._load_best_model()
-        self.scaler = self._load_scaler()
-        self.validator = PhysicsValidator()
+    def __init__(self, model_name: str | None = None) -> None:
         self.registry = ModelRegistry()
-        if self.registry.contains(model_name):
-            logger.info("Model '%s' found in registry", model_name)
+        self.entry = self._select_model(model_name)
+        self.model_name = self.entry["name"]
+        self.config = self.entry.get("config") or load_config()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.n_features = len(self.config["data"]["feature_columns"])
+        self.n_targets = len(self.config["data"]["target_columns"])
+        self.seq_len = self.config["data"]["sequence_length"]
+        model_type = _ARCH_TO_MODEL.get(self.entry.get("architecture", ""))
+        if model_type is None:
+            raise ValueError(f"Unknown architecture '{self.entry.get('architecture')}'")
+        self.model_type: str = model_type
+        self.model = self._load_model()
+        self.feat_scaler, self.scaler = self._load_scalers()
+        self.validator = PhysicsValidator()
 
-    def _load_best_model(self) -> nn.Module:
-        ckpt_path = CHECKPOINT_DIR / f"{self.model_name}_best.pt"
-        export_path = EXPORTED_DIR / f"{self.model_name}_best.pt"
-        if export_path.exists():
-            model = torch.jit.load(export_path, map_location=self.device)
-            model.eval()
-            logger.info("Loaded TorchScript model from %s", export_path)
-            return model
-        if ckpt_path.exists():
-            return load_model(
-                self.model_name,
-                str(ckpt_path),
-                self.n_features,
-                self.n_targets,
-                self.config,
+    def _select_model(self, model_name: str | None) -> dict[str, Any]:
+        """Choose a REAL + VALIDATED model, or a named model if it qualifies."""
+        if model_name:
+            try:
+                entry = self.registry.get(model_name)
+            except KeyError:
+                entry = None
+            if entry and entry.get("authenticity") == "REAL" and entry.get("status") == "VALIDATED":
+                logger.info("Using named model '%s' (REAL+VALIDATED)", model_name)
+                return entry
+            logger.warning(
+                "Model '%s' is not REAL+VALIDATED (auth=%s status=%s); selecting best production model",
+                model_name,
+                entry.get("authenticity", "UNKNOWN") if entry else "UNKNOWN",
+                entry.get("status", "?") if entry else "?",
             )
-        raise FileNotFoundError(
-            f"No checkpoint found for model '{self.model_name}' "
-            f"(checked {ckpt_path} and {export_path})"
+        try:
+            entry = self.registry.get_best(
+                metric="rmse", ascending=True, require_validated=True, require_real=True
+            )
+        except KeyError as exc:
+            raise DatasetNotFoundError(
+                f"No REAL + VALIDATED model in registry. Train one with "
+                f"'python -m models.forecast_cli train' first."
+            ) from exc
+        logger.info("Selected production model '%s'", entry["name"])
+        return entry
+
+    def _load_model(self) -> nn.Module:
+        ckpt_path = Path(self.entry["checkpoint_path"])
+        if not ckpt_path.exists():
+            raise DatasetNotFoundError(f"Checkpoint not found: {ckpt_path}")
+        return load_model(
+            self.model_type,
+            str(ckpt_path),
+            self.n_features,
+            self.n_targets,
+            self.config,
         )
 
-    def _load_scaler(self) -> Scaler | None:
-        scaler_path = EXPORTED_DIR / "target_scaler.pkl"
-        if not scaler_path.exists():
-            logger.warning(
-                "Target scaler not found at %s, predictions will be un-scaled", scaler_path
+    def _load_scalers(self) -> tuple["Scaler | None", "Scaler | None"]:
+        if not needs_scaling(self.model_type):
+            return None, None
+        feat_scaler, tgt_scaler = load_scalers(self.model_name)
+        if feat_scaler is None or tgt_scaler is None:
+            raise DatasetNotFoundError(
+                f"Scalers missing for model '{self.model_name}' — cannot run scaled inference"
             )
-            return None
-        try:
-            return joblib.load(scaler_path)
-        except Exception as e:
-            logger.warning("Failed to load scaler from %s: %s", scaler_path, e)
-            return None
+        return feat_scaler, tgt_scaler
 
     def _load_latest_data(self) -> torch.Tensor:
-        """Load latest seq_len rows from processed data as input tensor.
+        """Load the last seq_len rows of the REAL testing split.
 
-        Returns tensor of shape (1, seq_len, n_features).
-        Falls back to synthetic data if no processed data is found.
+        Raises DatasetNotFoundError if REAL data is missing or fails
+        manifest verification. Never falls back to synthetic input.
         """
-        feature_cols = self.config["data"]["feature_columns"]
-        seq_len = self.seq_len
-        fallback_used = True
+        verify_dataset_manifest(REAL_DATA_DIR)
+        import pandas as pd
 
-        for csv_name in ["testing.csv", "validation.csv", "training.csv"]:
-            csv_path = PROCESSED_DIR / csv_name
-            if csv_path.exists():
-                try:
-                    df = pd.read_csv(csv_path)
-                    available = len(df)
-                    if available >= seq_len:
-                        latest = df.iloc[-seq_len:][feature_cols]
-                        fallback_used = False
-                        logger.info("Loaded last %d rows from %s", seq_len, csv_path)
-                        break
-                except Exception as e:
-                    logger.warning("Failed to load %s: %s", csv_path, e)
-                    continue
-        else:
-            logger.warning("No processed data found, using synthetic input")
-            latest = pd.DataFrame(
-                {col: np.random.default_rng(42).uniform(0, 1, seq_len) for col in feature_cols}
+        df = pd.read_csv(f"{REAL_DATA_DIR}/testing.csv")
+        available = len(df)
+        if available < self.seq_len:
+            raise DatasetNotFoundError(
+                f"REAL testing split has {available} rows, need at least {self.seq_len}"
             )
-
-        tensor = torch.tensor(latest.values, dtype=torch.float32).unsqueeze(0)
-        if fallback_used:
-            logger.warning("Fallback synthetic data used for input")
-        return tensor
+        feature_cols = self.config["data"]["feature_columns"]
+        latest = df.iloc[-self.seq_len :][feature_cols].copy()
+        # Encode categorical feature columns exactly as training does
+        # (data_loader.load_datasets: pd.Categorical().codes). All splits
+        # share the same category set, so codes are deterministic.
+        for c in feature_cols:
+            if pd.api.types.is_string_dtype(latest[c]) or latest[c].dtype == "object":
+                latest[c] = pd.Categorical(latest[c]).codes
+        logger.info("Loaded last %d rows from %s/testing.csv", self.seq_len, REAL_DATA_DIR)
+        return torch.tensor(latest.values, dtype=torch.float32).unsqueeze(0)
 
     def predict(self, input_data: torch.Tensor | None = None) -> dict[str, Any]:
         if input_data is None:
             input_data = self._load_latest_data()
+        if self.feat_scaler is not None:
+            input_data = self.feat_scaler.transform(input_data)
         return predict(self.model, input_data, self.scaler)
 
     def get_available_models(self) -> list[str]:
-        models = []
-        for p in CHECKPOINT_DIR.glob("*_best.pt"):
-            models.append(p.stem.replace("_best", ""))
-        for p in EXPORTED_DIR.glob("*_best.pt"):
-            name = p.stem.replace("_best", "")
-            if name not in models:
-                models.append(name)
-        return sorted(models)
+        return [
+            m["name"]
+            for m in self.registry.list_models()
+            if m.get("authenticity") == "REAL" and m.get("status") == "VALIDATED"
+        ]
 
     def get_model_info(self) -> dict[str, Any]:
         return {
             "model_name": self.model_name,
-            "architecture": type(self.model).__name__,
+            "architecture": self.entry.get("architecture", ""),
             "device": str(self.device),
             "n_features": self.n_features,
             "n_targets": self.n_targets,
-            "checkpoint_path": str(CHECKPOINT_DIR / f"{self.model_name}_best.pt"),
+            "checkpoint_path": self.entry.get("checkpoint_path", ""),
+            "authenticity": self.entry.get("authenticity", ""),
+            "status": self.entry.get("status", ""),
         }

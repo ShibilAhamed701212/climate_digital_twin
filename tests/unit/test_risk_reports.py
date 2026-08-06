@@ -29,7 +29,9 @@ class TestReportGenerator:
             heat_risk=HeatRiskScore(45.0, 30.0, 10.0, 5.0, 5, 2.3),
             flood_risk=FloodRiskScore(30.0, 15.0, 10.0, 5.0, 120.0, 80.0),
             drought_risk=DroughtRiskScore(20.0, 10.0, 5.0, 5.0, -15.0, 1.5),
-            composite_risk=CompositeRiskScore(33.0, 45.0, 30.0, 20.0, {"heat": 0.33, "flood": 0.33, "drought": 0.34}),
+            composite_risk=CompositeRiskScore(
+                33.0, 45.0, 30.0, 20.0, {"heat": 0.33, "flood": 0.33, "drought": 0.34}
+            ),
             explanation=SHAPExplanation(
                 prediction=33.0,
                 base_value=50.0,
@@ -44,7 +46,9 @@ class TestReportGenerator:
                 risk_interpretation="Moderate risk with temperature as primary driver.",
             ),
             insights=[
-                ClimateInsight("max_temp", "increasing", 2.3, "Temp above average.", "Heat stress risk."),
+                ClimateInsight(
+                    "max_temp", "increasing", 2.3, "Temp above average.", "Heat stress risk."
+                ),
             ],
         )
 
@@ -52,7 +56,9 @@ class TestReportGenerator:
         from risk.reports.report_generator import generate_report
 
         output_dir = tempfile.mkdtemp()
-        result = generate_report("KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["json"])
+        result = generate_report(
+            "KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["json"]
+        )
         assert "json" in result
         json_path = result["json"]
         assert os.path.exists(json_path)
@@ -68,7 +74,9 @@ class TestReportGenerator:
         from risk.reports.report_generator import generate_report
 
         output_dir = tempfile.mkdtemp()
-        result = generate_report("KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["markdown"])
+        result = generate_report(
+            "KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["markdown"]
+        )
         assert "markdown" in result
         md_path = result["markdown"]
         assert os.path.exists(md_path)
@@ -79,8 +87,8 @@ class TestReportGenerator:
         assert "Bangalore" in content
         assert "Composite Climate Risk Index" in content
         assert "Heat Risk" in content
-        assert "Flood Risk" in content
-        assert "Drought Risk" in content
+        assert "Heavy Rain Risk" in content
+        assert "Dryness Risk" in content
         assert "AI Explanation (SHAP)" in content
         assert "Climate Insights" in content
 
@@ -88,7 +96,13 @@ class TestReportGenerator:
         from risk.reports.report_generator import generate_report
 
         output_dir = tempfile.mkdtemp()
-        result = generate_report("KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["json", "markdown"])
+        result = generate_report(
+            "KA-BLR-001",
+            "Bangalore",
+            sample_report,
+            output_dir=output_dir,
+            formats=["json", "markdown"],
+        )
         assert "json" in result
         assert "markdown" in result
 
@@ -96,7 +110,9 @@ class TestReportGenerator:
         from risk.reports.report_generator import generate_report
 
         output_dir = os.path.join(tempfile.mkdtemp(), "nested", "outputs")
-        result = generate_report("KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["json"])
+        result = generate_report(
+            "KA-BLR-001", "Bangalore", sample_report, output_dir=output_dir, formats=["json"]
+        )
         assert os.path.exists(os.path.dirname(result["json"]))
 
     def test_minimal_report_fields(self):
@@ -105,7 +121,9 @@ class TestReportGenerator:
 
         report = RiskReport(location_id="KA-BLR-001", district="Bangalore")
         output_dir = tempfile.mkdtemp()
-        result = generate_report("KA-BLR-001", "Bangalore", report, output_dir=output_dir, formats=["json"])
+        result = generate_report(
+            "KA-BLR-001", "Bangalore", report, output_dir=output_dir, formats=["json"]
+        )
         with open(result["json"], encoding="utf-8") as f:
             data = json.load(f)
         assert data["composite_risk"] is None

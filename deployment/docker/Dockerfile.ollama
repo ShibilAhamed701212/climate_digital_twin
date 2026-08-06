@@ -1,8 +1,8 @@
-FROM ollama/ollama:0.1.32
+FROM ollama/ollama:latest
 
 RUN ollama serve & \
     sleep 3 && \
-    ollama pull qwen2.5:0.5b; \
+    ollama pull qwen3:4b; \
     kill %1 2>/dev/null; exit 0
 
 EXPOSE 11434

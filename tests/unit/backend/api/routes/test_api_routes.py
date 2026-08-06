@@ -318,6 +318,14 @@ class TestScenarioRoutes:
         result.summary_statistics = {"temp": {"mean": 25.0}}
         result.time_steps = [datetime.now(UTC)]
         result.execution_time_ms = 100.0
+        result.authenticity = "SCENARIO"
+        result.mode = "REAL"
+        result.baseline_state = {"temperature_2m": 22.1}
+        result.scenario_state = {"temperature_2m": 25.1}
+        result.deltas = {"temperature_2m": 3.0}
+        result.baseline_hazard = None
+        result.scenario_hazard = None
+        result.hazard_deltas = {}
         mock_services["scenario"].run_scenario.return_value = result
 
         resp = client.post("/scenario/run", json={"scenario_id": "s1"})
@@ -325,6 +333,8 @@ class TestScenarioRoutes:
         data = resp.json()
         assert data["scenario_id"] == "s1"
         assert data["result_id"] == "r1"
+        assert data["authenticity"] == "SCENARIO"
+        assert data["deltas"] == {"temperature_2m": 3.0}
 
     def test_run_scenario_not_found(
         self, client: TestClient, mock_services: dict[str, Any]
@@ -901,6 +911,9 @@ class TestForecastRoutes:
         series.values = MagicMock()
         series.values.tolist.return_value = [25.0, 26.0]
         series.model_id = "model-001"
+        series.confidence = 0.95
+        series.forecast_id = "fc-001"
+        series.authenticity = "REAL"
         mock_services["forecast"].predict_with_best.return_value = series
         resp = client.post(
             "/forecast/predict",

@@ -57,21 +57,21 @@ PRESET_SCENARIOS: dict[str, dict[str, Any]] = {
         "scenario_type": "monsoon",
         "parameters": {"delay_days": -7, "intensity_reduction_pct": 0.0},
     },
-    "heatwave": {
-        "name": "Extreme Heat Wave",
-        "description": "Simulates a week-long heat wave with temperatures 5°C above normal",
+    "extreme_heat": {
+        "name": "Extreme Heat Day",
+        "description": "Simulates a single hot day with temperature 5degC above baseline",
         "scenario_type": "extreme_event",
-        "parameters": {"event_type": "heatwave", "temperature_delta": 5.0, "duration_days": 7},
+        "parameters": {"event_type": "heatwave", "temperature_delta": 5.0, "duration_days": 1},
     },
-    "flood": {
-        "name": "Flood Scenario",
-        "description": "Simulates heavy rainfall event with 200% normal precipitation",
+    "extreme_rainfall": {
+        "name": "Extreme Rainfall",
+        "description": "Simulates a heavy rainfall event with 200% normal precipitation",
         "scenario_type": "extreme_event",
         "parameters": {"event_type": "flood", "rainfall_change_pct": 200.0, "duration_days": 5},
     },
-    "drought": {
-        "name": "Drought Condition",
-        "description": "Simulates a month-long drought with 80% reduction in rainfall",
+    "dry_spell": {
+        "name": "Dry Spell",
+        "description": "Simulates a dry spell with 80% reduction in rainfall",
         "scenario_type": "extreme_event",
         "parameters": {"event_type": "drought", "rainfall_change_pct": -80.0, "duration_days": 30},
     },

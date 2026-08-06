@@ -36,6 +36,9 @@ def render(api: DashboardAPI, filters: dict) -> None:
         summary_data = []
         for d in districts:
             summary = api.get_district_summary(d)
+            if not summary.get("available", True):
+                st.info(f"{d}: {summary.get('error', 'No verified data available')}")
+                continue
             summary_data.append(summary)
             with st.expander(f"{d}", expanded=True):
                 col1, col2, col3, col4 = st.columns(4)

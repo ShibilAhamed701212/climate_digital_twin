@@ -7,19 +7,28 @@ from typing import Any
 
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from copilot.clients.forecast_client import ForecastClient
+from copilot.clients.forecast_client import ForecastClient, ForecastUnavailableError
 from copilot.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
 
 
 def _raw_to_forecast(raw: list[list[float]], days: int) -> list[dict[str, Any]]:
-    """Convert raw model output [[rainfall, max_temp, min_temp], ...] to labeled forecast."""
+    """Convert raw model output to labeled forecast.
+
+    Gateway predicts the target variable (temperature_2m), so single-value rows
+    are treated as temperature. Legacy 3-tuples [[rainfall, max_temp, min_temp]]
+    are still tolerated.
+    """
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     forecast: list[dict[str, Any]] = []
     for d in range(days):
-        vals = raw[d] if d < len(raw) else raw[-1]
-        rainfall, max_temp, min_temp = vals[0], vals[1], vals[2]
+        vals = raw[d] if d < len(raw) else (raw[-1] if raw else [0.0])
+        if len(vals) >= 3:
+            rainfall, max_temp, min_temp = vals[0], vals[1], vals[2]
+        else:
+            max_temp = min_temp = vals[0]
+            rainfall = 0.0
         forecast.append(
             {
                 "day": d + 1,
@@ -29,39 +38,6 @@ def _raw_to_forecast(raw: list[list[float]], days: int) -> list[dict[str, Any]]:
                 "rainfall_mm": round(max(0.0, rainfall), 1),
                 # ponytail: model doesn't predict humidity, rough proxy from rainfall
                 "humidity_pct": round(min(95, 50 + rainfall * 10), 1),
-            }
-        )
-    return forecast
-
-
-def _synthetic_forecast(location: str, days: int) -> list[dict[str, Any]]:
-    """Generate plausible synthetic forecast data when the service is unavailable."""
-    # Base climate parameters for common Indian locations
-    base_temps = {
-        "karnataka": (22, 32),
-        "mysuru": (18, 28),
-        "bangalore": (18, 28),
-        "bengaluru": (18, 28),
-        "mumbai": (24, 34),
-        "delhi": (15, 38),
-        "chennai": (25, 35),
-        "kerala": (24, 32),
-        "rajasthan": (20, 40),
-    }
-    loc_key = location.lower().strip()
-    base_min, base_max = base_temps.get(loc_key, (20, 32))
-    forecast: list[dict[str, Any]] = []
-    for d in range(days):
-        day_temp_min = base_min + (d % 3) + math.sin(d * 1.5) * 2
-        day_temp_max = base_max + (d % 2) - math.cos(d * 0.7) * 3
-        forecast.append(
-            {
-                "day": d + 1,
-                "date": f"2025-01-{d + 1:02d}",
-                "max_temp": round(day_temp_max, 1),
-                "min_temp": round(day_temp_min, 1),
-                "rainfall_mm": round(max(0, 10 - d * 2 + (d % 3) * 5), 1),
-                "humidity_pct": round(60 + (d % 4) * 8, 1),
             }
         )
     return forecast
@@ -87,16 +63,26 @@ class ForecastTool(BaseTool):
                 "forecast": _raw_to_forecast(raw_preds, days),
                 "available": True,
             }
-        except (ConnectionError, Timeout, HTTPError) as e:
-            logger.warning("Forecast service unavailable: %s", e)
-            fallback = _synthetic_forecast(location, days)
+        except ForecastUnavailableError as e:
+            logger.warning("Forecast unavailable: %s", e)
             return {
                 "tool": self._name,
                 "location": location,
                 "days": days,
-                "forecast": fallback,
+                "forecast": [],
                 "available": False,
-                "fallback": True,
+                "error": str(e),
+                "error_code": e.error_code,
+            }
+        except (ConnectionError, Timeout, HTTPError) as e:
+            logger.warning("Forecast service unavailable: %s", e)
+            return {
+                "tool": self._name,
+                "location": location,
+                "days": days,
+                "forecast": [],
+                "available": False,
+                "error": str(e),
             }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:

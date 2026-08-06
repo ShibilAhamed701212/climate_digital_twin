@@ -76,24 +76,28 @@ def _write_markdown(filepath: Path, report: RiskReport, location_id: str, distri
     if report.heat_risk:
         lines.append("## Heat Risk")
         lines.append(f"- **Score:** {report.heat_risk.score:.1f}")
-        lines.append(f"- Max temperature contribution: {report.heat_risk.max_temperature_contribution:.1f}")
+        lines.append(
+            f"- Max temperature contribution: {report.heat_risk.max_temperature_contribution:.1f}"
+        )
         lines.append(f"- Consecutive hot days: {report.heat_risk.consecutive_hot_days} days")
         lines.append(f"- Seasonal anomaly: {report.heat_risk.seasonal_anomaly:.1f}°C")
         lines.append("")
 
     if report.flood_risk:
-        lines.append("## Flood Risk")
+        lines.append("## Heavy Rain Risk")
         lines.append(f"- **Score:** {report.flood_risk.score:.1f}")
         lines.append(f"- Rainfall intensity: {report.flood_risk.rainfall_intensity:.1f} mm")
         lines.append(f"- Multi-day accumulation: {report.flood_risk.multi_day_accumulation:.1f} mm")
-        lines.append(f"- Forecast uncertainty: {report.flood_risk.forecast_uncertainty_contribution:.1f}")
+        lines.append(
+            f"- Forecast uncertainty: {report.flood_risk.forecast_uncertainty_contribution:.1f}"
+        )
         lines.append("")
 
     if report.drought_risk:
-        lines.append("## Drought Risk")
+        lines.append("## Dryness Risk")
         lines.append(f"- **Score:** {report.drought_risk.score:.1f}")
         lines.append(f"- Rainfall deficit: {report.drought_risk.rainfall_deficit_percent:.1f}%")
-        lines.append(f"- Temperature anomaly: {report.drought_risk.temperature_anomaly:.1f}°C")
+        lines.append(f"- Temperature anomaly: {report.drought_risk.temperature_anomaly:.1f}degC")
         lines.append("")
 
     if report.explanation:

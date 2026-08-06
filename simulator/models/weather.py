@@ -16,6 +16,7 @@ class DataSource(StrEnum):
     IMD = "imd"
     ERA5 = "era5"
     NOAA = "noaa"
+    NASA_POWER = "nasa_power"
     OPEN_METEO = "open_meteo"
     WEATHER_STATION = "weather_station"
     SYNTHETIC = "synthetic"

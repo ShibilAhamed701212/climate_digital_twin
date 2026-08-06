@@ -15,7 +15,6 @@ PAGES = [
     ("AI Copilot", False),
     ("Knowledge Base", False),
     ("Feedback", False),
-    ("Twin State (BHAI)", False),
 ]
 MIN_VISIBLE = 100
 NAV_SB_SEL = '.st-key-nav_select [data-testid="stSelectbox"]'

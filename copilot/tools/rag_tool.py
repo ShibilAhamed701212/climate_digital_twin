@@ -36,7 +36,7 @@ class RAGRetrieverTool(BaseTool):
                 "tool": self._name,
                 "query": query,
                 "top_k": top_k,
-                "results": _synthetic_rag(query, top_k),
+                "results": [],
                 "fallback": True,
             }
 
@@ -64,13 +64,4 @@ class RAGRetrieverTool(BaseTool):
         return True, "rag_retriever healthy"
 
 
-def _synthetic_rag(query: str, top_k: int) -> list[dict[str, Any]]:
-    return [
-        {
-            "source": "Climate Report 2025",
-            "content": f"Relevant information about: {query}",
-            "score": round(0.95 - i * 0.1, 2),
-            "category": "general",
-        }
-        for i in range(top_k)
-    ]
+

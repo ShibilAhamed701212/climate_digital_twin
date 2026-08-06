@@ -1,0 +1,139 @@
+# Phase 4 — Climate Hazard Intelligence Configuration
+# Operational thresholds, severity mappings, freshness/quality gates, alert policy.
+# Config version must be stamped on every HazardAssessment.
+
+config_version: "2026-07-30"
+
+hazards:
+  heavy_rain:
+    enabled: true
+    operational_semantics: HEAVY_RAIN_HAZARD
+    method: HEAVY_RAIN_V1
+    method_version: "1.0.0"
+    inputs:
+      - rainfall_24h
+      - rainfall_3d_accumulation
+      - historical_95th_percentile
+    severity_thresholds:
+      low: 20
+      moderate: 40
+      high: 60
+      severe: 80
+    duration_requirements:
+      heavy_rain_days: 1
+    accumulation_windows:
+      short_term_days: 3
+    historical_percentile_thresholds:
+      p95: 95
+      p99: 99
+    freshness_limit_hours: 6
+    quality_policy: reject_synthetic_and_unknown
+
+  heat:
+    enabled: true
+    operational_semantics: HEAT
+    method: HEAT_V1
+    method_version: "1.0.0"
+    inputs:
+      - max_temp
+      - consecutive_hot_days
+      - seasonal_anomaly
+      - historical_95th_percentile
+    severity_thresholds:
+      low: 20
+      moderate: 40
+      high: 60
+      severe: 80
+    duration_requirements:
+      hot_days_for_warning: 1
+    freshness_limit_hours: 6
+    quality_policy: reject_synthetic_and_unknown
+
+  heatwave:
+    enabled: false
+    operational_semantics: UNSUPPORTED
+    method: HEATWAVE_V1
+    reason: "Requires consecutive-day tracking across 3+ day window — not yet implemented"
+
+  dryness:
+    enabled: true
+    operational_semantics: DRYNESS_INDICATOR
+    method: DRYNESS_V1
+    method_version: "1.0.0"
+    inputs:
+      - rainfall_deficit_pct
+      - temperature_anomaly
+      - dry_period_days
+      - historical_50th_percentile
+    severity_thresholds:
+      low: 20
+      moderate: 40
+      high: 60
+      severe: 80
+    freshness_limit_hours: 24
+    quality_policy: reject_synthetic_and_unknown
+
+  flood:
+    enabled: false
+    operational_semantics: UNSUPPORTED
+    reason: "Flood requires river discharge, drainage, elevation, terrain data — meteorological rainfall alone insufficient for flood prediction"
+
+  drought:
+    enabled: false
+    operational_semantics: UNSUPPORTED
+    reason: "Drought requires SPI/SPEI and multi-month accumulation — dryness indicator available instead"
+
+  storm:
+    enabled: false
+    operational_semantics: UNSUPPORTED
+    reason: "Required hazard-specific inputs/models unavailable"
+
+  wildfire:
+    enabled: false
+    operational_semantics: UNSUPPORTED
+    reason: "Required hazard-specific inputs/models unavailable"
+
+freshness:
+  fresh_max_minutes: 60
+  stale_max_minutes: 360
+  very_stale_max_minutes: 1440
+
+quality:
+  allowed_authenticity:
+    - REAL
+  allowed_quality_flags:
+    - validated
+    - raw
+  operational_mode_rejects:
+    - SYNTHETIC
+    - UNKNOWN
+    - SCENARIO
+
+severity:
+  categories:
+    - NONE
+    - LOW
+    - MODERATE
+    - HIGH
+    - SEVERE
+
+confidence:
+  base_confidence: 0.85
+  freshness_penalty_stale: 0.15
+  freshness_penalty_very_stale: 0.40
+  quality_penalty_suspect: 0.20
+  incomplete_inputs_penalty: 0.10
+  forecast_validation_bonus: 0.10
+
+alerts:
+  policy:
+    NONE: no_alert
+    LOW: no_alert
+    MODERATE: watch
+    HIGH: active_warning
+    SEVERE: active_critical
+  dedup_window_minutes: 60
+  escalation_on: SEVERE
+  resolve_on:
+    - LOW
+    - NONE

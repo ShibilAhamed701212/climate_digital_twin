@@ -24,30 +24,31 @@ def render(api: DashboardAPI, filters: dict) -> None:
 
     col1, col2 = st.columns([2, 3])
 
+    scenario_id: str | None = None
     with col1:
         st.subheader("Scenario Configuration")
         scenario_options = {
             s.get("name", f"Scenario {i}"): s.get("id", str(i)) for i, s in enumerate(scenarios)
         }
-        if not scenario_options:
-            st.info("No scenarios available for simulation")
-            return
-        selected_scenario = st.selectbox(
-            "Preset Scenario",
-            options=list(scenario_options.keys()),
-            index=0,
-            key="scenario_preset",
-        )
-        scenario_id = scenario_options[selected_scenario]
+        if scenario_options:
+            selected_scenario = st.selectbox(
+                "Preset Scenario",
+                options=list(scenario_options.keys()),
+                index=0,
+                key="scenario_preset",
+            )
+            scenario_id = scenario_options[selected_scenario]
 
-        selected_scenario_data = next(
-            (s for s in scenarios if s.get("id") == scenario_id), scenarios[0]
-        )
-        info_card(
-            selected_scenario_data["name"],
-            selected_scenario_data.get("description", ""),
-            icon="📋",
-        )
+            selected_scenario_data = next(
+                (s for s in scenarios if s.get("id") == scenario_id), scenarios[0]
+            )
+            info_card(
+                selected_scenario_data["name"],
+                selected_scenario_data.get("description", ""),
+                icon="📋",
+            )
+        else:
+            st.info("No preset scenarios available — use custom parameters below")
 
         st.divider()
         st.markdown("**Custom Parameters**")
@@ -60,7 +61,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
     with col2:
         if simulate_btn and current:
             sim_params = {
-                "scenario_id": scenario_id,
+                "scenario_id": scenario_id or "custom",
                 "location_id": location_id,
                 **params,
             }

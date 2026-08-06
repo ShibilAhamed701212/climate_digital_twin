@@ -13,3 +13,4 @@ Rules:
 - For risk: state the composite risk score and category plainly.
 - For scenarios: explain what the delta means in practical terms.
 - For errors: acknowledge and suggest rephrasing.
+- Do not reveal reasoning, planning, or tool-analysis; return only the final answer.

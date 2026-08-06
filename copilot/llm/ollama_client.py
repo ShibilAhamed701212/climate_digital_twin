@@ -9,8 +9,8 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.2:3b"
-DEFAULT_TIMEOUT = 30.0
+DEFAULT_MODEL = "qwen3:4b"
+DEFAULT_TIMEOUT = 120.0
 
 
 class OllamaClient:
@@ -20,14 +20,18 @@ class OllamaClient:
         model: str | None = None,
         temperature: float = 0.1,
         max_tokens: int = 1024,
-        timeout: float = DEFAULT_TIMEOUT,
+        timeout: float | None = None,
     ) -> None:
         self.base_url = (base_url or os.environ.get("OLLAMA_HOST") or DEFAULT_BASE_URL).rstrip("/")
-        self.model = model or DEFAULT_MODEL
+        self.model = model or os.environ.get("OLLAMA_MODEL") or DEFAULT_MODEL
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.timeout = timeout
-        self._client = httpx.Client(timeout=timeout)
+        self.timeout = (
+            timeout
+            if timeout is not None
+            else float(os.environ.get("OLLAMA_TIMEOUT", DEFAULT_TIMEOUT))
+        )
+        self._client = httpx.Client(timeout=self.timeout)
 
     def generate(self, prompt: str, system_prompt: str | None = None) -> str | None:
         payload: dict[str, Any] = {
@@ -39,6 +43,8 @@ class OllamaClient:
                 "num_predict": self.max_tokens,
             },
         }
+        if self.model.startswith("qwen3"):
+            payload["think"] = False
         if system_prompt:
             payload["system"] = system_prompt
 

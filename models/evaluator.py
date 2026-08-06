@@ -21,6 +21,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from models.data_loader import Scaler
 from torch.utils.data import DataLoader
 
 logger = logging.getLogger(__name__)
@@ -84,12 +85,67 @@ def compute_metrics(y_true: torch.Tensor, y_pred: torch.Tensor) -> dict[str, flo
     }
 
 
+def compute_per_target_metrics(
+    y_true: torch.Tensor,
+    y_pred: torch.Tensor,
+    target_names: list[str] | None = None,
+) -> dict[str, dict[str, float]]:
+    if target_names is None:
+        target_names = [f"target_{i}" for i in range(y_true.size(1))]
+    result: dict[str, dict[str, float]] = {}
+    for i, name in enumerate(target_names):
+        if i >= y_true.size(1):
+            break
+        result[name] = compute_metrics(y_true[:, i], y_pred[:, i])
+    return result
+
+
+def detect_collapse(
+    y_pred: torch.Tensor,
+    y_true: torch.Tensor,
+    target_names: list[str] | None = None,
+    std_ratio_threshold: float = 0.1,
+) -> dict[str, Any]:
+    if target_names is None:
+        target_names = [f"target_{i}" for i in range(y_true.size(1))]
+    collapsed_targets: list[str] = []
+    details: dict[str, dict[str, float]] = {}
+    for i, name in enumerate(target_names):
+        if i >= y_true.size(1):
+            break
+        pred_std = float(y_pred[:, i].std())
+        target_std = float(y_true[:, i].std())
+        ratio = pred_std / (target_std + 1e-8)
+        details[name] = {
+            "pred_std": round(pred_std, 6),
+            "target_std": round(target_std, 6),
+            "ratio": round(ratio, 6),
+        }
+        if ratio < std_ratio_threshold:
+            collapsed_targets.append(name)
+    return {
+        "collapsed": len(collapsed_targets) > 0,
+        "collapsed_targets": collapsed_targets,
+        "details": details,
+    }
+
+
 def evaluate_model(
     model: nn.Module,
     data_loader: DataLoader,
     device: torch.device,
+    target_scaler: Scaler | None = None,
+    target_names: list[str] | None = None,
+    std_ratio_threshold: float = 0.1,
 ) -> dict[str, Any]:
-    """Evaluate model on a DataLoader and return metrics + predictions."""
+    """Evaluate model on a DataLoader and return metrics + predictions.
+
+    If target_scaler is provided, predictions and targets are
+    inverse-transformed to physical units before computing metrics.
+
+    Returns dict with keys: metrics, per_target_metrics, predictions,
+    targets, collapse_check.
+    """
     model.eval()
     all_preds: list[torch.Tensor] = []
     all_targets: list[torch.Tensor] = []
@@ -101,11 +157,18 @@ def evaluate_model(
             all_targets.append(y)
     y_pred = torch.cat(all_preds, dim=0)
     y_true = torch.cat(all_targets, dim=0)
+    if target_scaler is not None:
+        y_pred = target_scaler.inverse_transform(y_pred)
+        y_true = target_scaler.inverse_transform(y_true)
     metrics = compute_metrics(y_true, y_pred)
+    per_target = compute_per_target_metrics(y_true, y_pred, target_names)
+    collapse = detect_collapse(y_pred, y_true, target_names, std_ratio_threshold)
     return {
         "metrics": metrics,
+        "per_target_metrics": per_target,
         "predictions": y_pred,
         "targets": y_true,
+        "collapse_check": collapse,
     }
 
 

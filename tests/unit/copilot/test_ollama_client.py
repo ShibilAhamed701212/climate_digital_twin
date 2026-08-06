@@ -11,10 +11,10 @@ class TestOllamaClientInit:
     def test_default_values(self):
         client = OllamaClient()
         assert client.base_url == "http://localhost:11434"
-        assert client.model == "llama3.2:3b"
+        assert client.model == "qwen3:4b"
         assert client.temperature == 0.1
         assert client.max_tokens == 1024
-        assert client.timeout == 30.0
+        assert client.timeout == 120.0
 
     def test_custom_values(self):
         client = OllamaClient(

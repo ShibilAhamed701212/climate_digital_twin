@@ -204,6 +204,8 @@ services:
       - "${COPILOT_PORT:-8005}:8005"
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_TIMEOUT=300
+      - API_BASE_URL=http://fastapi-gateway:8000
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - GATEWAY_HOST=fastapi-gateway
       - GATEWAY_PORT=8000
@@ -293,6 +295,8 @@ services:
       - "${DASHBOARD_PORT:-8051}:8501"
     environment:
       - API_BASE_URL=http://fastapi-gateway:8000
+      - TWIN_STATE_URL=http://twin-state-mgr:8001
+      - COPILOT_API_URL=http://copilot-agent:8005
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       fastapi-gateway:

@@ -48,9 +48,7 @@ class TwinService:
                 errors.append(f"Longitude outside Karnataka bounds: {entity.longitude}")
         return errors
 
-    def update_observation(
-        self, entity: ClimateEntity
-    ) -> dict[str, Any]:
+    def update_observation(self, entity: ClimateEntity) -> dict[str, Any]:
         """Ingest a new observation from authoritative data sources."""
         entity.state_type = StateType.CURRENT.value
         entity.data_source = "IMD"
@@ -75,9 +73,7 @@ class TwinService:
         )
         return {"version_id": version.version_id, "location_id": entity.location_id}
 
-    def apply_forecast(
-        self, entity: ClimateEntity
-    ) -> dict[str, Any]:
+    def apply_forecast(self, entity: ClimateEntity) -> dict[str, Any]:
         """Apply a forecast from Phase 3 to the twin state."""
         entity.state_type = StateType.FORECAST.value
         entity.data_source = "forecast"
@@ -100,16 +96,26 @@ class TwinService:
         )
         return {"version_id": version.version_id, "location_id": entity.location_id}
 
-    def apply_scenario(
-        self, entity: ClimateEntity, scenario_id: str
-    ) -> dict[str, Any]:
-        """Apply a what-if scenario to the twin state."""
+    def apply_scenario(self, entity: ClimateEntity, scenario_id: str) -> dict[str, Any]:
+        """Apply a what-if scenario to the twin state.
+
+        Isolation guard: scenario/synthetic/demo state must never be persisted
+        into the twin repository.  Entities explicitly marked with a non-REAL
+        authenticity are hard-rejected.  (Bare entities without an authenticity
+        marker keep legacy behavior.)
+        """
         entity.state_type = StateType.SCENARIO.value
         entity.data_source = "scenario"
         entity.scenario_id = scenario_id
         errors = self._validate_entity(entity)
         if errors:
             raise ValueError(f"Invalid scenario: {errors}")
+        authenticity = getattr(entity, "authenticity", "") or ""
+        if authenticity.upper() in ("SCENARIO", "SYNTHETIC", "DEMO"):
+            raise ValueError(
+                f"Refusing to persist non-REAL '{authenticity}' scenario state "
+                f"into the twin repository"
+            )
         version = self.state_manager.create_version(entity)
         self.repository.save_version(version)
         self.event_bus.publish(
@@ -123,9 +129,7 @@ class TwinService:
         )
         return {"version_id": version.version_id, "location_id": entity.location_id}
 
-    def update_risk_score(
-        self, location_id: str, risk_score: float
-    ) -> dict[str, Any]:
+    def update_risk_score(self, location_id: str, risk_score: float) -> dict[str, Any]:
         """Update the climate risk score for a location."""
         current_data = self.get_current_state(location_id)
         if current_data is None:
@@ -147,9 +151,7 @@ class TwinService:
         )
         return {"version_id": version.version_id, "location_id": location_id}
 
-    def get_current_state(
-        self, location_id: str
-    ) -> dict[str, Any] | None:
+    def get_current_state(self, location_id: str) -> dict[str, Any] | None:
         """Get the current (latest observation) state for a location."""
         versions = self.repository.load_versions(location_id)
         current = [v for v in versions if v.state_type == StateType.CURRENT.value]
@@ -158,20 +160,22 @@ class TwinService:
         return max(current, key=lambda v: v.version_id).entity_data
 
     def get_historical_state(
-        self, location_id: str, time_range: str | None = None  # noqa: ARG002
+        self,
+        location_id: str,
+        time_range: str | None = None,  # noqa: ARG002
     ) -> list[dict[str, Any]]:
         """Get historical states for a location."""
         versions = self.repository.load_versions(location_id)
         return [v.entity_data for v in versions]
 
     def get_forecast_state(
-        self, location_id: str, horizon: str | None = None  # noqa: ARG002
+        self,
+        location_id: str,
+        horizon: str | None = None,  # noqa: ARG002
     ) -> dict[str, Any] | None:
         """Get the latest forecast state for a location."""
         versions = self.repository.load_versions(location_id)
-        forecast_versions = [
-            v for v in versions if v.state_type == StateType.FORECAST.value
-        ]
+        forecast_versions = [v for v in versions if v.state_type == StateType.FORECAST.value]
         if not forecast_versions:
             return None
         return max(forecast_versions, key=lambda v: v.version_id).entity_data
@@ -182,9 +186,7 @@ class TwinService:
         self.repository.save_version(new_version)
         return {"version_id": new_version.version_id, "location_id": location_id}
 
-    def get_state_history(
-        self, location_id: str
-    ) -> list[dict[str, Any]]:
+    def get_state_history(self, location_id: str) -> list[dict[str, Any]]:
         """Get the complete state history for a location."""
         versions = self.repository.load_versions(location_id)
         return [

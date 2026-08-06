@@ -4,16 +4,7 @@ from unittest.mock import patch
 
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from copilot.tools.report_tool import ReportGeneratorTool, _synthetic_report
-
-
-class TestSyntheticReport:
-    def test_synthetic_report_format(self):
-        result = _synthetic_report("Karnataka", "summary")
-        assert "Karnataka" in result
-        assert "summary" in result
-        assert "32.5" in result
-        assert "Climate Copilot" in result
+from copilot.tools.report_tool import ReportGeneratorTool
 
 
 class TestReportGeneratorTool:
@@ -32,7 +23,8 @@ class TestReportGeneratorTool:
         ):
             result = self.tool.run(location="Karnataka")
             assert result["fallback"] is True
-            assert "Climate Report" in result["report"]
+            assert result["report"] == ""
+            assert "unavailable" in result["error"].lower()
 
     def test_run_timeout(self):
         with patch.object(self.tool._client, "generate_report", side_effect=Timeout("timed out")):

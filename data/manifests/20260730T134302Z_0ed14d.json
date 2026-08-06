@@ -1,0 +1,20 @@
+{
+  "run_id": "20260730T134302Z_0ed14d",
+  "run_timestamp": "2026-07-30T13:43:03.843951+00:00",
+  "provider": "open_meteo",
+  "status": "SUCCESS",
+  "records_received": 24,
+  "records_normalized": 24,
+  "records_validated": 24,
+  "records_rejected": 0,
+  "records_persisted": 24,
+  "synthetic_count": 0,
+  "error": null,
+  "paths": {
+    "raw": "data\\real\\raw\\open_meteo\\20260730T134302Z_0ed14d.json",
+    "normalized": "data\\real\\normalized\\observations_20260730T134302Z_0ed14d.parquet",
+    "validated": "data\\real\\normalized\\observations_20260730T134302Z_0ed14d.parquet",
+    "rejected": null,
+    "manifest": "data\\manifests\\20260730T134302Z_0ed14d.json"
+  }
+}

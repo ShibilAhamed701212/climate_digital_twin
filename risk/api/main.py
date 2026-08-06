@@ -1,13 +1,13 @@
 """Risk Engine API — exposes climate risk assessment via REST.
 
 Endpoints:
-  GET  /health           — health check
-  POST /risk/assess      — assess all risk types for a location
-  POST /risk/heat        — assess heat risk only
-  POST /risk/flood       — assess flood risk only
-  POST /risk/drought     — assess drought risk only
-  POST /risk/composite   — assess composite risk only
-  POST /risk/report      — generate and save a full risk report
+  GET  /health              — health check
+  POST /risk/assess         — assess all risk types for a location
+  POST /risk/heat           — assess heat risk only
+  POST /risk/heavy-rain     — assess heavy-rain hazard only
+  POST /risk/dryness        — assess dryness hazard only
+  POST /risk/composite      — assess composite risk only
+  POST /risk/report         — generate and save a full risk report
 """
 
 from __future__ import annotations
@@ -51,8 +51,8 @@ class RiskReportRequest(RiskAssessRequest):
 class SimpleRiskRequest(BaseModel):
     score: float = Field(default=0.0, ge=0, le=100)
     heat_score: float | None = Field(None, ge=0, le=100)
-    flood_score: float | None = Field(None, ge=0, le=100)
-    drought_score: float | None = Field(None, ge=0, le=100)
+    heavy_rain_score: float | None = Field(None, ge=0, le=100)
+    dryness_score: float | None = Field(None, ge=0, le=100)
 
 
 @asynccontextmanager
@@ -110,28 +110,40 @@ def assess_heat(req: RiskAssessRequest) -> dict[str, Any]:
     return heat.__dict__
 
 
-@app.post("/risk/flood")
-def assess_flood(req: RiskAssessRequest) -> dict[str, Any]:
+@app.post("/risk/heavy_rain")
+def assess_heavy_rain(req: RiskAssessRequest) -> dict[str, Any]:
     eng = _get_engine()
-    flood = eng.assess_flood_risk(
+    heavy_rain = eng.assess_flood_risk(
         rainfall=req.rainfall,
         multi_day_accumulation=req.multi_day_accumulation,
         forecast_uncertainty=req.forecast_uncertainty,
     )
-    return flood.__dict__
+    return heavy_rain.__dict__
 
 
-@app.post("/risk/drought")
-def assess_drought(req: RiskAssessRequest) -> dict[str, Any]:
+@app.post("/risk/flood", deprecated=True)
+def assess_flood_deprecated(req: RiskAssessRequest) -> dict[str, Any]:
+    """Deprecated — use /risk/heavy_rain instead."""
+    return assess_heavy_rain(req)
+
+
+@app.post("/risk/dryness")
+def assess_dryness(req: RiskAssessRequest) -> dict[str, Any]:
     eng = _get_engine()
-    drought = eng.assess_drought_risk(
+    dryness = eng.assess_drought_risk(
         rainfall=req.rainfall,
         historical_mean_rainfall=req.historical_mean_rainfall,
         max_temp=req.max_temp,
         historical_mean_temp=req.historical_mean_temp,
         dry_period_days=req.dry_period_days,
     )
-    return drought.__dict__
+    return dryness.__dict__
+
+
+@app.post("/risk/drought", deprecated=True)
+def assess_drought_deprecated(req: RiskAssessRequest) -> dict[str, Any]:
+    """Deprecated — use /risk/dryness instead."""
+    return assess_dryness(req)
 
 
 @app.post("/risk/composite")
@@ -139,8 +151,8 @@ def assess_composite(req: SimpleRiskRequest) -> dict[str, Any]:
     eng = _get_engine()
     composite = eng.assess_composite_risk(
         heat_score=req.heat_score or req.score,
-        flood_score=req.flood_score or req.score,
-        drought_score=req.drought_score or req.score,
+        flood_score=req.heavy_rain_score or req.score,
+        drought_score=req.dryness_score or req.score,
     )
     return composite.__dict__
 
