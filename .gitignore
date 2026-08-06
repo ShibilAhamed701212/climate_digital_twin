@@ -90,3 +90,4 @@ copilot/reports/*
 
 # Dashboard screenshots
 *.png
+.serena/
