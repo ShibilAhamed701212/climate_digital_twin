@@ -91,3 +91,17 @@ copilot/reports/*
 # Dashboard screenshots
 *.png
 .serena/
+
+# Agent / IDE caches
+.serena/
+.aider*
+.copilot/
+.codex/
+
+# Scratch / debug
+debug-*.log
+t2.py
+t3.py
+
+# Training logs
+lightning_logs/
