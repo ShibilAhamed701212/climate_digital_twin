@@ -459,7 +459,7 @@ def _build_scenario_def(
         name=name,
         description=description or f"API-generated {scenario_type} scenario",
         scenario_type=scenario_type,
-        parameters={k: v for k, v in params.items() if isinstance(v, (int, float, str))},
+        parameters={k: v for k, v in params.items() if isinstance(v, int | float | str)},
     )
 
 

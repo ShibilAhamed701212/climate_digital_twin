@@ -303,7 +303,7 @@ class DashboardAPI:
             confidence = float(payload.get("confidence", 0.0) or 0.0)
             results = []
             for i, day in enumerate(values):
-                if not isinstance(day, (list, tuple)):
+                if not isinstance(day, list | tuple):
                     day = [day]
                 results.append(
                     {

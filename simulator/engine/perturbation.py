@@ -271,7 +271,7 @@ class PerturbationEngine:
         factor_params: dict[str, float] = {}
 
         for key, val in scenario.parameters.items():
-            if isinstance(val, (int, float)):
+            if isinstance(val, int | float):
                 if "_offset" in key:
                     var_key = key.replace("_offset", "")
                     offset_params[var_key] = val

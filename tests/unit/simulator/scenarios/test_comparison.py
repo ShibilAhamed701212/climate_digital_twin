@@ -77,7 +77,6 @@ class TestScenarioComparison:
         )
 
     def test_compare_location_mismatch(self, comparer, baseline_result):
-
         other = SimulationResult(
             location_id="KA-MYS-001",
             scenario_id="scenario",
