@@ -85,9 +85,7 @@ def _validate_response_body(body: str) -> bool:
     stripped = body.strip().lower()
     if stripped.startswith("<!doctype") or stripped.startswith("<html"):
         return False
-    if stripped.startswith("<?xml"):
-        return False
-    return True
+    return not stripped.startswith("<?xml")
 
 
 def generate_grid(resolution: float, bounds: dict[str, float]) -> list[dict[str, float]]:

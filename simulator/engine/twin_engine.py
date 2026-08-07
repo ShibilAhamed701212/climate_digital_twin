@@ -38,9 +38,7 @@ class DigitalTwinEngine:
         self.event_bus = EventBus()
         self.state_manager = StateManager()
         self.repository: TwinRepository = ParquetRepository(store_dir)
-        self.service = TwinService(
-            self.state_manager, self.repository, self.event_bus, config_path
-        )
+        self.service = TwinService(self.state_manager, self.repository, self.event_bus, config_path)
         self._load_from_repository()
 
     def _load_from_repository(self) -> None:
@@ -49,14 +47,10 @@ class DigitalTwinEngine:
         for loc_id in location_ids:
             latest = self.repository.load_latest_version(loc_id)
             if latest is not None:
-                self.state_manager._versions[loc_id] = self.repository.load_versions(
-                    loc_id
-                )
+                self.state_manager._versions[loc_id] = self.repository.load_versions(loc_id)
                 self.state_manager._current[loc_id] = latest
         if location_ids:
-            logger.info(
-                "Loaded %d locations from repository", len(location_ids)
-            )
+            logger.info("Loaded %d locations from repository", len(location_ids))
 
     def create_entity(
         self,
@@ -81,9 +75,7 @@ class DigitalTwinEngine:
         """Apply a forecast prediction (Forecast State)."""
         return self.service.apply_forecast(entity)
 
-    def apply_scenario(
-        self, entity: ClimateEntity, scenario_id: str
-    ) -> dict[str, Any]:
+    def apply_scenario(self, entity: ClimateEntity, scenario_id: str) -> dict[str, Any]:
         """Apply a scenario simulation (Scenario State)."""
         return self.service.apply_scenario(entity, scenario_id)
 

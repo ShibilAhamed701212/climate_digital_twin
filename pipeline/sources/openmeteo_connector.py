@@ -46,11 +46,11 @@ _DEFAULT_CACHE_TTL = 3600
 
 def _get(arr: list[Any] | None, idx: int, default: float = 0.0) -> float:
     if arr is None or idx >= len(arr) or arr[idx] is None:
-        return float("nan")
+        return default
     try:
         return float(arr[idx])
     except (ValueError, TypeError):
-        return float("nan")
+        return default
 
 
 def _get_opt(arr: list[Any] | None, idx: int) -> float | None:
@@ -279,6 +279,8 @@ class OpenMeteoConnector(DataConnector):
         clouds = hourly.get("cloud_cover", [])
         soils = hourly.get("soil_moisture_0_to_7cm", [])
         for i, time_str in enumerate(times):
+            if not temps or not precips or not humidities or i >= len(temps) or temps[i] is None:
+                continue
             try:
                 timestamp = datetime.fromisoformat(time_str)
                 if timestamp.tzinfo is None:

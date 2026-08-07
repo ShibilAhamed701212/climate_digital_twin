@@ -24,7 +24,7 @@ class TestRunPipeline:
     @patch("builtins.__import__")
     @patch("pipeline.run_pipeline.yaml.safe_load")
     def test_missing_datasets_returns_1(
-        self, mock_yaml, mock_import, mock_dl, mock_report, mock_save, mock_path, mock_open
+        self, mock_yaml, _mock_import, mock_dl, mock_report, _mock_save, _mock_path, _mock_open
     ):
         mock_yaml.return_value = CONFIG
         mock_report.return_value = {"summary": {"passed": 0, "failed": 0, "total_datasets": 0}}
@@ -53,14 +53,14 @@ class TestRunPipeline:
         mock_import,
         mock_dl,
         mock_report,
-        mock_save,
+        _mock_save,
         mock_merge,
         mock_clean,
         mock_eng,
         mock_export,
         mock_fe,
-        mock_path,
-        mock_open,
+        _mock_path,
+        _mock_open,
     ):
         mock_yaml.return_value = CONFIG
         mock_import.return_value.read_parquet.return_value = MagicMock()
@@ -92,14 +92,14 @@ class TestRunPipeline:
         mock_import,
         mock_dl,
         mock_report,
-        mock_save,
+        _mock_save,
         mock_merge,
         mock_clean,
         mock_eng,
         mock_export,
         mock_fe,
-        mock_path,
-        mock_open,
+        _mock_path,
+        _mock_open,
     ):
         mock_yaml.return_value = CONFIG
         mock_import.return_value.read_parquet.return_value = MagicMock()

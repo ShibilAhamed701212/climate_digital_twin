@@ -1,10 +1,23 @@
 """Playwright test: verify all dashboard pages render visible content."""
 
+import socket
 import sys
 import time
+
+import pytest
 from playwright.sync_api import sync_playwright
 
-DASHBOARD_URL = "http://localhost:8051"
+DASHBOARD_URL = "http://localhost:8501"
+
+
+def _server_is_running(host="localhost", port=8501) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
 PAGES = [
     ("Climate Overview", True),  # already loaded as home
     ("Forecast Viewer", False),
@@ -14,6 +27,7 @@ PAGES = [
     ("Reports & Insights", False),
     ("AI Copilot", False),
     ("Knowledge Base", False),
+    ("Spatial Grid", False),
     ("Feedback", False),
 ]
 MIN_VISIBLE = 100
@@ -37,6 +51,9 @@ def navigate_to(page, title):
     time.sleep(2)
 
 
+@pytest.mark.skipif(
+    not _server_is_running(), reason="Dashboard server not running on localhost:8501"
+)
 def test_all_pages():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

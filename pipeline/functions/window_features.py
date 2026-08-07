@@ -4,7 +4,6 @@ Pure functions for computing lag, rolling, and seasonal features
 that can be called by the pipeline or FeatureEngine.
 """
 
-
 import numpy as np
 import pandas as pd
 

@@ -5,7 +5,13 @@ from copilot.models import ConversationTurn, IntentType, Plan
 
 
 def _make_turn(query: str, response: str) -> ConversationTurn:
-    return ConversationTurn(query=query, intent=IntentType.GREETING, plan=Plan(intent=IntentType.GREETING, steps=[]), results=[], response=response)
+    return ConversationTurn(
+        query=query,
+        intent=IntentType.GREETING,
+        plan=Plan(intent=IntentType.GREETING, steps=[]),
+        results=[],
+        response=response,
+    )
 
 
 class TestConversationMemory:

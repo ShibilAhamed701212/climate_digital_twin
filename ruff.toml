@@ -3,7 +3,11 @@ target-version = "py311"
 
 [lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "ARG"]
-ignore = ["E501"]
+ignore = ["E501", "N806"]
+
+[lint.per-file-ignores]
+"tests/*" = ["ARG001", "ARG002", "ARG005", "SIM117"]
+"dashboard/page_views/*" = ["N999", "ARG001"]
 
 [format]
 quote-style = "double"

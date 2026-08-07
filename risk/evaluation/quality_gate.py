@@ -10,7 +10,7 @@ The HazardEvaluator wires the loaded config into these functions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from risk.models.hazard import DataQuality, Freshness, Severity
@@ -47,7 +47,7 @@ class QualityGateConfig:
     allowed_quality: frozenset[str] = field(default_factory=lambda: frozenset({"validated", "raw"}))
 
     @classmethod
-    def from_yaml_config(cls, config: dict[str, Any] | None) -> "QualityGateConfig":
+    def from_yaml_config(cls, config: dict[str, Any] | None) -> QualityGateConfig:
         if not config:
             return cls()
         freshness = config.get("freshness", {})
@@ -98,8 +98,8 @@ def check_freshness(
         except ValueError:
             return Freshness.UNAVAILABLE
     if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=timezone.utc)
-    age = (datetime.now(timezone.utc) - timestamp).total_seconds() / 60.0
+        timestamp = timestamp.replace(tzinfo=UTC)
+    age = (datetime.now(UTC) - timestamp).total_seconds() / 60.0
     if age < 0:
         return Freshness.FRESH
     if age <= f_max:

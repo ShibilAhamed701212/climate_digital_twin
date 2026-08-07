@@ -195,7 +195,7 @@ def seed_direct() -> None:
     logger.info("Total locations in twin: %d — %s", len(ids), ", ".join(sorted(ids)))
 
 
-if __name__ == "__main__":
+def main() -> None:
     engine_url = os.environ.get("ENGINE_URL") or (
         sys.argv[1] if len(sys.argv) > 1 and sys.argv[1].startswith("http") else None
     )
@@ -203,3 +203,7 @@ if __name__ == "__main__":
         seed_via_api(engine_url)
     else:
         seed_direct()
+
+
+if __name__ == "__main__":
+    main()

@@ -11,7 +11,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B.svg)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://docs.docker.com/compose/)
-[![Code Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen.svg)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen.svg)](https://github.com/ShibilAhamed701212/climate_digital_twin)
 
 </div>
 
@@ -26,7 +26,7 @@ Climate Digital Twin is a full-stack platform that creates a **digital replica o
 | Capability | Description |
 |---|---|
 | **🔄 Digital Twin State** | Versioned, observable replica of regional climate state with real-time data synchronization |
-| **📈 Multi-Model Forecasting** | Ensemble of 8 architectures (LSTM, Transformer, iTransformer, PatchTST, TimeMixer, XGBoost, Prophet, Baseline) |
+| **📈 Multi-Model Forecasting** | Ensemble of 8 model architectures (LSTM, Transformer, XGBoost, Prophet, Baseline, plus simplified implementations inspired by iTransformer, PatchTST, and TimeMixer) |
 | **🔮 Scenario Simulation** | Monte Carlo simulation engine with perturbation models for what-if climate scenarios |
 | **⚠️ Climate Risk Assessment** | Automated heat, flood, and drought risk scoring with SHAP explainability |
 | **📚 Knowledge Base (RAG)** | FAISS vector store with hybrid semantic + BM25 search over climate documents |

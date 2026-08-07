@@ -8,7 +8,7 @@ LIVE or CACHED observation is available.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -50,7 +50,9 @@ class HistoricalStore:
             self._data_dir = _project_root / "data" / "raw"
         self._datasets: dict[str, pd.DataFrame] = {}
 
-    def lookup(self, location_id: str, variable: str, timestamp: str | None = None) -> Observation | None:
+    def lookup(
+        self, location_id: str, variable: str, _timestamp: str | None = None
+    ) -> Observation | None:
         """Look up a historical observation.
 
         Returns an Observation with status HISTORICAL if data exists,
@@ -88,7 +90,7 @@ class HistoricalStore:
             status=ObservationStatus.HISTORICAL,
             provider="NASA POWER",
             observation_timestamp=str(latest.get("Date", "")),
-            retrieved_timestamp=datetime.now(timezone.utc).isoformat(),
+            retrieved_timestamp=datetime.now(UTC).isoformat(),
             age_seconds=0.0,
             confidence=0.85,
             data_source_identifier="nasa_power_v2.3.8",
@@ -102,6 +104,7 @@ class HistoricalStore:
         """Resolve location_id to (latitude, longitude)."""
         try:
             from pipeline.sources.location_registry import LocationRegistry
+
             registry = LocationRegistry()
             coords = registry.get_coordinates(location_id)
             if coords:
@@ -111,6 +114,7 @@ class HistoricalStore:
 
         try:
             from dashboard.config.config import SAMPLE_LOCATIONS
+
             for loc in SAMPLE_LOCATIONS:
                 if loc["id"] == location_id:
                     return (loc["lat"], loc["lon"])

@@ -9,7 +9,6 @@ import numpy as np
 import xarray as xr
 
 
-
 def nearest_neighbor(ds: xr.Dataset, target_lat: float, target_lon: float) -> dict:
     """Find nearest grid cell by Euclidean distance in lat/lon space."""
     lat_idx = int(np.abs(ds.latitude - target_lat).argmin())

@@ -19,7 +19,7 @@ from pathlib import Path
 import torch
 
 from models.build_dataset import build_dataset, verify_dataset
-from models.data_loader import load_data, load_config, load_scalers, needs_scaling, save_scalers
+from models.data_loader import load_config, load_data, load_scalers, needs_scaling, save_scalers
 from models.evaluator import evaluate_model
 from models.forecast_provenance import ForecastResult, ForecastStore
 from models.registry import ModelRegistry
@@ -78,7 +78,7 @@ def cmd_train(args: argparse.Namespace) -> int:
     model = create_model(args.model, n_features, n_targets, config)
     model_name = args.name or f"{args.model}-real-{uuid.uuid4().hex[:8]}"
 
-    history = train_model(
+    train_model(
         model,
         train_loader,
         val_loader,
@@ -117,7 +117,7 @@ def cmd_train(args: argparse.Namespace) -> int:
     elif args.model == "baseline" or args.model == "lstm":
         status = "VALIDATED"
 
-    entry = registry.register(
+    registry.register(
         name=model_name,
         architecture=type(model).__name__,
         checkpoint_path=str(ckpt_path),
@@ -155,7 +155,7 @@ def cmd_train(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_list(args: argparse.Namespace) -> int:
+def cmd_list(_args: argparse.Namespace) -> int:
     registry = ModelRegistry()
     models = registry.list_models()
     if not models:
@@ -169,8 +169,8 @@ def cmd_list(args: argparse.Namespace) -> int:
         status = m.get("status", "?")
         rmse = m.get("metrics", {}).get("rmse", float("nan"))
         r2 = m.get("metrics", {}).get("r2", float("nan"))
-        rmse_s = f"{rmse:.4f}" if not isinstance(rmse, float) or not (rmse != rmse) else "N/A"
-        r2_s = f"{r2:.4f}" if not isinstance(r2, float) or not (r2 != r2) else "N/A"
+        rmse_s = f"{rmse:.4f}" if not isinstance(rmse, float) or rmse == rmse else "N/A"
+        r2_s = f"{r2:.4f}" if not isinstance(r2, float) or r2 == r2 else "N/A"
         print(
             f"  {m['name']:25s} {m['architecture']:20s} {auth:8s} {status:12s} {rmse_s:8s} {r2_s:8s}"
         )
@@ -223,7 +223,7 @@ def cmd_forecast(args: argparse.Namespace) -> int:
     train_df = pd.read_csv(data_dir / "training.csv")
     test_df = pd.read_csv(data_dir / "testing.csv")
     feat_cols = config["data"]["feature_columns"]
-    tgt_cols = config["data"]["target_columns"]
+    config["data"]["target_columns"]
     seq_len = config["data"]["sequence_length"]
 
     cat_cols = [
@@ -235,13 +235,12 @@ def cmd_forecast(args: argparse.Namespace) -> int:
         for c in cat_cols:
             df[c] = pd.Categorical(df[c]).codes
 
-    if should_scale:
-        if feat_scaler is None or tgt_scaler is None:
-            logger.error(
-                "Model '%s' requires scaling but no scalers found. Re-train with scaling enabled.",
-                args.model_name,
-            )
-            return 1
+    if should_scale and (feat_scaler is None or tgt_scaler is None):
+        logger.error(
+            "Model '%s' requires scaling but no scalers found. Re-train with scaling enabled.",
+            args.model_name,
+        )
+        return 1
 
     test_feat = torch.tensor(test_df[feat_cols].values, dtype=torch.float32)
     input_seq = test_feat[-seq_len:].unsqueeze(0)

@@ -139,7 +139,7 @@ def spei_from_monthly_detailed(
     if not d_values:
         return SPEIResult([], "INSUFFICIENT_DATA", scale, 0)
 
-    n = len(d_values)
+    len(d_values)
     accumulated: list[float] = []
     running = 0.0
     for i, d in enumerate(d_values):

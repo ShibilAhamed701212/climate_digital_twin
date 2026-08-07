@@ -9,13 +9,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from simulator.anomaly.detector import AnomalyDetector
-from simulator.configs.bhai_config import get_config, resolve_subdir
+from simulator.configs.twin_config import get_config, resolve_subdir
 from simulator.historical.computer import BaselineComputer
 from simulator.models.twin_state import StateDelta, TwinState
 from simulator.models.weather import DataSource, WeatherObservation
 from simulator.repository.parquet_store import ParquetObservationStore
 from simulator.repository.versioned_state_store import VersionedStateStore
-from simulator.state_manager.bhai_state_manager import TwinStateManager
+from simulator.state_manager.twin_state_manager import TwinStateManager
 
 _logger = logging.getLogger(__name__)
 

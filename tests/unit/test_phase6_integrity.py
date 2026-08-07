@@ -103,15 +103,16 @@ class TestPipelineNoFabrication:
 # ---------------------------------------------------------------------------
 class TestForecastUnavailableContract:
     def _client_with_unavailable(self, error_code: str, message: str):
-        import backend.api.main as api_main
-        from climatedt.pipeline.forecast_pipeline import ForecastUnavailableError
         from fastapi.routing import APIRoute
         from fastapi.testclient import TestClient
 
-        async def fail(location_id="", target_variable="", horizon=24):
+        import backend.api.main as api_main
+        from climatedt.pipeline.forecast_pipeline import ForecastUnavailableError
+
+        async def fail(location_id="", target_variable="", horizon=24, **_kwargs):
             raise ForecastUnavailableError(error_code, message)
 
-        async def fail_retrain(model_type="xgboost", target_variable="temperature_2m"):
+        async def fail_retrain(model_type="xgboost", target_variable="temperature_2m", **_kwargs):
             raise ForecastUnavailableError(error_code, message)
 
         app = api_main.create_app()
@@ -184,7 +185,7 @@ class TestDashboardNoObservationAsForecast:
 
         original_post = api._session.post
 
-        def fail(*args, **kwargs):
+        def fail(*_args, **_kwargs):
             raise requests.ConnectionError("no gateway")
 
         api._session.post = fail  # type: ignore[method-assign]

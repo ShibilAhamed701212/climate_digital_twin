@@ -147,7 +147,7 @@ class ForecastPipeline:
     def _predict_sync(
         self,
         location_id: str,
-        target_variable: str,
+        _target_variable: str,
         horizon: int,
     ) -> _ForecastSeries:
         try:
@@ -164,6 +164,7 @@ class ForecastPipeline:
 
         try:  # lazy: torch may be missing or broken in some envs
             import torch  # noqa: PLC0415
+
             from models.data_loader import (  # noqa: PLC0415
                 load_config,
                 load_scalers,
@@ -207,7 +208,9 @@ class ForecastPipeline:
         # set, so codes are deterministic and consistent across splits.
         df = df.copy()
         season_cat = pd.Categorical(df["Season"])
-        season_codes = dict(zip(season_cat.categories, range(len(season_cat.categories))))
+        season_codes = dict(
+            zip(season_cat.categories, range(len(season_cat.categories)), strict=False)
+        )
         df["Season"] = season_cat.codes
 
         try:
@@ -332,7 +335,10 @@ class ForecastPipeline:
 
     def _load_real_input(self) -> pd.DataFrame:
         """Load the REAL testing split, verifying its manifest checksums."""
-        from models.data_loader import DatasetNotFoundError, verify_dataset_manifest  # noqa: PLC0415
+        from models.data_loader import (  # noqa: PLC0415
+            DatasetNotFoundError,
+            verify_dataset_manifest,
+        )
 
         try:
             verify_dataset_manifest(_REAL_DATA_DIR)
@@ -349,8 +355,8 @@ class ForecastPipeline:
 
     async def train_forecast_model(
         self,
-        model_type: str = "xgboost",
-        target_variable: str = "temperature_2m",
+        _model_type: str = "xgboost",
+        _target_variable: str = "temperature_2m",
     ) -> _TrainingReport:
         raise ForecastUnavailableError(
             "NOT_SUPPORTED",

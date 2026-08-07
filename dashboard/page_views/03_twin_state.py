@@ -17,8 +17,7 @@ from dashboard.services.api_client import DashboardAPI
 def render(api: DashboardAPI, filters: dict) -> None:
     st.header("🔄 Digital Twin State")
     st.caption(
-        "Live twin layers, historical records, forecasts, version history, and version comparison "
-        "(merged former Twin State / BHAI browser)."
+        "Live twin layers, historical records, forecasts, version history, and version comparison."
     )
 
     location_id = filters.get("location_id", "KA-BLR-001")
@@ -68,7 +67,10 @@ def render(api: DashboardAPI, filters: dict) -> None:
 
                 st.subheader("Key Variables")
                 metrics = [
-                    ("Temperature", f"{current.get('current_temp', current.get('max_temp', 'N/A'))}"),
+                    (
+                        "Temperature",
+                        f"{current.get('current_temp', current.get('max_temp', 'N/A'))}",
+                    ),
                     ("Rainfall", f"{current.get('rainfall', 'N/A')} mm"),
                     ("Humidity", f"{current.get('humidity_pct', 'N/A')} %"),
                     ("Pressure", f"{current.get('pressure_hpa', 'N/A')} hPa"),
@@ -126,7 +128,10 @@ def render(api: DashboardAPI, filters: dict) -> None:
             hist_df = pd.DataFrame(rows)
             st.dataframe(hist_df, use_container_width=True, hide_index=True)
 
-            if "Created" in hist_df.columns and hist_df["Created"].astype(str).str.len().gt(0).any():
+            if (
+                "Created" in hist_df.columns
+                and hist_df["Created"].astype(str).str.len().gt(0).any()
+            ):
                 timeline = hist_df.copy()
                 timeline["Created_dt"] = pd.to_datetime(timeline["Created"], errors="coerce")
                 timeline = timeline.dropna(subset=["Created_dt"]).sort_values("Created_dt")
@@ -159,7 +164,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
         max_v = 2
         if versions:
             nums = [int(v.get("version_number", 0) or 0) for v in versions]
-            max_v = max(max(nums), 2)
+            max_v = max(max(nums, default=2), 2)
         col_v1, col_v2 = st.columns(2)
         with col_v1:
             version_a = st.number_input("Version A", min_value=1, max_value=max_v, value=1)

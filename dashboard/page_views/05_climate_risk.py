@@ -77,7 +77,9 @@ def render(api: DashboardAPI, filters: dict) -> None:
                         "Heat": round(float(r.get("heat_risk", 0) or 0), 2),
                         "Heavy Rain": round(float(r.get("flood_risk", 0) or 0), 2),
                         "Dryness": round(float(r.get("drought_risk", 0) or 0), 2),
-                        "Source": (r.get("inputs") or {}).get("data_source", r.get("data_source", "")),
+                        "Source": (r.get("inputs") or {}).get(
+                            "data_source", r.get("data_source", "")
+                        ),
                     }
                 )
             st.dataframe(rank_data, use_container_width=True)

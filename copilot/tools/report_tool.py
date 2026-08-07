@@ -37,7 +37,8 @@ class ReportGeneratorTool(BaseTool):
                 "tool": self._name,
                 "report_type": report_type,
                 "location": location,
-                "report": "", "error": "Report service unavailable. No synthetic fallback available.",
+                "report": "",
+                "error": "Report service unavailable. No synthetic fallback available.",
                 "fallback": True,
             }
 
@@ -61,6 +62,3 @@ class ReportGeneratorTool(BaseTool):
 
     def health_check(self) -> tuple[bool, str]:
         return True, "report_generator healthy"
-
-
-

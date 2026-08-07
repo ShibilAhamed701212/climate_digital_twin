@@ -10,7 +10,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from simulator.configs.bhai_config import resolve_subdir
+from simulator.configs.twin_config import resolve_subdir
 from simulator.models.baseline import BaselineCollection, BaselineRecord, BaselineType
 from simulator.models.weather import WeatherObservation
 from simulator.repository.parquet_store import ParquetObservationStore

@@ -12,7 +12,7 @@ import argparse
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -109,7 +109,7 @@ def download_month(
             "path": str(output_path),
             "size_mb": round(size_mb, 2),
             "elapsed_s": round(elapsed, 1),
-            "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            "downloaded_at": datetime.now(UTC).isoformat(),
         }
         save_manifest(manifest)
         logger.info("Downloaded: %s (%.1f MB, %.0fs)", key, size_mb, elapsed)
@@ -131,7 +131,7 @@ def download_year_range(
     """Download all months in a year range with resume support."""
     manifest = load_manifest()
     if not manifest["started_at"]:
-        manifest["started_at"] = datetime.now(timezone.utc).isoformat()
+        manifest["started_at"] = datetime.now(UTC).isoformat()
         manifest["bbox"] = bbox
         save_manifest(manifest)
 

@@ -16,7 +16,9 @@ class BaseProvider(ABC):
         """Check if this provider is currently available."""
 
     @abstractmethod
-    def fetch(self, location_id: str, variable: str, timestamp: str | None = None) -> Observation | None:
+    def fetch(
+        self, location_id: str, variable: str, timestamp: str | None = None
+    ) -> Observation | None:
         """Fetch an observation from this provider.
 
         Returns None if the provider cannot fulfill the request.

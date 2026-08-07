@@ -11,7 +11,11 @@ class TestPlanningAgent:
         self.planner = PlanningAgent(registry)
 
     def test_plan_forecast(self):
-        intent = IntentResult(intent=IntentType.FORECAST, confidence=0.9, entities={"location": "Karnataka", "days": 3})
+        intent = IntentResult(
+            intent=IntentType.FORECAST,
+            confidence=0.9,
+            entities={"location": "Karnataka", "days": 3},
+        )
         plan = self.planner.create_plan(intent)
         assert plan.intent == IntentType.FORECAST
         assert len(plan.steps) == 1
@@ -36,13 +40,17 @@ class TestPlanningAgent:
         assert plan.steps[0].tool_name == "risk_assessor"
 
     def test_plan_rag(self):
-        intent = IntentResult(intent=IntentType.RAG_QUERY, confidence=0.75, raw_query="What causes monsoon?")
+        intent = IntentResult(
+            intent=IntentType.RAG_QUERY, confidence=0.75, raw_query="What causes monsoon?"
+        )
         plan = self.planner.create_plan(intent)
         assert len(plan.steps) == 1
         assert plan.steps[0].tool_name == "rag_retriever"
 
     def test_plan_report(self):
-        intent = IntentResult(intent=IntentType.REPORT, confidence=0.8, entities={"location": "Mysuru"})
+        intent = IntentResult(
+            intent=IntentType.REPORT, confidence=0.8, entities={"location": "Mysuru"}
+        )
         plan = self.planner.create_plan(intent)
         assert len(plan.steps) == 3
         assert plan.steps[0].tool_name == "forecast_tool"

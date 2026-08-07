@@ -7,38 +7,37 @@ HazardStore persistence, idempotency, trend history.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from risk.evaluation.alert_policy import AlertPolicy
+from risk.evaluation.deterministic_attribution import (
+    build_dryness_attribution,
+    build_heat_attribution,
+    build_heavy_rain_attribution,
+)
+from risk.evaluation.forecast_adapter import ForecastInputs, extract_forecast_inputs
 from risk.evaluation.quality_gate import (
+    DataQuality,
+    Freshness,
+    Severity,
     check_freshness,
     check_quality,
     compute_confidence,
     severity_from_score,
-    DataQuality,
-    Freshness,
-    Severity,
 )
-from risk.evaluation.twin_adapter import extract_twin_inputs, TwinInputs
-from risk.evaluation.forecast_adapter import extract_forecast_inputs, ForecastInputs
-from risk.evaluation.deterministic_attribution import (
-    build_heat_attribution,
-    build_heavy_rain_attribution,
-    build_dryness_attribution,
-)
-from risk.evaluation.alert_policy import AlertPolicy
+from risk.evaluation.twin_adapter import TwinInputs, extract_twin_inputs
 from risk.models.hazard import (
+    UNSUPPORTED_HAZARDS,
     Alert,
     AlertStatus,
     AssessmentType,
-    HazardAssessment,
-    UNSUPPORTED_HAZARDS,
     EvidenceFactor,
+    HazardAssessment,
 )
-from risk.store.hazard_store import HazardStore
 from risk.store.alert_store import AlertStore
-
+from risk.store.hazard_store import HazardStore
 
 # ═══════════════════════════════════════════════════════════════════
 # Quality Gate
@@ -73,26 +72,26 @@ class TestQualityGate:
 
 class TestFreshnessGate:
     def test_fresh_recent(self):
-        ts = datetime.now(timezone.utc) - timedelta(minutes=5)
+        ts = datetime.now(UTC) - timedelta(minutes=5)
         assert check_freshness(ts) == Freshness.FRESH
 
     def test_stale_old(self):
-        ts = datetime.now(timezone.utc) - timedelta(hours=3)
+        ts = datetime.now(UTC) - timedelta(hours=3)
         assert check_freshness(ts) == Freshness.STALE
 
     def test_very_stale(self):
-        ts = datetime.now(timezone.utc) - timedelta(hours=24)
+        ts = datetime.now(UTC) - timedelta(hours=24)
         assert check_freshness(ts) == Freshness.VERY_STALE
 
     def test_unavailable_none(self):
         assert check_freshness(None) == Freshness.UNAVAILABLE
 
     def test_handles_iso_string(self):
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         assert check_freshness(ts) in (Freshness.FRESH,)
 
     def test_fresh_from_future(self):
-        ts = datetime.now(timezone.utc) + timedelta(hours=1)
+        ts = datetime.now(UTC) + timedelta(hours=1)
         assert check_freshness(ts) == Freshness.FRESH
 
 
@@ -153,10 +152,10 @@ class TestTwinAdapter:
             authenticity = "REAL"
             quality_flag = "validated"
             observation_id = "obs-001"
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
             entity_id = "KA-BLR-001"
             data_source = "open_meteo"
-            ingestion_timestamp = datetime.now(timezone.utc)
+            ingestion_timestamp = datetime.now(UTC)
             consecutive_hot_days = 0
             dry_period_days = 0
             metadata = {}
@@ -173,7 +172,7 @@ class TestTwinAdapter:
             authenticity = "REAL"
             quality_flag = "validated"
             observation_id = ""
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
             entity_id = "test"
             data_source = "test"
             ingestion_timestamp = None
@@ -554,7 +553,7 @@ class TestHazardEvaluatorIntegration:
             authenticity="SYNTHETIC",
             data_source="test",
             quality_flag="validated",
-            observation_timestamp=datetime.now(timezone.utc),
+            observation_timestamp=datetime.now(UTC),
             ingestion_timestamp=None,
             twin_metadata={},
         )
@@ -580,7 +579,7 @@ class TestHazardEvaluatorIntegration:
             authenticity="REAL",
             data_source="open_meteo",
             quality_flag="validated",
-            observation_timestamp=datetime.now(timezone.utc),
+            observation_timestamp=datetime.now(UTC),
             ingestion_timestamp=None,
             twin_metadata={},
         )
@@ -629,7 +628,7 @@ class TestHazardEvaluatorIntegration:
             authenticity="REAL",
             data_source="test",
             quality_flag="validated",
-            observation_timestamp=datetime.now(timezone.utc),
+            observation_timestamp=datetime.now(UTC),
             ingestion_timestamp=None,
             twin_metadata={},
         )
@@ -654,8 +653,8 @@ class TestHazardEvaluatorIntegration:
 
     def test_process_and_store_saves_hazard(self, tmp_path):
         from risk.evaluation.hazard_evaluator import HazardEvaluator
-        from risk.store.hazard_store import HazardStore
         from risk.store.alert_store import AlertStore
+        from risk.store.hazard_store import HazardStore
 
         store = HazardStore(path=str(tmp_path / "hazards.jsonl"))
         alert_store = AlertStore(path=str(tmp_path / "alerts.jsonl"))
@@ -674,7 +673,7 @@ class TestHazardEvaluatorIntegration:
             authenticity="REAL",
             data_source="open_meteo",
             quality_flag="validated",
-            observation_timestamp=datetime.now(timezone.utc),
+            observation_timestamp=datetime.now(UTC),
             ingestion_timestamp=None,
             twin_metadata={},
         )
@@ -700,7 +699,7 @@ class TestHazardEvaluatorIntegration:
             authenticity="SCENARIO",
             data_source="scenario_engine",
             quality_flag="validated",
-            observation_timestamp=datetime.now(timezone.utc),
+            observation_timestamp=datetime.now(UTC),
             ingestion_timestamp=None,
             twin_metadata={},
         )
@@ -718,15 +717,17 @@ class TestProductionCrawl:
     """Verify Phase 4 operational paths contain zero random/synthetic."""
 
     def test_no_random_in_evaluation(self):
-        import risk.evaluation.hazard_evaluator as ev
         import inspect
+
+        import risk.evaluation.hazard_evaluator as ev
 
         src = inspect.getsource(ev)
         assert "random" not in src, "random found in hazard_evaluator"
 
     def test_no_np_random_in_evaluation(self):
-        import risk.evaluation.hazard_evaluator as ev
         import inspect
+
+        import risk.evaluation.hazard_evaluator as ev
 
         src = inspect.getsource(ev)
         assert "np.random" not in src
@@ -736,8 +737,9 @@ class TestProductionCrawl:
         assert q == DataQuality.REJECTED
 
     def test_config_rejects_synthetic_operationally(self):
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         p = Path("config/risk_config.yaml")
         if p.exists():
@@ -748,8 +750,9 @@ class TestProductionCrawl:
 
     def test_unsupported_hazards_not_operational(self):
         # Verify the config also marks these as disabled
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         p = Path("config/risk_config.yaml")
         if p.exists():

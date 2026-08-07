@@ -58,8 +58,11 @@ class TestScenarioDefinition:
         from simulator.models.scenario_models import ScenarioDefinition
 
         s = ScenarioDefinition(
-            scenario_id="id", name="n", description="d",
-            scenario_type="t", parameters={},
+            scenario_id="id",
+            name="n",
+            description="d",
+            scenario_type="t",
+            parameters={},
         )
         with pytest.raises(FrozenInstanceError):
             s.scenario_id = "id2"  # type: ignore[misc]

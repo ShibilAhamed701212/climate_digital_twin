@@ -55,7 +55,7 @@ def net_radiation(
     tmin_c: float,
     rh_mean_pct: float | None = None,
     rs_mj: float | None = None,
-    pressure_kpa: float = 101.3,
+    _pressure_kpa: float = 101.3,
 ) -> dict[str, float]:
     """Compute net radiation Rn (MJ/m2/day) following FAO-56 Ch. 3.
 
@@ -83,12 +83,8 @@ def net_radiation(
         )
     )
 
-    # Solar radiation Rs
-    if rs_mj is not None:
-        Rs = rs_mj
-    else:
-        # Hargreaves radiation formula (FAO-56 Eq. 50)
-        Rs = 0.16 * math.sqrt(tmax_c - tmin_c) * Ra
+    # Solar radiation Rs (Hargreaves formula FAO-56 Eq. 50 if missing)
+    Rs = rs_mj if rs_mj is not None else 0.16 * math.sqrt(tmax_c - tmin_c) * Ra
 
     # Clear-sky radiation Rso (FAO-56 Eq. 36-37)
     Rso = (0.75 + 2e-5 * 0.0) * Ra  # elevation=0 simplified

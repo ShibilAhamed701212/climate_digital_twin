@@ -11,7 +11,6 @@ from datetime import datetime
 from typing import Any
 
 
-
 @dataclass
 class TwinInputs:
     max_temp: float | None

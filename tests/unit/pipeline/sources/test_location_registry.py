@@ -82,7 +82,7 @@ class TestLocation:
 class TestLocationRegistry:
     def test_init_with_defaults(self):
         reg = LocationRegistry()
-        assert reg.count() == 8
+        assert reg.count() == 13
         assert reg.get_location("KA-BLR-001") is not None
 
     def test_init_with_custom_locations(self):
@@ -114,13 +114,13 @@ class TestLocationRegistry:
         loc = Location("NEW-001", "New", 14.0, 76.0, "New District")
         reg.add_location(loc)
         assert reg.get_location("NEW-001") is loc
-        assert reg.count() == 9
+        assert reg.count() == 14
 
     def test_add_location_duplicate(self):
         reg = LocationRegistry()
         loc = reg.get_location("KA-BLR-001")
         reg.add_location(loc)
-        assert reg.count() == 8
+        assert reg.count() == 13
 
     def test_add_locations(self):
         reg = LocationRegistry()
@@ -129,11 +129,11 @@ class TestLocationRegistry:
             Location("BAT-002", "Batch2", 15.0, 77.0, "D2"),
         ]
         reg.add_locations(locs)
-        assert reg.count() == 10
+        assert reg.count() == 15
 
     def test_list_locations_all(self):
         reg = LocationRegistry()
-        assert len(reg.list_locations()) == 8
+        assert len(reg.list_locations()) == 13
 
     def test_list_locations_filter_by_district(self):
         reg = LocationRegistry()
@@ -144,7 +144,7 @@ class TestLocationRegistry:
     def test_list_locations_filter_by_state(self):
         reg = LocationRegistry()
         filtered = reg.list_locations(state="Karnataka")
-        assert len(filtered) == 8
+        assert len(filtered) == 13
 
     def test_list_locations_filter_both(self):
         reg = LocationRegistry()
@@ -157,7 +157,7 @@ class TestLocationRegistry:
 
     def test_count(self):
         reg = LocationRegistry()
-        assert reg.count() == 8
+        assert reg.count() == 13
 
     def test_clear(self):
         reg = LocationRegistry()

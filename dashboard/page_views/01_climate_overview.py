@@ -40,13 +40,18 @@ def render(api: DashboardAPI, filters: dict) -> None:
         current = api.get_current_state(location_id)
         if current and current.get("status") != "unavailable":
             risk = api.get_risk(location_id)
-            metric_card(
-                "Rainfall", f"{current.get('rainfall', 0):.1f} mm", help_text="Last 24 hours"
-            )
-            metric_card("Current Temp", f"{current.get('current_temp', 0):.1f} °C")
+            rain_f = current.get("rainfall")
+            temp_f = current.get("current_temp")
+            rain_str = f"{float(rain_f):.1f}" if type(rain_f) in (int, float) else "0.0"
+            temp_str = f"{float(temp_f):.1f}" if type(temp_f) in (int, float) else "0.0"
+            risk_val = risk.get("composite_risk") if isinstance(risk, dict) else None
+            risk_str = f"{float(risk_val):.1f}" if type(risk_val) in (int, float) else "Unavailable"
+
+            metric_card("Rainfall", f"{rain_str} mm", help_text="Last 24 hours")
+            metric_card("Current Temp", f"{temp_str} °C")
             metric_card(
                 "Risk Score",
-                f"{risk['composite_risk']:.1f}" if risk else "Unavailable",
+                risk_str,
                 help_text="Validated composite risk score",
             )
 
@@ -54,7 +59,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
             if ext and ext.get("status") != "unavailable":
                 with st.expander("More Live Conditions"):
                     _fmt = lambda v, u="": (  # noqa: E731
-                        f"{v:.1f} {u}".strip() if isinstance(v, (int, float)) else "Unavailable"
+                        f"{v:.1f} {u}".strip() if type(v) in (int, float) else "Unavailable"
                     )
                     _fmt_t = lambda v: v if isinstance(v, str) and v else "Unavailable"  # noqa: E731
                     st.markdown(
@@ -77,9 +82,12 @@ def render(api: DashboardAPI, filters: dict) -> None:
         for loc in locations[:5]:
             s = api.get_current_state(loc["id"])
             if s:
+                r_raw = s.get("rainfall")
+                t_raw = s.get("current_temp")
+                rain_val = float(r_raw) if type(r_raw) in (int, float) else 0.0
+                temp_val = float(t_raw) if type(t_raw) in (int, float) else 0.0
                 st.markdown(
-                    f"**{loc['district']}** — Rain: {s.get('rainfall', 0):.1f}mm, "
-                    f"Current: {s.get('current_temp', 0):.1f}°C"
+                    f"**{loc['district']}** — Rain: {rain_val:.1f}mm, Current: {temp_val:.1f}°C"
                 )
 
     st.divider()

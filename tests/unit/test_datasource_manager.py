@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import MagicMock
 
-
 from pipeline.providers.manager import (
     DataSourceManager,
     Observation,
@@ -161,18 +160,21 @@ class TestDataSourceManager:
 class TestHistoricalStore:
     def test_lookup_returns_none_when_no_data(self, tmp_path):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore(data_dir=str(tmp_path))
         obs = store.lookup("KA-BLR-001", "temperature_2m")
         assert obs is None
 
     def test_lookup_returns_none_for_unknown_variable(self):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore()
         obs = store.lookup("KA-BLR-001", "nonexistent_var")
         assert obs is None
 
     def test_lookup_real_data_rainfall(self):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore()
         obs = store.lookup("KA-BLR-001", "rainfall")
         assert obs is not None
@@ -183,6 +185,7 @@ class TestHistoricalStore:
 
     def test_lookup_real_data_temperature(self):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore()
         obs = store.lookup("KA-BLR-001", "temperature_2m")
         assert obs is not None
@@ -193,6 +196,7 @@ class TestHistoricalStore:
 
     def test_lookup_real_data_min_temp(self):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore()
         obs = store.lookup("KA-BLR-001", "temperature_2m_min")
         assert obs is not None
@@ -201,10 +205,12 @@ class TestHistoricalStore:
 
     def test_is_available_true_when_data_exists(self):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore()
         assert store.is_available() is True
 
     def test_is_available_false_when_no_data(self, tmp_path):
         from pipeline.providers.historical_store import HistoricalStore
+
         store = HistoricalStore(data_dir=str(tmp_path))
         assert store.is_available() is False

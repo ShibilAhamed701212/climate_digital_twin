@@ -199,7 +199,7 @@ class TestUpdateStateAuthoritativeSourceGuard:
     @pytest.mark.asyncio
     async def test_update_state_rejects_scenario_source(self):
         from simulator.models.twin_state import StateDelta
-        from simulator.state_manager.bhai_state_manager import TwinStateManager
+        from simulator.state_manager.twin_state_manager import TwinStateManager
 
         manager = TwinStateManager.__new__(TwinStateManager)
         delta = StateDelta(
@@ -214,7 +214,7 @@ class TestUpdateStateAuthoritativeSourceGuard:
     @pytest.mark.asyncio
     async def test_update_state_rejects_synthetic_source(self):
         from simulator.models.twin_state import StateDelta
-        from simulator.state_manager.bhai_state_manager import TwinStateManager
+        from simulator.state_manager.twin_state_manager import TwinStateManager
 
         manager = TwinStateManager.__new__(TwinStateManager)
         delta = StateDelta(
@@ -229,7 +229,7 @@ class TestUpdateStateAuthoritativeSourceGuard:
     @pytest.mark.asyncio
     async def test_update_state_accepts_authoritative_source(self):
         from simulator.models.twin_state import StateDelta
-        from simulator.state_manager.bhai_state_manager import TwinStateManager
+        from simulator.state_manager.twin_state_manager import TwinStateManager
 
         manager = TwinStateManager.__new__(TwinStateManager)
         manager._store = MagicMock()
@@ -241,7 +241,5 @@ class TestUpdateStateAuthoritativeSourceGuard:
         )
         manager.get_current_state = AsyncMock(return_value=make_twin_state())
         manager._store.save_state.return_value = MagicMock(version_id="v1")
-        result = await manager.update_state(
-            "KA-BLR-001", delta, source="twin_synchronizer"
-        )
+        result = await manager.update_state("KA-BLR-001", delta, source="twin_synchronizer")
         assert result is not None

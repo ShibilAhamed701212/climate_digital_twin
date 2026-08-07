@@ -27,12 +27,8 @@ def _init_session() -> None:
     if "api" not in st.session_state:
         st.session_state.api = create_api_client()
     valid_pages = {p["file"] for p in PAGES}
-    # Former Twin State (BHAI) page merged into Digital Twin State.
-    aliases = {"10_twin_state_bhai": "03_twin_state"}
     current = st.session_state.get("page")
-    if current in aliases:
-        st.session_state.page = aliases[current]
-    elif current not in valid_pages:
+    if current not in valid_pages:
         st.session_state.page = PAGES[0]["file"]
 
 

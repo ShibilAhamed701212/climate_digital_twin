@@ -5,9 +5,10 @@ only react to already-computed assessments.
 
 from __future__ import annotations
 
-import yaml
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
+
+import yaml
 
 from risk.models.hazard import Alert, AlertStatus, HazardAssessment, Severity
 
@@ -58,7 +59,7 @@ class AlertPolicy:
 
         severity_str = assessment.severity.value
         existing = self._find_matching(assessment, latest_active_alerts)
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         if existing is None:
             return Alert(
@@ -86,7 +87,7 @@ class AlertPolicy:
         resolved: list[Alert] = []
         if assessment.severity.value not in self._resolve_on:
             return resolved
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         for alert in active_alerts:
             if alert.status in (AlertStatus.ACTIVE, AlertStatus.ESCALATED):
                 alert.status = AlertStatus.RESOLVED

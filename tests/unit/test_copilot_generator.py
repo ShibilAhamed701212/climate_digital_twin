@@ -25,11 +25,21 @@ class TestResponseGenerator:
             "tool": "forecast_tool",
             "location": "Karnataka",
             "forecast": [
-                {"day": 1, "date": "2026-06-27", "max_temp": 35.0, "min_temp": 22.0, "rainfall_mm": 10.0, "humidity_pct": 65},
+                {
+                    "day": 1,
+                    "date": "2026-06-27",
+                    "max_temp": 35.0,
+                    "min_temp": 22.0,
+                    "rainfall_mm": 10.0,
+                    "humidity_pct": 65,
+                },
             ],
         }
         intent = IntentResult(intent=IntentType.FORECAST, confidence=0.9)
-        plan = Plan(intent=IntentType.FORECAST, steps=[ToolCall(tool_name="forecast_tool", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.FORECAST,
+            steps=[ToolCall(tool_name="forecast_tool", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="forecast_tool", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "35.0" in response
@@ -39,10 +49,20 @@ class TestResponseGenerator:
         data = {
             "tool": "digital_twin_tool",
             "location": "Mysuru",
-            "state": {"location": "Mysuru", "max_temp": 32.0, "min_temp": 21.0, "rainfall_mm": 5.0, "humidity_pct": 70, "timestamp": "2026-06-26T12:00:00"},
+            "state": {
+                "location": "Mysuru",
+                "max_temp": 32.0,
+                "min_temp": 21.0,
+                "rainfall_mm": 5.0,
+                "humidity_pct": 70,
+                "timestamp": "2026-06-26T12:00:00",
+            },
         }
         intent = IntentResult(intent=IntentType.TWIN_STATE, confidence=0.8)
-        plan = Plan(intent=IntentType.TWIN_STATE, steps=[ToolCall(tool_name="digital_twin_tool", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.TWIN_STATE,
+            steps=[ToolCall(tool_name="digital_twin_tool", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="digital_twin_tool", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "32.0" in response
@@ -52,10 +72,20 @@ class TestResponseGenerator:
         data = {
             "tool": "risk_assessor",
             "location": "Karnataka",
-            "risk_assessment": {"location": "Karnataka", "heat_risk": 45, "flood_risk": 30, "drought_risk": 60, "composite_risk": 45.0, "category": "Moderate"},
+            "risk_assessment": {
+                "location": "Karnataka",
+                "heat_risk": 45,
+                "flood_risk": 30,
+                "drought_risk": 60,
+                "composite_risk": 45.0,
+                "category": "Moderate",
+            },
         }
         intent = IntentResult(intent=IntentType.RISK, confidence=0.85)
-        plan = Plan(intent=IntentType.RISK, steps=[ToolCall(tool_name="risk_assessor", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.RISK,
+            steps=[ToolCall(tool_name="risk_assessor", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="risk_assessor", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "Moderate" in response
@@ -67,10 +97,17 @@ class TestResponseGenerator:
             "location": "Karnataka",
             "scenario_type": "temperature",
             "value": 2.0,
-            "result": {"max_temp_delta": 2.0, "rainfall_delta": 0, "description": "Temperature changes by 2.0°C"},
+            "result": {
+                "max_temp_delta": 2.0,
+                "rainfall_delta": 0,
+                "description": "Temperature changes by 2.0°C",
+            },
         }
         intent = IntentResult(intent=IntentType.SCENARIO, confidence=0.85)
-        plan = Plan(intent=IntentType.SCENARIO, steps=[ToolCall(tool_name="scenario_simulator", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.SCENARIO,
+            steps=[ToolCall(tool_name="scenario_simulator", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="scenario_simulator", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "+2.0" in response
@@ -79,19 +116,37 @@ class TestResponseGenerator:
         data = {
             "tool": "rag_retriever",
             "query": "monsoon",
-            "results": [{"source": "Climate Report", "content": "Monsoon is caused by...", "score": 0.95, "category": "general"}],
+            "results": [
+                {
+                    "source": "Climate Report",
+                    "content": "Monsoon is caused by...",
+                    "score": 0.95,
+                    "category": "general",
+                }
+            ],
         }
         intent = IntentResult(intent=IntentType.RAG_QUERY, confidence=0.75)
-        plan = Plan(intent=IntentType.RAG_QUERY, steps=[ToolCall(tool_name="rag_retriever", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.RAG_QUERY,
+            steps=[ToolCall(tool_name="rag_retriever", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="rag_retriever", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "Monsoon" in response
         assert "Climate Report" in response
 
     def test_report_response(self):
-        data = {"tool": "report_generator", "report_type": "summary", "location": "Karnataka", "report": "# Climate Report\nSummary data"}
+        data = {
+            "tool": "report_generator",
+            "report_type": "summary",
+            "location": "Karnataka",
+            "report": "# Climate Report\nSummary data",
+        }
         intent = IntentResult(intent=IntentType.REPORT, confidence=0.8)
-        plan = Plan(intent=IntentType.REPORT, steps=[ToolCall(tool_name="report_generator", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.REPORT,
+            steps=[ToolCall(tool_name="report_generator", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="report_generator", success=True, data=data)]
         response = self.generator.generate(intent, plan, results)
         assert "Climate Report" in response
@@ -104,7 +159,10 @@ class TestResponseGenerator:
 
     def test_tool_failures(self):
         intent = IntentResult(intent=IntentType.FORECAST, confidence=0.9)
-        plan = Plan(intent=IntentType.FORECAST, steps=[ToolCall(tool_name="forecast_tool", parameters={}, description="")])
+        plan = Plan(
+            intent=IntentType.FORECAST,
+            steps=[ToolCall(tool_name="forecast_tool", parameters={}, description="")],
+        )
         results = [ToolResult(tool_name="forecast_tool", success=False, error="API unavailable")]
         response = self.generator.generate(intent, plan, results)
         assert "error" in response.lower() or "API unavailable" in response

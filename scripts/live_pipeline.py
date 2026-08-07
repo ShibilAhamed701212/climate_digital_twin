@@ -1,12 +1,14 @@
 """OPERATIONAL PIPELINE: Twin synchronization against Docker twin-state-mgr."""
 
-import urllib.request, json, sys
+import json
+import sys
+import urllib.request
 
 TWIN_URL = "http://localhost:8001"
 GATEWAY_URL = "http://localhost:8000"
 
 # Latest REAL observation from Open-Meteo file
-import pandas as pd
+import pandas as pd  # noqa: E402
 
 train = pd.read_csv("data/real/training.csv", parse_dates=["Date"])
 test = pd.read_csv("data/real/testing.csv", parse_dates=["Date"])
@@ -169,7 +171,7 @@ except Exception as e:
 
 # STAGE 8: Integrity — no SIMULATED in REAL stores
 print("\n[8] INTEGRITY VERIFICATION")
-import os
+import os  # noqa: E402
 
 real_dirs = ["data/observations", "data/forecasts", "data/hazards", "data/alerts"]
 contamination = 0

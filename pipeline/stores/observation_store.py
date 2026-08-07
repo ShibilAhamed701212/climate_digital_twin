@@ -101,7 +101,9 @@ class ObservationStore:
         _logger.info("Saved %d observations to %s", len(observations), filepath)
         return len(observations)
 
-    def latest(self, variable: str = "", lat: float = 0.0, lon: float = 0.0) -> Observation | None:
+    def latest(
+        self, variable: str = "", _lat: float = 0.0, _lon: float = 0.0
+    ) -> Observation | None:
         files = sorted(self._normalized_dir.glob("observations_*.parquet"), reverse=True)
         if not files:
             return None
@@ -118,8 +120,8 @@ class ObservationStore:
     def query(
         self,
         variable: str = "",
-        lat: float = 0.0,
-        lon: float = 0.0,
+        _lat: float = 0.0,
+        _lon: float = 0.0,
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> list[Observation]:

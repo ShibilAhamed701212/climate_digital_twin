@@ -1,7 +1,6 @@
 """Unit tests for SHAP explainer and insights engine."""
 
 
-
 class TestGenerateExplanation:
     """Test SHAP explanation generation."""
 
@@ -24,7 +23,12 @@ class TestGenerateExplanation:
 
         explanation = generate_explanation(
             prediction=75.0,
-            feature_values={"max_temp": 42.0, "rainfall": 10.0, "dry_period_days": 15.0, "consecutive_hot_days": 7.0},
+            feature_values={
+                "max_temp": 42.0,
+                "rainfall": 10.0,
+                "dry_period_days": 15.0,
+                "consecutive_hot_days": 7.0,
+            },
         )
         all_positive = all(a.shap_value >= 0 for a in explanation.positive_contributors)
         all_negative = all(a.shap_value < 0 for a in explanation.negative_contributors)
@@ -108,7 +112,9 @@ class TestInsightsEngine:
 
         heat = calculate_heat_risk(max_temp=40.0, consecutive_hot_days=5, seasonal_anomaly=3.0)
         flood = calculate_flood_risk(rainfall=150.0)
-        drought = calculate_drought_risk(rainfall=30.0, historical_mean_rainfall=100.0, max_temp=38.0, dry_period_days=10)
+        drought = calculate_drought_risk(
+            rainfall=30.0, historical_mean_rainfall=100.0, max_temp=38.0, dry_period_days=10
+        )
         composite = calculate_composite_risk(heat.score, flood.score, drought.score)
 
         insights = generate_insights(heat, flood, drought, composite)

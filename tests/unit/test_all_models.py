@@ -459,7 +459,7 @@ class TestTrainer:
         es(0.81)
         assert not es.early_stop
 
-    def test_train_one_epoch(self, _sample_batch: torch.Tensor) -> None:
+    def test_train_one_epoch(self, sample_batch: torch.Tensor) -> None:
         model = torch.nn.Linear(10, 3)
         x = torch.randn(8, 10)
         y = torch.randn(8, 3)
@@ -469,7 +469,7 @@ class TestTrainer:
         loss = train_one_epoch(model, loader, loss_fn, optimizer, torch.device("cpu"))
         assert loss > 0
 
-    def test_validate_one_epoch(self, _sample_batch: torch.Tensor) -> None:
+    def test_validate_one_epoch(self, sample_batch: torch.Tensor) -> None:
         model = torch.nn.Linear(10, 3)
         x = torch.randn(8, 10)
         y = torch.randn(8, 3)

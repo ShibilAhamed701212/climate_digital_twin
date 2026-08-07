@@ -450,7 +450,7 @@ class TestEnforceMaxVersions:
         store._max_versions = 1
         state = make_state()
         v1 = store.save_state(state)
-        type(v1.state.timestamp).__class__
+        _ = type(v1.state.timestamp).__class__
         with patch("pathlib.Path.unlink", side_effect=PermissionError("locked")):
             v2 = store.save_state(state)
         assert v2.version_number == 2
@@ -601,7 +601,7 @@ class TestClearRetry:
 
     def test_clear_permission_all_fail(self, store):
 
-        def always_fail(path):
+        def always_fail(_path):
             raise PermissionError("always fails")
 
         store.save_state(make_state())

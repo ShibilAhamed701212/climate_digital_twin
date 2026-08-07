@@ -1,4 +1,3 @@
-
 from simulator.entities.climate_entity import ClimateEntity
 from simulator.entities.state import StateType
 

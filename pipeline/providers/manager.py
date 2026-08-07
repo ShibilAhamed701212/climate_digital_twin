@@ -8,14 +8,14 @@ logic or data generation themselves.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pipeline.providers.base import BaseProvider
-    from pipeline.providers.historical_store import HistoricalStore
     from pipeline.providers.cache import ObservationCache
+    from pipeline.providers.historical_store import HistoricalStore
 
 
 class ObservationStatus(StrEnum):
@@ -58,7 +58,7 @@ class Observation:
             location_id=location_id,
             variable=variable,
             message=message or "No verified climate observations available.",
-            retrieved_timestamp=datetime.now(timezone.utc).isoformat(),
+            retrieved_timestamp=datetime.now(UTC).isoformat(),
         )
 
 

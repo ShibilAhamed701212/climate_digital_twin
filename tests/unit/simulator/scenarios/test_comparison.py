@@ -271,7 +271,7 @@ class TestScenarioComparison:
     def test_ttest_ind_exception(self, comparer):
         from unittest.mock import patch
 
-        from simulator.scenarios.comparison import SimulationResult as SR
+        from simulator.scenarios.comparison import SimulationResult as SR  # noqa: N817
 
         base = SR(
             location_id="KA-BLR-001",
@@ -300,7 +300,7 @@ class TestScenarioComparison:
     def test_ttest_ind_significant(self, comparer):
         import numpy as np
 
-        from simulator.scenarios.comparison import SimulationResult as SR
+        from simulator.scenarios.comparison import SimulationResult as SR  # noqa: N817
 
         base = SR(
             location_id="KA-BLR-001",

@@ -166,7 +166,23 @@ def train_model(
     Returns training history dict.
     """
     if model_type is None:
-        raise ValueError("model_type is required — must be 'baseline', 'lstm', or 'transformer'")
+        if model_name:
+            candidate = model_name.split("_")[0].lower()
+            if candidate in (
+                "baseline",
+                "lstm",
+                "transformer",
+                "patchtst",
+                "itransformer",
+                "timemixer",
+                "xgboost",
+                "prophet",
+            ):
+                model_type = candidate
+        if model_type is None:
+            raise ValueError(
+                "model_type is required — must be 'baseline', 'lstm', or 'transformer'"
+            )
     device_name = config["training"].get("device", "auto")
     device = get_device(device_name)
     seed = config["training"].get("random_seed", 42)

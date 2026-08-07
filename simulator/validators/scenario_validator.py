@@ -48,9 +48,7 @@ def validate_scenario_parameters(
     return errors
 
 
-def _validate_temperature(
-    params: dict[str, Any], cfg: dict[str, Any]
-) -> list[str]:
+def _validate_temperature(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     temp_cfg = cfg.get("scenarios", {}).get("temperature", {})
     delta = _get_float(params, "temperature_delta")
@@ -60,15 +58,11 @@ def _validate_temperature(
     min_d = temp_cfg.get("min_delta", -5.0)
     max_d = temp_cfg.get("max_delta", 5.0)
     if delta < min_d or delta > max_d:
-        errors.append(
-            f"temperature_delta {delta} out of range [{min_d}, {max_d}]"
-        )
+        errors.append(f"temperature_delta {delta} out of range [{min_d}, {max_d}]")
     return errors
 
 
-def _validate_rainfall(
-    params: dict[str, Any], cfg: dict[str, Any]
-) -> list[str]:
+def _validate_rainfall(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     rain_cfg = cfg.get("scenarios", {}).get("rainfall", {})
     pct = _get_float(params, "rainfall_change_pct")
@@ -78,15 +72,11 @@ def _validate_rainfall(
     min_pct = rain_cfg.get("min_percent_change", -100.0)
     max_pct = rain_cfg.get("max_percent_change", 500.0)
     if pct < min_pct or pct > max_pct:
-        errors.append(
-            f"rainfall_change_pct {pct} out of range [{min_pct}, {max_pct}]"
-        )
+        errors.append(f"rainfall_change_pct {pct} out of range [{min_pct}, {max_pct}]")
     return errors
 
 
-def _validate_monsoon(
-    params: dict[str, Any], cfg: dict[str, Any]
-) -> list[str]:
+def _validate_monsoon(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     mon_cfg = cfg.get("scenarios", {}).get("monsoon", {})
     delay = _get_int(params, "delay_days")
@@ -96,22 +86,16 @@ def _validate_monsoon(
     max_delay = mon_cfg.get("max_delay_days", 30)
     max_advance = mon_cfg.get("max_advance_days", 15)
     if delay < -max_advance or delay > max_delay:
-        errors.append(
-            f"delay_days {delay} out of range [{-max_advance}, {max_delay}]"
-        )
+        errors.append(f"delay_days {delay} out of range [{-max_advance}, {max_delay}]")
     intensity = _get_float(params, "intensity_reduction_pct")
     if intensity is not None:
         ir = mon_cfg.get("intensity_reduction_range", [0, 50])
         if intensity < ir[0] or intensity > ir[1]:
-            errors.append(
-                f"intensity_reduction_pct {intensity} out of range [{ir[0]}, {ir[1]}]"
-            )
+            errors.append(f"intensity_reduction_pct {intensity} out of range [{ir[0]}, {ir[1]}]")
     return errors
 
 
-def _validate_extreme_event(
-    params: dict[str, Any], cfg: dict[str, Any]
-) -> list[str]:
+def _validate_extreme_event(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     event_cfg = cfg.get("scenarios", {}).get("extreme_events", {})
     if not event_cfg.get("enabled", True):
@@ -120,16 +104,11 @@ def _validate_extreme_event(
     event_type = params.get("event_type", "")
     valid_types = event_cfg.get("types", [])
     if event_type not in valid_types:
-        errors.append(
-            f"Unsupported extreme event type: {event_type}. "
-            f"Valid: {valid_types}"
-        )
+        errors.append(f"Unsupported extreme event type: {event_type}. Valid: {valid_types}")
     return errors
 
 
-def _validate_combined(
-    params: dict[str, Any], cfg: dict[str, Any]
-) -> list[str]:
+def _validate_combined(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     val_cfg = cfg.get("validation", {})
     max_combined = val_cfg.get("max_combined_scenarios", 5)
@@ -138,9 +117,7 @@ def _validate_combined(
         errors.append("combined scenario requires a list of sub-scenarios")
         return errors
     if len(sub_scenarios) > max_combined:
-        errors.append(
-            f"Too many combined scenarios: {len(sub_scenarios)} > {max_combined}"
-        )
+        errors.append(f"Too many combined scenarios: {len(sub_scenarios)} > {max_combined}")
     for i, sub in enumerate(sub_scenarios):
         if not isinstance(sub, dict):
             errors.append(f"Sub-scenario {i} is not a dict")

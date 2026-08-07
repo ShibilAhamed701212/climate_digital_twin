@@ -72,7 +72,7 @@ class SimulationParameters:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SimulationParameters":
+    def from_dict(cls, data: dict[str, Any]) -> SimulationParameters:
         known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
         return cls(**known)
 

@@ -41,12 +41,18 @@ class SemanticSearch:
         else:
             emb_dim = self.embedding_model.dimension
             self.vector_store = FAISSStore(
-                index_path=config.get("vector_store", {}).get("index_path", "knowledge/vector_store/index.faiss"),
-                metadata_path=config.get("vector_store", {}).get("metadata_path", "knowledge/vector_store/metadata.pkl"),
+                index_path=config.get("vector_store", {}).get(
+                    "index_path", "knowledge/vector_store/index.faiss"
+                ),
+                metadata_path=config.get("vector_store", {}).get(
+                    "metadata_path", "knowledge/vector_store/metadata.pkl"
+                ),
                 dimension=emb_dim,
             )
 
-    def search(self, query: str, top_k: int | None = None, score_threshold: float | None = None) -> list[SearchResult]:
+    def search(
+        self, query: str, top_k: int | None = None, score_threshold: float | None = None
+    ) -> list[SearchResult]:
         """Perform semantic search.
 
         Args:
@@ -103,7 +109,9 @@ class SemanticSearch:
             latency_ms=round(elapsed, 2),
         )
 
-    def _apply_metadata_filter(self, results: list[SearchResult], filters: dict[str, Any]) -> list[SearchResult]:
+    def _apply_metadata_filter(
+        self, results: list[SearchResult], filters: dict[str, Any]
+    ) -> list[SearchResult]:
         """Apply metadata filters to search results."""
         filtered = results
         for key, value in filters.items():

@@ -17,9 +17,6 @@ import logging
 import time
 from typing import Any
 
-from risk.evaluation.hazard_evaluator import HazardEvaluator
-from risk.evaluation.twin_adapter import extract_twin_inputs
-
 from climatedt.scenario.engine import ScenarioEngine
 from climatedt.scenario.models import (
     SCENARIO_AUTHENTICITY,
@@ -34,6 +31,8 @@ from climatedt.scenario.models import (
     serialize_hazard,
 )
 from climatedt.scenario.store import ScenarioStore
+from risk.evaluation.hazard_evaluator import HazardEvaluator
+from risk.evaluation.twin_adapter import extract_twin_inputs
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +183,8 @@ class ScenarioDefinitionGenerator:
     def warming_scenario(
         self,
         location_id: str,
-        latitude: float,
-        longitude: float,
+        _latitude: float,
+        _longitude: float,
         delta: float,
         duration_days: int = 30,
     ) -> ScenarioDefinition:
@@ -203,8 +202,8 @@ class ScenarioDefinitionGenerator:
     def rainfall_scenario(
         self,
         location_id: str,
-        latitude: float,
-        longitude: float,
+        _latitude: float,
+        _longitude: float,
         multiplier: float,
         duration_days: int = 30,
     ) -> ScenarioDefinition:
@@ -221,7 +220,7 @@ class ScenarioDefinitionGenerator:
         )
 
     def extreme_scenario(
-        self, location_id: str, latitude: float, longitude: float, duration_days: int = 30
+        self, location_id: str, _latitude: float, _longitude: float, duration_days: int = 30
     ) -> ScenarioDefinition:
         return self._base(
             scenario_id=f"extreme_{new_scenario_id().split('_')[-1]}",
@@ -238,7 +237,7 @@ class ScenarioDefinitionGenerator:
         )
 
     def drought_scenario(
-        self, location_id: str, latitude: float, longitude: float, duration_days: int = 90
+        self, location_id: str, _latitude: float, _longitude: float, duration_days: int = 90
     ) -> ScenarioDefinition:
         return self._base(
             scenario_id=f"drought_{new_scenario_id().split('_')[-1]}",
@@ -255,7 +254,7 @@ class ScenarioDefinitionGenerator:
         )
 
     def ipcc_scenario(
-        self, location_id: str, latitude: float, longitude: float, pathway: str, year: int
+        self, location_id: str, _latitude: float, _longitude: float, pathway: str, year: int
     ) -> ScenarioDefinition:
         return self._base(
             scenario_id=f"ipcc_{new_scenario_id().split('_')[-1]}",
@@ -273,8 +272,8 @@ class ScenarioDefinitionGenerator:
         name: str,
         description: str,
         location_id: str,
-        latitude: float,
-        longitude: float,
+        _latitude: float,
+        _longitude: float,
         parameters: dict[str, Any],
         duration_days: int,
     ) -> ScenarioDefinition:

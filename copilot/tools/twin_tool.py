@@ -31,6 +31,7 @@ class DigitalTwinTool(BaseTool):
         except (ConnectionError, Timeout, HTTPError) as e:
             logger.warning("Twin service unavailable: %s", e)
             from pipeline.providers.manager import DataSourceManager, ObservationStatus
+
             dsm = DataSourceManager()
             obs = dsm.get_observation(location.lower(), "temperature_2m")
             if obs.status != ObservationStatus.UNAVAILABLE:

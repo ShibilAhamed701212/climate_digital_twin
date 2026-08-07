@@ -36,14 +36,26 @@ class PlanningAgent:
         days = intent.entities.get("days", 3)
         return Plan(
             intent=IntentType.FORECAST,
-            steps=[ToolCall(tool_name="forecast_tool", parameters={"location": loc, "days": days}, description=f"Get {days}-day forecast for {loc}")],
+            steps=[
+                ToolCall(
+                    tool_name="forecast_tool",
+                    parameters={"location": loc, "days": days},
+                    description=f"Get {days}-day forecast for {loc}",
+                )
+            ],
         )
 
     def _plan_twin_state(self, intent: IntentResult) -> Plan:
         loc = intent.entities.get("location", "Karnataka")
         return Plan(
             intent=IntentType.TWIN_STATE,
-            steps=[ToolCall(tool_name="digital_twin_tool", parameters={"location": loc}, description=f"Get current twin state for {loc}")],
+            steps=[
+                ToolCall(
+                    tool_name="digital_twin_tool",
+                    parameters={"location": loc},
+                    description=f"Get current twin state for {loc}",
+                )
+            ],
         )
 
     def _plan_scenario(self, intent: IntentResult) -> Plan:
@@ -51,21 +63,39 @@ class PlanningAgent:
         scenario_type = intent.sub_intent or "temperature"
         return Plan(
             intent=IntentType.SCENARIO,
-            steps=[ToolCall(tool_name="scenario_simulator", parameters={"location": loc, "scenario_type": scenario_type, "value": 2.0}, description=f"Run {scenario_type} scenario for {loc}")],
+            steps=[
+                ToolCall(
+                    tool_name="scenario_simulator",
+                    parameters={"location": loc, "scenario_type": scenario_type, "value": 2.0},
+                    description=f"Run {scenario_type} scenario for {loc}",
+                )
+            ],
         )
 
     def _plan_risk(self, intent: IntentResult) -> Plan:
         loc = intent.entities.get("location", "Karnataka")
         return Plan(
             intent=IntentType.RISK,
-            steps=[ToolCall(tool_name="risk_assessor", parameters={"location": loc}, description=f"Assess climate risk for {loc}")],
+            steps=[
+                ToolCall(
+                    tool_name="risk_assessor",
+                    parameters={"location": loc},
+                    description=f"Assess climate risk for {loc}",
+                )
+            ],
         )
 
     def _plan_rag(self, intent: IntentResult) -> Plan:
         query = intent.raw_query
         return Plan(
             intent=IntentType.RAG_QUERY,
-            steps=[ToolCall(tool_name="rag_retriever", parameters={"query": query, "top_k": 3}, description=f"Search knowledge base: {query}")],
+            steps=[
+                ToolCall(
+                    tool_name="rag_retriever",
+                    parameters={"query": query, "top_k": 3},
+                    description=f"Search knowledge base: {query}",
+                )
+            ],
         )
 
     def _plan_report(self, intent: IntentResult) -> Plan:
@@ -73,9 +103,21 @@ class PlanningAgent:
         return Plan(
             intent=IntentType.REPORT,
             steps=[
-                ToolCall(tool_name="forecast_tool", parameters={"location": loc, "days": 3}, description=f"Get forecast for {loc} report"),
-                ToolCall(tool_name="risk_assessor", parameters={"location": loc}, description=f"Get risk data for {loc} report"),
-                ToolCall(tool_name="report_generator", parameters={"location": loc, "report_type": "summary"}, description=f"Generate report for {loc}"),
+                ToolCall(
+                    tool_name="forecast_tool",
+                    parameters={"location": loc, "days": 3},
+                    description=f"Get forecast for {loc} report",
+                ),
+                ToolCall(
+                    tool_name="risk_assessor",
+                    parameters={"location": loc},
+                    description=f"Get risk data for {loc} report",
+                ),
+                ToolCall(
+                    tool_name="report_generator",
+                    parameters={"location": loc, "report_type": "summary"},
+                    description=f"Generate report for {loc}",
+                ),
             ],
         )
 

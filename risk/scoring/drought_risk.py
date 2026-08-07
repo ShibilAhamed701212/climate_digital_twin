@@ -39,7 +39,9 @@ def calculate_drought_risk(
     """
     w = weights or {"rainfall_deficit": 0.4, "temperature_increase": 0.3, "dry_period_days": 0.3}
 
-    deficit_pct = ((rainfall - historical_mean_rainfall) / max(historical_mean_rainfall, 0.1)) * 100.0
+    deficit_pct = (
+        (rainfall - historical_mean_rainfall) / max(historical_mean_rainfall, 0.1)
+    ) * 100.0
     temp_anomaly = max_temp - historical_mean_temp
 
     deficit_score = _deficit_score(deficit_pct, deficit_threshold_percent)

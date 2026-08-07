@@ -101,7 +101,7 @@ class ForecastInference:
             self.config,
         )
 
-    def _load_scalers(self) -> tuple["Scaler | None", "Scaler | None"]:
+    def _load_scalers(self) -> tuple[Scaler | None, Scaler | None]:
         if not needs_scaling(self.model_type):
             return None, None
         feat_scaler, tgt_scaler = load_scalers(self.model_name)

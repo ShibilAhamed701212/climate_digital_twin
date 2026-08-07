@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import yaml
-import os
 
 _CONFIG_CACHE: dict[str, Any] | None = None
 
@@ -79,9 +79,9 @@ PAGES = [
     {"title": "Climate Risk", "file": "05_climate_risk", "icon": "⚠️"},
     {"title": "Reports & Insights", "file": "06_reports", "icon": "📊"},
     {"title": "AI Copilot", "file": "07_copilot_chat", "icon": "🤖"},
-    {"title": "Spatial Grid", "file": "08_spatial_grid", "icon": "🗺️"},
     {"title": "Knowledge Base", "file": "08_knowledge_base", "icon": "📚"},
-    {"title": "Feedback", "file": "09_feedback", "icon": "💬"},
+    {"title": "Spatial Grid", "file": "09_spatial_grid", "icon": "🗺️"},
+    {"title": "Feedback", "file": "10_feedback", "icon": "💬"},
 ]
 
 HORIZONS = {"1-Day": 1, "3-Day": 3, "7-Day": 7}

@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import builtins
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+_orig_import = builtins.__import__
+
+
+class SessionState(dict):
+    def __getattr__(self, item):
+        return self.get(item)
+
+    def __setattr__(self, key, value):
+        self[key] = value
 
 
 @pytest.fixture(autouse=True)
 def _mock_streamlit():
     """Mock streamlit before any app module import."""
     mock_st = MagicMock()
-    mock_st.session_state = MagicMock()
-    mock_st.session_state.__contains__.return_value = False
+    mock_st.session_state = SessionState()
 
     with patch.dict("sys.modules", {"streamlit": mock_st}):
         yield mock_st
@@ -47,7 +57,6 @@ class TestAppInitSession:
     def test_init_session_sets_api_and_page(self, _mock_streamlit):
         import dashboard.app
 
-        _mock_streamlit.session_state.__contains__.return_value = False
         dashboard.app._init_session()
         assert _mock_streamlit.session_state.api is not None
         assert _mock_streamlit.session_state.page == "01_climate_overview"
@@ -56,7 +65,6 @@ class TestAppInitSession:
         import dashboard.app
 
         existing_api = MagicMock()
-        _mock_streamlit.session_state.__contains__.side_effect = lambda k: k in ["api", "page"]
         _mock_streamlit.session_state.api = existing_api
         _mock_streamlit.session_state.page = "05_climate_risk"
 
@@ -72,7 +80,7 @@ class TestAppMain:
         def side_effect(name, *args, **kwargs):
             if name.startswith("dashboard.page_views."):
                 return pages_module
-            return __import__(name, *args, **kwargs)
+            return _orig_import(name, *args, **kwargs)
 
         return side_effect
 
@@ -98,7 +106,7 @@ class TestAppMain:
         def import_side(name, *args, **kwargs):
             if name.startswith("dashboard.page_views."):
                 raise ImportError("No module named 'x'")
-            return __import__(name, *args, **kwargs)
+            return _orig_import(name, *args, **kwargs)
 
         with (
             patch("builtins.__import__", side_effect=import_side),
@@ -113,7 +121,6 @@ class TestAppMain:
 
     def test_main_with_existing_session(self, _mock_streamlit):
         existing_api = MagicMock()
-        _mock_streamlit.session_state.__contains__.side_effect = lambda k: k in ["api", "page"]
         _mock_streamlit.session_state.api = existing_api
         _mock_streamlit.session_state.page = "03_twin_state"
         import dashboard.app

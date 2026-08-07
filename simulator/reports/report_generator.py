@@ -65,17 +65,19 @@ class ReportGenerator:
                 f"| {var} | {stats['avg']:+.2f} | {stats['min']:+.2f} | {stats['max']:+.2f} |"
             )
 
-        lines.extend([
-            "",
-            "## Scenario Parameters",
-            "",
-            "```json",
-            f"{json.dumps(run.scenario.parameters, indent=2)}",
-            "```",
-            "",
-            "## Variable Changes",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Scenario Parameters",
+                "",
+                "```json",
+                f"{json.dumps(run.scenario.parameters, indent=2)}",
+                "```",
+                "",
+                "## Variable Changes",
+                "",
+            ]
+        )
 
         for result in run.results:
             if result.success:

@@ -1,4 +1,3 @@
-
 from pipeline.providers.authenticity import DataAuthenticity
 from pipeline.providers.manager import Observation
 from pipeline.providers.reverse_adapter import extract_provenance, observation_to_weather

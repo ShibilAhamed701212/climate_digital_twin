@@ -8,20 +8,19 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import yaml
-from pathlib import Path
 
 from risk.engine.risk_engine import RiskEngine
-from risk.models.hazard import (
-    AssessmentType,
-    DataQuality,
-    Freshness,
-    HazardAssessment,
-    HazardType,
-    Severity,
+from risk.evaluation.alert_policy import AlertPolicy
+from risk.evaluation.deterministic_attribution import (
+    build_dryness_attribution,
+    build_heat_attribution,
+    build_heavy_rain_attribution,
 )
+from risk.evaluation.forecast_adapter import ForecastInputs
 from risk.evaluation.historical_context import HistoricalContextService
 from risk.evaluation.quality_gate import (
     QualityGateConfig,
@@ -30,16 +29,17 @@ from risk.evaluation.quality_gate import (
     compute_confidence,
     severity_from_score,
 )
-from risk.evaluation.deterministic_attribution import (
-    build_heat_attribution,
-    build_heavy_rain_attribution,
-    build_dryness_attribution,
-)
 from risk.evaluation.twin_adapter import TwinInputs
-from risk.evaluation.forecast_adapter import ForecastInputs
-from risk.evaluation.alert_policy import AlertPolicy
-from risk.store.hazard_store import HazardStore
+from risk.models.hazard import (
+    AssessmentType,
+    DataQuality,
+    Freshness,
+    HazardAssessment,
+    HazardType,
+    Severity,
+)
 from risk.store.alert_store import AlertStore
+from risk.store.hazard_store import HazardStore
 
 logger = logging.getLogger(__name__)
 
@@ -235,20 +235,16 @@ class HazardEvaluator:
 
         consecutive_hot_days = twin_inputs.consecutive_hot_days if twin_inputs else 0
         dry_period_days = twin_inputs.dry_period_days if twin_inputs else 0
-        multi_day_accumulation = (
-            twin_inputs.multi_day_accumulation if twin_inputs else None
-        )
+        multi_day_accumulation = twin_inputs.multi_day_accumulation if twin_inputs else None
         seasonal_anomaly = twin_inputs.seasonal_anomaly if twin_inputs else 0.0
-        if (
-            seasonal_anomaly == 0.0
-            and max_temp is not None
-            and historical_mean_temp is not None
-        ):
+        if seasonal_anomaly == 0.0 and max_temp is not None and historical_mean_temp is not None:
             seasonal_anomaly = float(max_temp) - float(historical_mean_temp)
 
         report = self._engine.assess_all(
             location_id=location_id,
-            district=(twin_inputs.twin_metadata.get("district", "unknown") if twin_inputs else "unknown"),
+            district=(
+                twin_inputs.twin_metadata.get("district", "unknown") if twin_inputs else "unknown"
+            ),
             max_temp=max_temp if max_temp is not None else 0.0,
             min_temp=min_temp if min_temp is not None else 0.0,
             rainfall=rainfall if rainfall is not None else 0.0,

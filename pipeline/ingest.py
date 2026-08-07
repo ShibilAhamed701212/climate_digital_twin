@@ -101,7 +101,7 @@ def _print_text(result: dict) -> None:
         )
         print("|                                                  |")
         print("|  Saved:                                          |")
-        for key, path in (result.get("paths") or {}).items():
+        for _key, path in (result.get("paths") or {}).items():
             if path:
                 p = str(path)[:50]
                 print(f"|    {p:<51}|")

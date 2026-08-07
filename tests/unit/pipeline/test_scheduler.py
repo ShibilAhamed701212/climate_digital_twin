@@ -12,7 +12,7 @@ mock_registry_module = MagicMock()
 mock_registry_module.DatasetRegistry = MagicMock()
 sys.modules["pipeline.sources.dataset_registry"] = mock_registry_module
 
-from pipeline.scheduler import IngestionScheduler, SchedulerConfig
+from pipeline.scheduler import IngestionScheduler, SchedulerConfig  # noqa: E402
 
 
 class FakeRegistry:

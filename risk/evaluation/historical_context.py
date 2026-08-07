@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from risk.models.hazard import HistoricalContext
@@ -48,7 +48,7 @@ class HistoricalContextService:
         store = self._ensure_store()
         values: list[float] = []
         if store is not None:
-            end = datetime.now(timezone.utc)
+            end = datetime.now(UTC)
             start = end - timedelta(days=days or self._climatology_period_days)
             try:
                 obs_list = store.query_observations(location_id, start, end)
@@ -83,7 +83,7 @@ class HistoricalContextService:
         return values
 
     def compute_climatology(self, location_id: str, variable: str) -> dict[str, Any]:
-        now = datetime.now(timezone.utc).timestamp()
+        now = datetime.now(UTC).timestamp()
         with self._cache_lock:
             cached = self._climatology_cache.get(f"{location_id}:{variable}")
             if cached and (now - cached[0]) < self._cache_ttl:

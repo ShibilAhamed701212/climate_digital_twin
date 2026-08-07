@@ -125,7 +125,9 @@ class TestTwinService:
         assert len(history) == 3
 
     def test_rejects_invalid_observation(self, service: TwinService):
-        invalid = ClimateEntity(location_id="KA-BLR-001", latitude=12.97, longitude=77.59, rainfall=-100)
+        invalid = ClimateEntity(
+            location_id="KA-BLR-001", latitude=12.97, longitude=77.59, rainfall=-100
+        )
         with pytest.raises(ValueError):
             service.update_observation(invalid)
 

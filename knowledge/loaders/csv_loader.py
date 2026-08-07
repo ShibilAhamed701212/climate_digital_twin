@@ -37,7 +37,9 @@ class CSVLoader(BaseLoader):
         content_lines.append(f"Rows: {len(rows) - 1}")
         content_lines.append("")
         for i, row in enumerate(rows[1:], 1):
-            row_text = " | ".join(f"{header[j] if j < len(header) else ''}: {val}" for j, val in enumerate(row))
+            row_text = " | ".join(
+                f"{header[j] if j < len(header) else ''}: {val}" for j, val in enumerate(row)
+            )
             content_lines.append(f"Row {i}: {row_text}")
 
         return Document(

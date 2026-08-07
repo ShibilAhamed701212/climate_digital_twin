@@ -1,8 +1,9 @@
 """PyTorch runtime verification smoke test."""
 
 import json
-import torch
 import sys
+
+import torch
 
 
 def run():

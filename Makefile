@@ -1,4 +1,4 @@
-.PHONY: help install test lint pipeline train dashboard docker up down demo clean install-all
+.PHONY: help install test lint format cov download-data pipeline train dashboard docker up down demo clean install-all
 
 help:
 	@echo "Climate Digital Twin — Make Commands"
@@ -6,7 +6,10 @@ help:
 	@echo "  make install       — Install Python dependencies (dev)"
 	@echo "  make install-all   — Install with all extras (dev + ollama)"
 	@echo "  make test          — Run all tests"
-	@echo "  make lint          — Run linter"
+	@echo "  make lint          — Run linter (ruff)"
+	@echo "  make format        — Format code with ruff"
+	@echo "  make cov           — Run tests with coverage"
+	@echo "  make download-data — Download/generate required datasets"
 	@echo "  make pipeline      — Run data pipeline"
 	@echo "  make train         — Train forecasting models"
 	@echo "  make dashboard     — Launch dashboard locally"
@@ -27,6 +30,15 @@ test:
 
 lint:
 	ruff check .
+
+format:
+	ruff format .
+
+cov:
+	pytest --cov=climatedt --cov=backend --cov-report=xml --cov-report=term
+
+download-data:
+	python scripts/download_data.py --dataset all
 
 pipeline:
 	python pipeline/run_pipeline.py

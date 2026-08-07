@@ -13,7 +13,7 @@ def build_heat_attribution(
     max_temp: float,
     consecutive_hot_days: int,
     seasonal_anomaly: float,
-    heat_score: float,
+    _heat_score: float,
     hot_day_threshold: float = 35.0,
 ) -> DeterministicAttribution:
     factors: list[EvidenceFactor] = []
@@ -70,7 +70,7 @@ def build_heavy_rain_attribution(
     rainfall: float,
     multi_day_accumulation: float | None,
     heavy_rain_threshold: float,
-    flood_score: float,
+    _flood_score: float,
 ) -> DeterministicAttribution:
     factors: list[EvidenceFactor] = []
     threshold_24h = heavy_rain_threshold

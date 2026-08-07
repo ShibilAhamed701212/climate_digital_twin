@@ -57,9 +57,11 @@ class TestTwinService:
             service.apply_scenario(entity, "scenario_1")
 
     def test_update_risk_score_no_state(self, service):
-        with patch.object(service, "get_current_state", return_value=None):
-            with pytest.raises(ValueError, match="No current state for loc1"):
-                service.update_risk_score("loc1", 0.5)
+        with (
+            patch.object(service, "get_current_state", return_value=None),
+            pytest.raises(ValueError, match="No current state for loc1"),
+        ):
+            service.update_risk_score("loc1", 0.5)
 
     def test_get_historical_state(self, service):
         v1 = MagicMock()

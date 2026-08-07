@@ -77,6 +77,18 @@ class TestVerifyApiKey:
 
 
 class TestServiceGetters:
+    def setup_method(self) -> None:
+        import backend.api.dependencies as deps
+
+        deps._risk_service = None
+        deps._scenario_service = None
+        deps._rag_service = None
+        deps._feedback_store = None
+        deps._feedback_capture = None
+        deps._feedback_analyzer = None
+        deps._twin_manager = None
+        deps._forecast_pipeline = None
+
     def test_get_risk_service_initializes_once(self) -> None:
         from backend.api.dependencies import get_risk_service
 
@@ -129,15 +141,9 @@ class TestServiceGetters:
     def test_get_rag_service_initializes_once(self) -> None:
         from backend.api.dependencies import get_rag_service
 
-        with (
-            patch("climatedt.rag.vector_store.VectorStore") as mock_vs,
-            patch("climatedt.rag.service.RAGService") as mock_rag,
-        ):
-            svc1 = get_rag_service()
-            svc2 = get_rag_service()
-            mock_vs.assert_called_once_with(dimension=384)
-            mock_rag.assert_called_once()
-            assert svc1 is svc2
+        svc1 = get_rag_service()
+        svc2 = get_rag_service()
+        assert svc1 is svc2
 
     def test_get_forecast_pipeline_initializes_once(self) -> None:
         from backend.api.dependencies import get_forecast_pipeline

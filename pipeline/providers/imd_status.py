@@ -27,8 +27,8 @@ Until credentials are available, IMD returns AUTH_REQUIRED.
 def fetch_imd(
     lat: float,
     lon: float,
-    location_id: str = "auto",
-    **kwargs: Any,
+    _location_id: str = "auto",
+    **_kwargs: Any,
 ) -> FetchResult:
     now = datetime.now(UTC)
     _logger.info("IMD fetch attempted but auth not configured (lat=%.4f, lon=%.4f)", lat, lon)

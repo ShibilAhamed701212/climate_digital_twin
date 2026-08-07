@@ -1,6 +1,5 @@
 """Feature engineering pipeline for climate time series data.
 
-Adapted from BHAI's FeatureEngine for the canonical climate-digital-twin repo.
 Generates temporal, lag, rolling window, seasonal, derived, spatial,
 and interaction features from raw observation DataFrames.
 """

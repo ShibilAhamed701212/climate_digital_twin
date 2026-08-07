@@ -34,9 +34,7 @@ class TwinAPI(ABC):
         ...
 
     @abstractmethod
-    def apply_scenario(
-        self, scenario_parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+    def apply_scenario(self, scenario_parameters: dict[str, Any]) -> dict[str, Any]:
         """Apply a scenario simulation and return the result."""
         ...
 
@@ -46,9 +44,7 @@ class TwinAPI(ABC):
         ...
 
     @abstractmethod
-    def get_state_history(
-        self, location_id: str
-    ) -> list[dict[str, Any]]:
+    def get_state_history(self, location_id: str) -> list[dict[str, Any]]:
         """Get the complete version history for a location."""
         ...
 
@@ -62,6 +58,7 @@ class TwinEngineAdapter(TwinAPI):
 
     def __init__(self, engine: Any) -> None:
         from simulator.engine.twin_engine import DigitalTwinEngine
+
         self._engine: DigitalTwinEngine = engine
 
     def get_current_state(self, location_id: str) -> dict[str, Any] | None:
@@ -77,19 +74,16 @@ class TwinEngineAdapter(TwinAPI):
     ) -> dict[str, Any] | None:
         return self._engine.get_forecast_state(location_id, horizon)
 
-    def apply_scenario(
-        self, scenario_parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+    def apply_scenario(self, scenario_parameters: dict[str, Any]) -> dict[str, Any]:
         entity_data = scenario_parameters.get("entity", {})
         scenario_id = scenario_parameters.get("scenario_id", "unknown")
         from simulator.entities.climate_entity import ClimateEntity
+
         entity = ClimateEntity.deserialize(entity_data)
         return self._engine.apply_scenario(entity, scenario_id)
 
     def rollback(self, version_id: int) -> dict[str, Any]:
         return self._engine.rollback("", version_id)
 
-    def get_state_history(
-        self, location_id: str
-    ) -> list[dict[str, Any]]:
+    def get_state_history(self, location_id: str) -> list[dict[str, Any]]:
         return self._engine.get_state_history(location_id)

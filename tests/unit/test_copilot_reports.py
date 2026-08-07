@@ -14,7 +14,11 @@ def _make_turn(query: str, response: str) -> ConversationTurn:
         query=query,
         intent=IntentType.FORECAST,
         plan=Plan(intent=IntentType.FORECAST, steps=[], required_context=[]),
-        results=[ToolResult(tool_name="forecast_tool", success=True, data={"key": "val"}, execution_time_ms=10.0)],
+        results=[
+            ToolResult(
+                tool_name="forecast_tool", success=True, data={"key": "val"}, execution_time_ms=10.0
+            )
+        ],
         response=response,
         latency_ms=15.0,
         citations=["Source: Test"],

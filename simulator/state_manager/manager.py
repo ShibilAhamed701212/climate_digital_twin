@@ -32,9 +32,7 @@ class StateManager:
     def _next_version_id(self, location_id: str) -> int:
         return len(self._versions.get(location_id, [])) + 1
 
-    def create_version(
-        self, entity: ClimateEntity, state_type: str | None = None
-    ) -> Version:
+    def create_version(self, entity: ClimateEntity, state_type: str | None = None) -> Version:
         """Create an immutable version from a ClimateEntity.
 
         Returns the new Version. Raises ValueError on validation failure.
@@ -72,19 +70,13 @@ class StateManager:
         for v in versions:
             if v.version_id == version_id:
                 return v
-        raise VersionNotFoundError(
-            f"Version {version_id} not found for {location_id}"
-        )
+        raise VersionNotFoundError(f"Version {version_id} not found for {location_id}")
 
-    def get_version_history(
-        self, location_id: str
-    ) -> list[Version]:
+    def get_version_history(self, location_id: str) -> list[Version]:
         """Get the full version history for a location."""
         return list(self._versions.get(location_id, []))
 
-    def rollback(
-        self, location_id: str, target_version_id: int
-    ) -> Version:
+    def rollback(self, location_id: str, target_version_id: int) -> Version:
         """Rollback to a previous version.
 
         Creates a *new* version with the data from target_version_id.

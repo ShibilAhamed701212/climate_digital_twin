@@ -218,7 +218,7 @@ try:
         result = tool.run(query="What is the rainfall pattern in Karnataka?")
         assert result is not None, "No result from RAG tool"
         is_fallback = result.get("fallback", False)
-        detail = f"{len(result.get('results',[]))} results"
+        detail = f"{len(result.get('results', []))} results"
         if is_fallback:
             detail += " (fallback)"
         stage("RAG Tool query", "OK", detail)
@@ -234,9 +234,15 @@ print("\n=== 8. DASHBOARD ===")
 try:
     # Verify all dashboard pages import
     import importlib
+
     page_modules = []
-    for page_file in ["01_climate_overview", "02_forecast_viewer", "03_twin_state",
-                      "04_scenario_simulator", "05_climate_risk"]:
+    for page_file in [
+        "01_climate_overview",
+        "02_forecast_viewer",
+        "03_twin_state",
+        "04_scenario_simulator",
+        "05_climate_risk",
+    ]:
         mod = importlib.import_module(f"dashboard.page_views.{page_file}")
         page_modules.append(mod)
 

@@ -80,7 +80,11 @@ def scan_twin_store(verbose: bool = False) -> dict[str, int]:
                     results["corrupt_records"] += 1
                     continue
 
-                auth = str(state_table.column("authenticity")[0].as_py()) if "authenticity" in state_table.column_names else "UNKNOWN"
+                auth = (
+                    str(state_table.column("authenticity")[0].as_py())
+                    if "authenticity" in state_table.column_names
+                    else "UNKNOWN"
+                )
                 if auth.upper() not in ("REAL",):
                     results["invalid_authenticity"] += 1
                     if any(x in auth.upper() for x in ("SCENARIO", "SIMULATED", "SYNTHETIC")):
@@ -89,8 +93,16 @@ def scan_twin_store(verbose: bool = False) -> dict[str, int]:
                         print(f"NON_REAL: {eid} v{vn} auth={auth}")
                 results["real_states"] += 1
 
-                obs_id = str(state_table.column("observation_id")[0].as_py()) if "observation_id" in state_table.column_names else ""
-                run_id_val = str(state_table.column("run_id")[0].as_py()) if "run_id" in state_table.column_names else ""
+                obs_id = (
+                    str(state_table.column("observation_id")[0].as_py())
+                    if "observation_id" in state_table.column_names
+                    else ""
+                )
+                run_id_val = (
+                    str(state_table.column("run_id")[0].as_py())
+                    if "run_id" in state_table.column_names
+                    else ""
+                )
                 if not obs_id and not run_id_val:
                     results["missing_provenance"] += 1
                     if verbose:
@@ -107,13 +119,15 @@ def scan_twin_store(verbose: bool = False) -> dict[str, int]:
             if parent and parent != "None" and parent not in all_version_ids:
                 results["broken_parent_links"] += 1
                 if verbose:
-                    print(f"BROKEN_PARENT: {str(index.column('entity_id')[i].as_py())} v{int(index.column('version_number')[i].as_py())} parent={parent}")
+                    print(
+                        f"BROKEN_PARENT: {str(index.column('entity_id')[i].as_py())} v{int(index.column('version_number')[i].as_py())} parent={parent}"
+                    )
 
         # Timestamp inversion check per entity
         for eid, ts_list in entity_timestamps.items():
             ts_list.sort(key=lambda x: x[0])  # sort by version
             for j in range(1, len(ts_list)):
-                if ts_list[j][1] < ts_list[j-1][1]:
+                if ts_list[j][1] < ts_list[j - 1][1]:
                     results["timestamp_inversions"] += 1
                     if verbose:
                         print(f"TIME_INVERSION: {eid} v{ts_list[j][0]}")

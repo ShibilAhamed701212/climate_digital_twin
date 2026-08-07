@@ -81,10 +81,7 @@ class CoupledSimulationEngine:
         """
         if not forcing:
             raise ValueError("Simulation requires at least one day of forcing")
-        if parameters is None:
-            params = _default_parameters(location_id)
-        else:
-            params = parameters
+        params = _default_parameters(location_id) if parameters is None else parameters
 
         steps: list[SimulationStep] = []
         storage = params.initial_storage_mm

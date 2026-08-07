@@ -17,7 +17,9 @@ class FeedbackAnalyzer:
     async def get_overview_stats(self) -> dict[str, Any]:
         rows = self._rows()
         ratings = [float(getattr(r, "rating", 0) or 0) for r in rows]
-        type_counts = Counter(str(getattr(r, "feedback_type", "general") or "general") for r in rows)
+        type_counts = Counter(
+            str(getattr(r, "feedback_type", "general") or "general") for r in rows
+        )
         rating_counts = Counter(int(round(r)) for r in ratings if r > 0)
         return {
             "total_feedback": len(rows),

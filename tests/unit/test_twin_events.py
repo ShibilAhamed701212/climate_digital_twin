@@ -47,8 +47,10 @@ class TestEventBus:
     def test_publish_notifies_subscribers(self):
         bus = EventBus()
         received = []
+
         def callback(event):
             received.append(event)
+
         bus.subscribe("ObservationUpdated", callback)
         event = TwinEvent(
             event_type="ObservationUpdated",
@@ -63,8 +65,10 @@ class TestEventBus:
     def test_unsubscribe_stops_notifications(self):
         bus = EventBus()
         received = []
+
         def callback(event):
             received.append(event)
+
         bus.subscribe("ObservationUpdated", callback)
         bus.unsubscribe("ObservationUpdated", callback)
         bus.publish(TwinEvent("ObservationUpdated", "KA-BLR-001", "2026-06-26T00:00:00", 1))
@@ -85,8 +89,10 @@ class TestEventBus:
 
     def test_subscriber_error_does_not_crash_bus(self):
         bus = EventBus()
+
         def failing(event):  # noqa: ARG001
             raise RuntimeError("fail")
+
         bus.subscribe("ObservationUpdated", failing)
         bus.publish(TwinEvent("ObservationUpdated", "KA-BLR-001", "2026-06-26T00:00:00", 1))
 

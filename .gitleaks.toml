@@ -1,0 +1,17 @@
+# Gitleaks Configuration for Climate Digital Twin
+title = "Gitleaks Config"
+
+[allowlist]
+description = "Allowed placeholders and dummy keys in examples/tests"
+regexes = [
+    '''your-cds-api-key''',
+    '''your-api-key-here''',
+    '''secret-key''',
+    '''valid-key''',
+    '''test-key''',
+    '''wrong-key'''
+]
+paths = [
+    '''\.env\.example$''',
+    '''tests/unit/backend/api/.*'''
+]

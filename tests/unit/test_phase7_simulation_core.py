@@ -23,7 +23,6 @@ from climatedt.simulation.processes.evapotranspiration import (
 from climatedt.simulation.processes.runoff import _effective_cn, scs_runoff
 from climatedt.simulation.processes.soil_water import daily_water_balance
 
-
 # ── evapotranspiration ──────────────────────────────────────────────────
 
 

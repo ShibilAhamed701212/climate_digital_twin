@@ -33,13 +33,19 @@ def calculate_flood_risk(
     Returns:
         FloodRiskScore with score and factor contributions.
     """
-    w = weights or {"rainfall_intensity": 0.4, "multi_day_accumulation": 0.35, "forecast_uncertainty": 0.25}
+    w = weights or {
+        "rainfall_intensity": 0.4,
+        "multi_day_accumulation": 0.35,
+        "forecast_uncertainty": 0.25,
+    }
 
     if multi_day_accumulation is None:
         multi_day_accumulation = rainfall * 0.6
 
     intensity_score = _intensity_score(rainfall, heavy_rain_threshold)
-    accumulation_score = _accumulation_score(multi_day_accumulation, heavy_rain_threshold, accumulation_window_days)
+    accumulation_score = _accumulation_score(
+        multi_day_accumulation, heavy_rain_threshold, accumulation_window_days
+    )
     uncertainty_score = _uncertainty_score(forecast_uncertainty)
 
     score = (

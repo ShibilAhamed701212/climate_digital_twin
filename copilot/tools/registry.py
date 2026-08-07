@@ -36,7 +36,9 @@ class ToolRegistry:
 
     def get(self, name: str) -> BaseTool:
         if name not in self._tools:
-            raise ValueError(f"Tool '{name}' not found in registry. Available: {list(self._tools.keys())}")
+            raise ValueError(
+                f"Tool '{name}' not found in registry. Available: {list(self._tools.keys())}"
+            )
         return self._tools[name]
 
     def list_tools(self) -> list[dict[str, Any]]:

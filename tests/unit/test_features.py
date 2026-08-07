@@ -22,14 +22,16 @@ def sample_df() -> pd.DataFrame:
     for lat in [15.0, 16.0]:
         for lon in [76.0, 77.0]:
             for d in dates:
-                records.append({
-                    "Date": d,
-                    "Latitude": lat,
-                    "Longitude": lon,
-                    "Rainfall": max(0, rng.exponential(5)),
-                    "MaxTemp": rng.uniform(25, 38),
-                    "MinTemp": rng.uniform(15, 22),
-                })
+                records.append(
+                    {
+                        "Date": d,
+                        "Latitude": lat,
+                        "Longitude": lon,
+                        "Rainfall": max(0, rng.exponential(5)),
+                        "MaxTemp": rng.uniform(25, 38),
+                        "MinTemp": rng.uniform(15, 22),
+                    }
+                )
     return pd.DataFrame(records)
 
 
@@ -99,11 +101,19 @@ class TestEngineerFeatures:
     def test_output_contains_required_columns(self, sample_df: pd.DataFrame):
         df = engineer_features(sample_df.copy())
         expected = [
-            "DayOfYear", "Month", "Week", "Season", "Monsoon",
-            "RollingRain7", "RollingRain30",
-            "RollingTemp7", "RollingTemp30",
-            "TempDiff", "RainfallTrend",
-            "PriorRain7", "PriorRain30",
+            "DayOfYear",
+            "Month",
+            "Week",
+            "Season",
+            "Monsoon",
+            "RollingRain7",
+            "RollingRain30",
+            "RollingTemp7",
+            "RollingTemp30",
+            "TempDiff",
+            "RainfallTrend",
+            "PriorRain7",
+            "PriorRain30",
         ]
         for col in expected:
             assert col in df.columns, f"Missing column: {col}"

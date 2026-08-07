@@ -1,5 +1,7 @@
-import json, zipfile
+import json
+import zipfile
 from pathlib import Path
+
 import xarray as xr
 
 with open("data/validation/era5/india/download_manifest.json") as f:

@@ -46,4 +46,4 @@ class ConversationMemory:
     def _trim(self, conversation_id: str) -> None:
         history = self._conversations.get(conversation_id, [])
         if len(history) > self._window_size:
-            self._conversations[conversation_id] = history[-self._window_size:]
+            self._conversations[conversation_id] = history[-self._window_size :]

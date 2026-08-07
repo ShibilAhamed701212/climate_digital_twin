@@ -231,16 +231,24 @@ class TestApiClientDistrictSummary:
         assert result["rainy_days"] == 0
 
     @patch(
+        "dashboard.services.api_client.DashboardAPI.get_historical",
+        return_value=[{"max_temp": 32, "min_temp": 20, "rainfall": 50}],
+    )
+    @patch(
         "dashboard.services.api_client.DashboardAPI.get_current_state",
         return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
     )
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 10}
     )
-    def test_get_district_summary_low_risk(self, mock_risk, mock_state, api):
+    def test_get_district_summary_low_risk(self, mock_risk, mock_state, mock_hist, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Low"
 
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_historical",
+        return_value=[{"max_temp": 32, "min_temp": 20, "rainfall": 50}],
+    )
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_current_state",
         return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
@@ -248,10 +256,14 @@ class TestApiClientDistrictSummary:
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 30}
     )
-    def test_get_district_summary_moderate_risk(self, mock_risk, mock_state, api):
+    def test_get_district_summary_moderate_risk(self, mock_risk, mock_state, mock_hist, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Moderate"
 
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_historical",
+        return_value=[{"max_temp": 32, "min_temp": 20, "rainfall": 50}],
+    )
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_current_state",
         return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
@@ -259,10 +271,14 @@ class TestApiClientDistrictSummary:
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 60}
     )
-    def test_get_district_summary_high_risk(self, mock_risk, mock_state, api):
+    def test_get_district_summary_high_risk(self, mock_risk, mock_state, mock_hist, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "High"
 
+    @patch(
+        "dashboard.services.api_client.DashboardAPI.get_historical",
+        return_value=[{"max_temp": 32, "min_temp": 20, "rainfall": 50}],
+    )
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_current_state",
         return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
@@ -270,7 +286,7 @@ class TestApiClientDistrictSummary:
     @patch(
         "dashboard.services.api_client.DashboardAPI.get_risk", return_value={"composite_risk": 80}
     )
-    def test_get_district_summary_severe_risk(self, mock_risk, mock_state, api):
+    def test_get_district_summary_severe_risk(self, mock_risk, mock_state, mock_hist, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Severe"
 
@@ -280,11 +296,15 @@ class TestApiClientDistrictSummary:
             assert result["error"] == "No data available"
 
     @patch(
+        "dashboard.services.api_client.DashboardAPI.get_historical",
+        return_value=[{"max_temp": 32, "min_temp": 20, "rainfall": 50}],
+    )
+    @patch(
         "dashboard.services.api_client.DashboardAPI.get_current_state",
         return_value={"max_temp": 32, "min_temp": 20, "rainfall": 50},
     )
     @patch("dashboard.services.api_client.DashboardAPI.get_risk", return_value=None)
-    def test_get_district_summary_no_risk(self, mock_risk, mock_state, api):
+    def test_get_district_summary_no_risk(self, mock_risk, mock_state, mock_hist, api):
         result = api.get_district_summary("Bengaluru Urban")
         assert result["risk_level"] == "Moderate"
 

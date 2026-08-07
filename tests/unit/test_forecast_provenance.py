@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 from models.forecast_provenance import ForecastResult, ForecastStore
 
 

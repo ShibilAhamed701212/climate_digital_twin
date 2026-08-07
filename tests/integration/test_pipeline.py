@@ -119,10 +119,16 @@ class TestFullPipeline:
         cleaned = clean_dataset(merged, bounds)
         featured = engineer_features(cleaned)
         required = [
-            "Month", "Week", "Season", "Monsoon",
-            "RollingRain7", "RollingRain30",
-            "RollingTemp7", "RollingTemp30",
-            "TempDiff", "RainfallTrend",
+            "Month",
+            "Week",
+            "Season",
+            "Monsoon",
+            "RollingRain7",
+            "RollingRain30",
+            "RollingTemp7",
+            "RollingTemp30",
+            "TempDiff",
+            "RainfallTrend",
         ]
         for col in required:
             assert col in featured.columns, f"Missing feature column: {col}"

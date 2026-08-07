@@ -53,8 +53,8 @@ class TestDashboardConfig:
             "Climate Risk",
             "Reports & Insights",
             "AI Copilot",
-            "Spatial Grid",
             "Knowledge Base",
+            "Spatial Grid",
             "Feedback",
         ]
 

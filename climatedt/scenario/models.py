@@ -93,7 +93,7 @@ class ScenarioIntervention:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ScenarioIntervention":
+    def from_dict(cls, data: dict[str, Any]) -> ScenarioIntervention:
         return cls(
             variable=data["variable"],
             operation=data["operation"],
@@ -142,7 +142,7 @@ class ScenarioDefinition:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ScenarioDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> ScenarioDefinition:
         return cls(
             scenario_id=data["scenario_id"],
             name=data.get("name", ""),
@@ -252,7 +252,7 @@ class ScenarioResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ScenarioResult":
+    def from_dict(cls, data: dict[str, Any]) -> ScenarioResult:
         return cls(
             result_id=data["result_id"],
             scenario_id=data["scenario_id"],

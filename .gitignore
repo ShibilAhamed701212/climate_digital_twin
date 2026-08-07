@@ -1,7 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
 *.so
 *.egg-info/
 dist/
@@ -16,51 +16,63 @@ venv_test/
 env/
 virtualenv/
 
-# IDE
+# IDE & OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Data files
+# Raw Data & Large Binary Files
 data/external/*
 data/interim/*
 data/processed/*
+data/raw/*
+data/real/*
+data/validation/*
+data/forecasts/*
+data/hazard/*
+data/manifests/*
+data/scenarios/*
+data/simulations/*
+data/benchmarks/*
 data/twin_store/*
 data/test_twin_store/*
-!data/external/.gitkeep
-!data/interim/.gitkeep
-!data/processed/.gitkeep
+data/twin_sync/*
+!data/**/.gitkeep
+*.nc
+*.parquet
+*.csv.gz
 
-# Model files
+# Model Checkpoints & Exports
 models/checkpoints/*
 models/exported/*
 models/evaluation/*
-!models/checkpoints/.gitkeep
-!models/exported/.gitkeep
-!models/evaluation/.gitkeep
+!models/**/.gitkeep
 
 # Logs
 logs/*
+debug-*.log
+*.log
 !logs/.gitkeep
 
-# Docker
+# Docker & Environment
 .env
 .env.local
 .env.*.local
 
-# Coverage
+# Coverage & Testing
 htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
-# Reports
+# Reports & Outputs
 *.html
 output/
 simulator/outputs/*
@@ -68,38 +80,19 @@ risk/outputs/*
 knowledge/reports/*
 copilot/reports/*
 
-# Ruff
-.ruff_cache/
-
-# Mypy
-.mypy_cache/
-
-# Pytest
-.pytest_cache/
-
-# Vector stores
+# Vector stores & Pickles
 *.index
 *.faiss
+*.pkl
+knowledge/vector_store/*.pkl
 
-# Backup files
-*.bak
-*.orig
-
-# Playwright artifacts
-.playwright-mcp/
-
-# Dashboard screenshots
-*.png
-.serena/
-
-# Agent / IDE caches
+# Agent / Temp Files
 .serena/
 .aider*
 .copilot/
 .codex/
-
-# Scratch / debug
-debug-*.log
+.playwright-mcp/
+wiki-push-temp/
 t2.py
 t3.py
 

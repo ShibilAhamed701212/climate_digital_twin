@@ -18,7 +18,7 @@ from simulator.models.baseline import (
     BaselineRecord,
 )
 from simulator.reconciliation.engine import ReconciliationResult, StateReconciler
-from simulator.state_manager.bhai_state_manager import TwinStateManager
+from simulator.state_manager.twin_state_manager import TwinStateManager
 from simulator.synchronizer.engine import TwinSynchronizer
 
 __all__ = [

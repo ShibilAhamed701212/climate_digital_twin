@@ -1,6 +1,5 @@
 """Unit tests for simulator/entities/."""
 
-
 from simulator.entities.climate_entity import ClimateEntity
 from simulator.entities.state import StateType
 
@@ -50,12 +49,16 @@ class TestClimateEntity:
         assert any("latitude" in e.lower() for e in errors)
 
     def test_validate_invalid_rainfall(self):
-        entity = ClimateEntity(location_id="KA-BLR-001", latitude=12.97, longitude=77.59, rainfall=-5)
+        entity = ClimateEntity(
+            location_id="KA-BLR-001", latitude=12.97, longitude=77.59, rainfall=-5
+        )
         errors = entity.validate()
         assert any("rainfall" in e.lower() for e in errors)
 
     def test_validate_invalid_temperature(self):
-        entity = ClimateEntity(location_id="KA-BLR-001", latitude=12.97, longitude=77.59, max_temp=100)
+        entity = ClimateEntity(
+            location_id="KA-BLR-001", latitude=12.97, longitude=77.59, max_temp=100
+        )
         errors = entity.validate()
         assert any("max_temp" in e.lower() for e in errors)
 

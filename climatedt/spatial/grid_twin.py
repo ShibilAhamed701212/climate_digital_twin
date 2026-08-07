@@ -9,6 +9,7 @@ for efficient spatial operations.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import math
 import os
@@ -120,15 +121,12 @@ def _open_zip_member(fp: Path, member_name: str) -> xr.Dataset:
     fd, tmp = tempfile.mkstemp(suffix=".nc")
     os.close(fd)
     try:
-        with zipfile.ZipFile(fp) as z:
-            with z.open(member_name) as src, open(tmp, "wb") as dst:
-                dst.write(src.read())
+        with zipfile.ZipFile(fp) as z, z.open(member_name) as src, open(tmp, "wb") as dst:
+            dst.write(src.read())
         return xr.open_dataset(tmp)
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(tmp)
-        except OSError:
-            pass
 
 
 def _extraterrestrial_radiation(jday: int, latitude_deg: float) -> float:
@@ -183,10 +181,8 @@ def load_karnataka_grid(year: int = 2021, month: int = 1) -> xr.Dataset:
         instant = next((n for n in names if n.endswith(".nc") and "instant" in n), None)
         if not instant:
             raise ValueError(f"No instant NetCDF found in {fp}")
-        try:
+        with contextlib.suppress(FileExistsError, PermissionError):
             z.extract(instant, KARNATAKA_ERA5_DIR)
-        except (FileExistsError, PermissionError):
-            pass
         actual_path = KARNATAKA_ERA5_DIR / instant
         ds = xr.open_dataset(actual_path)
         logger.info("Loaded Karnataka grid: %s, %d cells", fp.name, ds.grid_twin.cell_count)
@@ -205,10 +201,8 @@ def load_india_grid(year: int = 2021, month: int = 1) -> xr.Dataset:
         if not instant:
             raise ValueError(f"No instant NetCDF found in {fp}")
         extract_dir = Path("data/validation/era5/india/raw")
-        try:
+        with contextlib.suppress(FileExistsError, PermissionError):
             z.extract(instant, extract_dir)
-        except (FileExistsError, PermissionError):
-            pass
         actual_path = extract_dir / instant
         ds = xr.open_dataset(actual_path)
         logger.info("Loaded India grid: %s, %d cells", fp.name, ds.grid_twin.cell_count)

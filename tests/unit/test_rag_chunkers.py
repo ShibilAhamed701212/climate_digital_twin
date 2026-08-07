@@ -1,14 +1,15 @@
 """Unit tests for the RAG text chunker."""
 
 
-
 class TestTextChunker:
     def test_chunk_short_text(self):
         from knowledge.chunkers import TextChunker
         from knowledge.models import Document, DocumentFormat
 
         chunker = TextChunker(chunk_size=1000, chunk_overlap=0)
-        doc = Document("d1", "Test", "local", "general", "/p.md", DocumentFormat.MARKDOWN, "Short text.")
+        doc = Document(
+            "d1", "Test", "local", "general", "/p.md", DocumentFormat.MARKDOWN, "Short text."
+        )
         chunks = chunker.chunk_document(doc)
         assert len(chunks) == 1
         assert chunks[0].content == "Short text."
@@ -42,7 +43,18 @@ class TestTextChunker:
 
         chunker = TextChunker(chunk_size=50, chunk_overlap=10)
         text = " ".join(["word"] * 200)
-        doc = Document("d1", "My Title", "IMD", "government", "/p.md", DocumentFormat.MARKDOWN, text, date="2025-01", region="Karnataka", keywords=["climate"])
+        doc = Document(
+            "d1",
+            "My Title",
+            "IMD",
+            "government",
+            "/p.md",
+            DocumentFormat.MARKDOWN,
+            text,
+            date="2025-01",
+            region="Karnataka",
+            keywords=["climate"],
+        )
         chunks = chunker.chunk_document(doc)
         for c in chunks:
             assert c.document_id == "d1"

@@ -33,7 +33,9 @@ class TestDocument:
     def test_to_dict(self):
         from knowledge.models import Document, DocumentFormat
 
-        doc = Document("doc_001", "Test", "local", "general", "/path/f.md", DocumentFormat.MARKDOWN, "content")
+        doc = Document(
+            "doc_001", "Test", "local", "general", "/path/f.md", DocumentFormat.MARKDOWN, "content"
+        )
         d = doc.to_dict()
         assert d["document_id"] == "doc_001"
         assert d["format"] == "md"
@@ -41,7 +43,9 @@ class TestDocument:
     def test_immutable(self):
         from knowledge.models import Document, DocumentFormat
 
-        doc = Document("doc_001", "Test", "local", "general", "/path/f.md", DocumentFormat.MARKDOWN, "content")
+        doc = Document(
+            "doc_001", "Test", "local", "general", "/path/f.md", DocumentFormat.MARKDOWN, "content"
+        )
         with pytest.raises(AttributeError):
             doc.title = "Changed"
 

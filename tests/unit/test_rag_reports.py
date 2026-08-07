@@ -9,7 +9,13 @@ class TestIndexReport:
         from knowledge.reports import IndexReport
 
         sources = [
-            {"document_id": "d1", "title": "Doc One", "source": "IMD", "category": "climate", "chunk_count": 5},
+            {
+                "document_id": "d1",
+                "title": "Doc One",
+                "source": "IMD",
+                "category": "climate",
+                "chunk_count": 5,
+            },
         ]
         summary = IndexReport.generate_summary(sources, total_chunks=5)
         assert "# Knowledge Base Index Report" in summary
@@ -23,8 +29,18 @@ class TestIndexReport:
         from knowledge.reports import IndexReport
 
         with tempfile.TemporaryDirectory() as tmp:
-            sources = [{"document_id": "d1", "title": "Doc", "source": "IMD", "category": "climate", "chunk_count": 3}]
-            result = IndexReport.save_index_report(sources, total_chunks=3, output_dir=tmp, formats=["json"])
+            sources = [
+                {
+                    "document_id": "d1",
+                    "title": "Doc",
+                    "source": "IMD",
+                    "category": "climate",
+                    "chunk_count": 3,
+                }
+            ]
+            result = IndexReport.save_index_report(
+                sources, total_chunks=3, output_dir=tmp, formats=["json"]
+            )
             assert "json" in result
             assert os.path.exists(result["json"])
 
@@ -32,8 +48,18 @@ class TestIndexReport:
         from knowledge.reports import IndexReport
 
         with tempfile.TemporaryDirectory() as tmp:
-            sources = [{"document_id": "d1", "title": "Doc", "source": "IMD", "category": "climate", "chunk_count": 3}]
-            result = IndexReport.save_index_report(sources, total_chunks=3, output_dir=tmp, formats=["markdown"])
+            sources = [
+                {
+                    "document_id": "d1",
+                    "title": "Doc",
+                    "source": "IMD",
+                    "category": "climate",
+                    "chunk_count": 3,
+                }
+            ]
+            result = IndexReport.save_index_report(
+                sources, total_chunks=3, output_dir=tmp, formats=["markdown"]
+            )
             assert "markdown" in result
             assert os.path.exists(result["markdown"])
 
@@ -41,7 +67,17 @@ class TestIndexReport:
         from knowledge.reports import IndexReport
 
         with tempfile.TemporaryDirectory() as tmp:
-            sources = [{"document_id": "d1", "title": "Doc", "source": "IMD", "category": "climate", "chunk_count": 3}]
-            result = IndexReport.save_index_report(sources, total_chunks=3, output_dir=tmp, formats=["json", "markdown"])
+            sources = [
+                {
+                    "document_id": "d1",
+                    "title": "Doc",
+                    "source": "IMD",
+                    "category": "climate",
+                    "chunk_count": 3,
+                }
+            ]
+            result = IndexReport.save_index_report(
+                sources, total_chunks=3, output_dir=tmp, formats=["json", "markdown"]
+            )
             assert "json" in result
             assert "markdown" in result

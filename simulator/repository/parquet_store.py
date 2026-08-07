@@ -16,7 +16,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from simulator.configs.bhai_config import get_config, resolve_subdir
+from simulator.configs.twin_config import get_config, resolve_subdir
 from simulator.models.weather import DataSource, QualityFlag, WeatherObservation
 
 _logger = logging.getLogger(__name__)

@@ -86,9 +86,7 @@ class TestMonsoonValidation:
     def test_valid_early(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters(
-            "monsoon", {"delay_days": -7}
-        )
+        errors = validate_scenario_parameters("monsoon", {"delay_days": -7})
         assert errors == []
 
     def test_invalid_delay_too_large(self):
@@ -118,33 +116,25 @@ class TestExtremeEventValidation:
     def test_valid_heatwave(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters(
-            "extreme_event", {"event_type": "heatwave"}
-        )
+        errors = validate_scenario_parameters("extreme_event", {"event_type": "heatwave"})
         assert errors == []
 
     def test_valid_flood(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters(
-            "extreme_event", {"event_type": "flood"}
-        )
+        errors = validate_scenario_parameters("extreme_event", {"event_type": "flood"})
         assert errors == []
 
     def test_valid_drought(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters(
-            "extreme_event", {"event_type": "drought"}
-        )
+        errors = validate_scenario_parameters("extreme_event", {"event_type": "drought"})
         assert errors == []
 
     def test_invalid_event_type(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters(
-            "extreme_event", {"event_type": "tornado"}
-        )
+        errors = validate_scenario_parameters("extreme_event", {"event_type": "tornado"})
         assert len(errors) > 0
 
     def test_missing_event_type(self):
@@ -160,33 +150,42 @@ class TestCombinedValidation:
     def test_valid_combined(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters("combined", {
-            "scenarios": [
-                {"scenario_type": "temperature", "parameters": {"temperature_delta": 2.0}},
-                {"scenario_type": "rainfall", "parameters": {"rainfall_change_pct": 20.0}},
-            ],
-        })
+        errors = validate_scenario_parameters(
+            "combined",
+            {
+                "scenarios": [
+                    {"scenario_type": "temperature", "parameters": {"temperature_delta": 2.0}},
+                    {"scenario_type": "rainfall", "parameters": {"rainfall_change_pct": 20.0}},
+                ],
+            },
+        )
         assert errors == []
 
     def test_too_many_combined(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters("combined", {
-            "scenarios": [
-                {"scenario_type": "temperature", "parameters": {"temperature_delta": 1.0}}
-                for _ in range(10)
-            ],
-        })
+        errors = validate_scenario_parameters(
+            "combined",
+            {
+                "scenarios": [
+                    {"scenario_type": "temperature", "parameters": {"temperature_delta": 1.0}}
+                    for _ in range(10)
+                ],
+            },
+        )
         assert len(errors) > 0
 
     def test_invalid_sub_scenario(self):
         from simulator.validators.scenario_validator import validate_scenario_parameters
 
-        errors = validate_scenario_parameters("combined", {
-            "scenarios": [
-                {"scenario_type": "temperature", "parameters": {"temperature_delta": 100.0}},
-            ],
-        })
+        errors = validate_scenario_parameters(
+            "combined",
+            {
+                "scenarios": [
+                    {"scenario_type": "temperature", "parameters": {"temperature_delta": 100.0}},
+                ],
+            },
+        )
         assert len(errors) > 0
 
 

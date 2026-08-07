@@ -1,7 +1,6 @@
 """Unit tests for risk scoring modules (heat, flood, drought, composite)."""
 
 
-
 class TestHeatRiskScoring:
     """Test heat risk scoring calculations."""
 
@@ -87,7 +86,9 @@ class TestFloodRiskScoring:
     def test_score_bounded_0_100(self):
         from risk.scoring.flood_risk import calculate_flood_risk
 
-        result = calculate_flood_risk(rainfall=500.0, multi_day_accumulation=1000.0, forecast_uncertainty=1.0)
+        result = calculate_flood_risk(
+            rainfall=500.0, multi_day_accumulation=1000.0, forecast_uncertainty=1.0
+        )
         assert 0 <= result.score <= 100
 
     def test_custom_threshold(self):
@@ -126,8 +127,12 @@ class TestDroughtRiskScoring:
     def test_dry_period_increases_risk(self):
         from risk.scoring.drought_risk import calculate_drought_risk
 
-        base = calculate_drought_risk(rainfall=50.0, historical_mean_rainfall=100.0, dry_period_days=0)
-        extended = calculate_drought_risk(rainfall=50.0, historical_mean_rainfall=100.0, dry_period_days=20)
+        base = calculate_drought_risk(
+            rainfall=50.0, historical_mean_rainfall=100.0, dry_period_days=0
+        )
+        extended = calculate_drought_risk(
+            rainfall=50.0, historical_mean_rainfall=100.0, dry_period_days=20
+        )
         assert extended.score > base.score
 
     def test_score_bounded_0_100(self):
@@ -190,5 +195,7 @@ class TestCompositeRiskScoring:
         from risk.scoring.composite_risk import calculate_composite_risk
 
         weights = {"heat": 1.0, "flood": 0.0, "drought": 0.0}
-        result = calculate_composite_risk(heat_score=80.0, flood_score=50.0, drought_score=50.0, weights=weights)
+        result = calculate_composite_risk(
+            heat_score=80.0, flood_score=50.0, drought_score=50.0, weights=weights
+        )
         assert result.score == 80.0

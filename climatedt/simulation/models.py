@@ -204,7 +204,7 @@ class SimulationRun:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SimulationRun":
+    def from_dict(cls, data: dict[str, Any]) -> SimulationRun:
         forcing_data = data.get("forcing", {})
         steps = [
             SimulationStep(

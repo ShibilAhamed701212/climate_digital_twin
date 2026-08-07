@@ -62,6 +62,3 @@ class RAGRetrieverTool(BaseTool):
 
     def health_check(self) -> tuple[bool, str]:
         return True, "rag_retriever healthy"
-
-
-

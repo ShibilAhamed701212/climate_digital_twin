@@ -14,11 +14,40 @@ class TestRiskEngine:
     def minimal_config(self):
         cfg = {
             "risk": {"score_range": {"min": 0, "max": 100}, "categories": []},
-            "heat": {"weights": {"max_temperature": 0.4, "consecutive_hot_days": 0.35, "seasonal_anomaly": 0.25}, "hot_day_threshold_c": 35, "consecutive_days_threshold": 3},
-            "flood": {"weights": {"rainfall_intensity": 0.4, "multi_day_accumulation": 0.35, "forecast_uncertainty": 0.25}, "heavy_rain_threshold_mm": 100, "accumulation_window_days": 3},
-            "drought": {"weights": {"rainfall_deficit": 0.4, "temperature_increase": 0.3, "dry_period_days": 0.3}, "deficit_threshold_percent": -25, "dry_period_threshold_days": 15},
+            "heat": {
+                "weights": {
+                    "max_temperature": 0.4,
+                    "consecutive_hot_days": 0.35,
+                    "seasonal_anomaly": 0.25,
+                },
+                "hot_day_threshold_c": 35,
+                "consecutive_days_threshold": 3,
+            },
+            "flood": {
+                "weights": {
+                    "rainfall_intensity": 0.4,
+                    "multi_day_accumulation": 0.35,
+                    "forecast_uncertainty": 0.25,
+                },
+                "heavy_rain_threshold_mm": 100,
+                "accumulation_window_days": 3,
+            },
+            "drought": {
+                "weights": {
+                    "rainfall_deficit": 0.4,
+                    "temperature_increase": 0.3,
+                    "dry_period_days": 0.3,
+                },
+                "deficit_threshold_percent": -25,
+                "dry_period_threshold_days": 15,
+            },
             "composite": {"weights": {"heat": 0.33, "flood": 0.33, "drought": 0.34}},
-            "shap": {"enabled": True, "random_seed": 42, "max_display_features": 10, "background_samples": 100},
+            "shap": {
+                "enabled": True,
+                "random_seed": 42,
+                "max_display_features": 10,
+                "background_samples": 100,
+            },
             "output": {"formats": ["json", "markdown"], "output_dir": "risk/outputs"},
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -85,7 +114,12 @@ class TestRiskEngine:
         assert report.composite_risk is not None
         assert report.explanation is not None
         assert len(report.insights) > 0
-        for score in [report.heat_risk.score, report.flood_risk.score, report.drought_risk.score, report.composite_risk.score]:
+        for score in [
+            report.heat_risk.score,
+            report.flood_risk.score,
+            report.drought_risk.score,
+            report.composite_risk.score,
+        ]:
             assert 0 <= score <= 100
 
     def test_generate_full_report_files(self, minimal_config):
@@ -101,7 +135,9 @@ class TestRiskEngine:
         )
         output_dir = tempfile.mkdtemp()
         engine.output_config["output_dir"] = output_dir
-        result = engine.generate_full_report("KA-BLR-001", "Bangalore", report, formats=["json", "markdown"])
+        result = engine.generate_full_report(
+            "KA-BLR-001", "Bangalore", report, formats=["json", "markdown"]
+        )
         assert "json" in result
         assert "markdown" in result
         assert os.path.exists(result["json"])

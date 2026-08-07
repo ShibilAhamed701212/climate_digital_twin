@@ -44,7 +44,9 @@ class IndexingPipeline:
             metadata_path=vs_cfg.get("metadata_path", "knowledge/vector_store/metadata.pkl"),
             dimension=rag_cfg.get("embedding_dimension", 384),
         )
-        self.supported_formats = config.get("documents", {}).get("supported_formats", ["md", "txt", "csv", "json"])
+        self.supported_formats = config.get("documents", {}).get(
+            "supported_formats", ["md", "txt", "csv", "json"]
+        )
 
     def index_document(self, file_path: str, **metadata: Any) -> IndexingResult:
         """Index a single document.
@@ -140,5 +142,10 @@ class IndexingPipeline:
             result = self.index_document(str(file_path), **metadata)
             results.append(result)
 
-        logger.info("Indexed %d of %d files in %s", sum(1 for r in results if r.success), len(results), directory)
+        logger.info(
+            "Indexed %d of %d files in %s",
+            sum(1 for r in results if r.success),
+            len(results),
+            directory,
+        )
         return results

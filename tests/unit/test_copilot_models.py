@@ -42,7 +42,11 @@ class TestToolCall:
 
 class TestPlan:
     def test_create_with_steps(self):
-        tc = ToolCall(tool_name="forecast_tool", parameters={"location": "Karnataka", "days": 3}, description="test")
+        tc = ToolCall(
+            tool_name="forecast_tool",
+            parameters={"location": "Karnataka", "days": 3},
+            description="test",
+        )
         p = Plan(intent=IntentType.FORECAST, steps=[tc])
         assert len(p.steps) == 1
 
@@ -82,7 +86,9 @@ class TestConversationTurn:
         assert ct.response == "Hi there"
 
     def test_default_citations(self):
-        ct = ConversationTurn(query="q", intent=IntentType.UNKNOWN, plan=None, results=[], response="r")
+        ct = ConversationTurn(
+            query="q", intent=IntentType.UNKNOWN, plan=None, results=[], response="r"
+        )
         assert ct.citations == []
 
 

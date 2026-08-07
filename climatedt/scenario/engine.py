@@ -10,14 +10,13 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
-from simulator.models.twin_state import TwinState
-
 from climatedt.scenario.models import (
     SCENARIO_AUTHENTICITY,
     VARIABLE_BOUNDS,
     VARIABLE_UNITS,
     ScenarioIntervention,
 )
+from simulator.models.twin_state import TwinState
 
 ZERO_BASELINE_PERCENT_MSG = (
     "PERCENT_CHANGE has no effect on a zero baseline; "

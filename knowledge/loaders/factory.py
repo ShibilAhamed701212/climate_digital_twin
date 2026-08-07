@@ -35,6 +35,7 @@ def get_loader(file_path: str) -> BaseLoader:
         LoaderError: If the file format is not supported.
     """
     import os
+
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()
     fmt = _FORMAT_EXTENSIONS.get(ext)
@@ -51,5 +52,6 @@ def get_loader(file_path: str) -> BaseLoader:
 def guess_format(file_path: str) -> DocumentFormat | None:
     """Guess document format from file extension."""
     import os
+
     _, ext = os.path.splitext(file_path)
     return _FORMAT_EXTENSIONS.get(ext.lower())

@@ -21,8 +21,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from models.data_loader import Scaler
 from torch.utils.data import DataLoader
+
+from models.data_loader import Scaler
 
 logger = logging.getLogger(__name__)
 

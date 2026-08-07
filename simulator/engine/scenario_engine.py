@@ -133,9 +133,7 @@ class ScenarioEngine:
         elif scenario_type == "rainfall":
             pct = params.get("rainfall_change_pct", 0)
             if isinstance(pct, (int, float)) and "rainfall" in result:
-                    result["rainfall"] = round(
-                        max(0, float(result["rainfall"]) * (1 + pct / 100)), 2
-                    )
+                result["rainfall"] = round(max(0, float(result["rainfall"]) * (1 + pct / 100)), 2)
 
         elif scenario_type == "monsoon":
             delay = params.get("delay_days", 0)
@@ -156,9 +154,7 @@ class ScenarioEngine:
             elif event_type == "flood":
                 pct = params.get("rainfall_change_pct", 200.0)
                 if "rainfall" in result:
-                    result["rainfall"] = round(
-                        float(result["rainfall"]) * (1 + pct / 100), 2
-                    )
+                    result["rainfall"] = round(float(result["rainfall"]) * (1 + pct / 100), 2)
             elif event_type == "drought":
                 pct = params.get("rainfall_change_pct", -80.0)
                 if "rainfall" in result:
@@ -186,6 +182,7 @@ class ScenarioEngine:
             s_val = simulated.get(key)
             if b_val is not None and s_val is not None:
                 from contextlib import suppress
+
                 with suppress(TypeError, ValueError):
                     deltas[key] = round(float(s_val) - float(b_val), 2)
         return deltas
@@ -197,17 +194,19 @@ class ScenarioEngine:
         """Generate a per-location comparison summary."""
         summaries: list[dict[str, Any]] = []
         for result in run.results:
-            summaries.append({
-                "location_id": result.location_id,
-                "baseline_rainfall": result.baseline.get("rainfall", 0),
-                "simulated_rainfall": result.simulated.get("rainfall", 0),
-                "delta_rainfall": result.deltas.get("rainfall", 0),
-                "baseline_max_temp": result.baseline.get("max_temp", 0),
-                "simulated_max_temp": result.simulated.get("max_temp", 0),
-                "delta_max_temp": result.deltas.get("max_temp", 0),
-                "baseline_min_temp": result.baseline.get("min_temp", 0),
-                "simulated_min_temp": result.simulated.get("min_temp", 0),
-                "delta_min_temp": result.deltas.get("min_temp", 0),
-                "success": result.success,
-            })
+            summaries.append(
+                {
+                    "location_id": result.location_id,
+                    "baseline_rainfall": result.baseline.get("rainfall", 0),
+                    "simulated_rainfall": result.simulated.get("rainfall", 0),
+                    "delta_rainfall": result.deltas.get("rainfall", 0),
+                    "baseline_max_temp": result.baseline.get("max_temp", 0),
+                    "simulated_max_temp": result.simulated.get("max_temp", 0),
+                    "delta_max_temp": result.deltas.get("max_temp", 0),
+                    "baseline_min_temp": result.baseline.get("min_temp", 0),
+                    "simulated_min_temp": result.simulated.get("min_temp", 0),
+                    "delta_min_temp": result.deltas.get("min_temp", 0),
+                    "success": result.success,
+                }
+            )
         return summaries

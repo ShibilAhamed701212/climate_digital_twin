@@ -109,8 +109,8 @@ def run_pipeline() -> int:
         features_path = features_dir / "featured_data.parquet"
         featured_df = engineer_features(cleaned_df)
 
-        # Enhance with BHAI FeatureEngine (advanced features)
-        logger.info("--- Step 4b/5: Advanced Feature Engineering (BHAI) ---")
+        # Enhance with advanced FeatureEngine
+        logger.info("--- Step 4b/5: Advanced Feature Engineering ---")
         try:
             engine = FeatureEngine()
             featured_df = engine.create_features(featured_df)

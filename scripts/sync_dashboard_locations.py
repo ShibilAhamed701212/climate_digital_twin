@@ -4,7 +4,6 @@ import requests
 
 from dashboard.config.config import SAMPLE_LOCATIONS
 
-
 for location in SAMPLE_LOCATIONS:
     current = requests.get(
         "https://api.open-meteo.com/v1/forecast",

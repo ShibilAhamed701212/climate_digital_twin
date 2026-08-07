@@ -15,11 +15,12 @@ class TestResponseGeneratorDefaults:
 
     def test_llm_response_path(self):
         generator = ResponseGenerator(llm_client=MagicMock())
-        generator._llm.generate_with_prompt_file.return_value = "LLM generated response"
+        mock_text = "LLM generated response that is sufficiently detailed and long enough to pass."
+        generator._llm.generate_with_prompt_file.return_value = mock_text
         intent = IntentResult(intent=IntentType.FORECAST, confidence=0.9, raw_query="weather?")
         results = [ToolResult(tool_name="forecast_tool", success=True, data={})]
         response = generator.generate(intent, self.default_plan, results)
-        assert response == "LLM generated response"
+        assert response == mock_text
 
     def test_llm_returns_none_falls_back(self):
         generator = ResponseGenerator(llm_client=MagicMock())

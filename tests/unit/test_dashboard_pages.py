@@ -79,11 +79,11 @@ def test_knowledge_base_page_imports():
     assert success, f"Knowledge Base page failed to import: {msg}"
 
 
+def test_spatial_grid_page_imports():
+    success, msg = _page_imports_from_file("dashboard/page_views/09_spatial_grid.py")
+    assert success, f"Spatial Grid page failed to import: {msg}"
+
+
 def test_feedback_page_imports():
-    success, msg = _page_imports_from_file("dashboard/page_views/09_feedback.py")
+    success, msg = _page_imports_from_file("dashboard/page_views/10_feedback.py")
     assert success, f"Feedback page failed to import: {msg}"
-
-
-def test_twin_state_bhai_page_imports():
-    success, msg = _page_imports_from_file("dashboard/page_views/10_twin_state_bhai.py")
-    assert success, f"Twin State (BHAI) page failed to import: {msg}"

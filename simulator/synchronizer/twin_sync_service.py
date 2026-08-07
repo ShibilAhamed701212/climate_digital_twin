@@ -149,7 +149,7 @@ class TwinSyncService:
                 error=f"Observation timestamp {wo.timestamp} < current state timestamp {current_state.timestamp}",
             )
 
-        provenance = extract_provenance(observation)
+        extract_provenance(observation)
         merged = TwinState(
             entity_id=actual_location_id,
             timestamp=wo.timestamp,

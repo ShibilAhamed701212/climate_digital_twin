@@ -52,10 +52,12 @@ class TestClipOutliers:
 
 class TestCorrectCoordinates:
     def test_removes_invalid(self):
-        df = pd.DataFrame({
-            "Latitude": [15.0, 25.0, 16.0],
-            "Longitude": [76.0, 77.0, 80.0],
-        })
+        df = pd.DataFrame(
+            {
+                "Latitude": [15.0, 25.0, 16.0],
+                "Longitude": [76.0, 77.0, 80.0],
+            }
+        )
         bounds = {"min_lat": 11.5, "max_lat": 18.5, "min_lon": 74.0, "max_lon": 78.5}
         result = correct_coordinates(df, bounds)
         assert len(result) == 1
@@ -88,24 +90,30 @@ class TestStandardizeUnits:
 
 class TestMergeDatasets:
     def test_merges_on_date_lat_lon(self):
-        rainfall = pd.DataFrame({
-            "Date": pd.date_range("2020-01-01", periods=2),
-            "Latitude": [15.0, 16.0],
-            "Longitude": [76.0, 77.0],
-            "Rainfall": [10.0, 20.0],
-        })
-        max_temp = pd.DataFrame({
-            "Date": pd.date_range("2020-01-01", periods=2),
-            "Latitude": [15.0, 16.0],
-            "Longitude": [76.0, 77.0],
-            "MaxTemp": [30.0, 32.0],
-        })
-        min_temp = pd.DataFrame({
-            "Date": pd.date_range("2020-01-01", periods=2),
-            "Latitude": [15.0, 16.0],
-            "Longitude": [76.0, 77.0],
-            "MinTemp": [20.0, 22.0],
-        })
+        rainfall = pd.DataFrame(
+            {
+                "Date": pd.date_range("2020-01-01", periods=2),
+                "Latitude": [15.0, 16.0],
+                "Longitude": [76.0, 77.0],
+                "Rainfall": [10.0, 20.0],
+            }
+        )
+        max_temp = pd.DataFrame(
+            {
+                "Date": pd.date_range("2020-01-01", periods=2),
+                "Latitude": [15.0, 16.0],
+                "Longitude": [76.0, 77.0],
+                "MaxTemp": [30.0, 32.0],
+            }
+        )
+        min_temp = pd.DataFrame(
+            {
+                "Date": pd.date_range("2020-01-01", periods=2),
+                "Latitude": [15.0, 16.0],
+                "Longitude": [76.0, 77.0],
+                "MinTemp": [20.0, 22.0],
+            }
+        )
         result = merge_datasets(rainfall, max_temp, min_temp)
         assert "Rainfall" in result.columns
         assert "MaxTemp" in result.columns
@@ -115,14 +123,16 @@ class TestMergeDatasets:
 
 class TestCleanDataset:
     def test_full_cleaning_pipeline(self, tmp_path: Path):
-        df = pd.DataFrame({
-            "Date": ["2020-01-01", "2020-01-02", "2020-01-01"],
-            "Latitude": [15.0, 16.0, 15.0],
-            "Longitude": [76.0, 77.0, 76.0],
-            "Rainfall": [10.0, np.nan, 10.0],
-            "MaxTemp": [30.0, 32.0, 30.0],
-            "MinTemp": [20.0, 21.0, 20.0],
-        })
+        df = pd.DataFrame(
+            {
+                "Date": ["2020-01-01", "2020-01-02", "2020-01-01"],
+                "Latitude": [15.0, 16.0, 15.0],
+                "Longitude": [76.0, 77.0, 76.0],
+                "Rainfall": [10.0, np.nan, 10.0],
+                "MaxTemp": [30.0, 32.0, 30.0],
+                "MinTemp": [20.0, 21.0, 20.0],
+            }
+        )
         bounds = {"min_lat": 11.5, "max_lat": 18.5, "min_lon": 74.0, "max_lon": 78.5}
         out_path = tmp_path / "cleaned.parquet"
         result = clean_dataset(df, bounds, output_path=out_path)

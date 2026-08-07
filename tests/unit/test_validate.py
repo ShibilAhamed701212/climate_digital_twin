@@ -109,18 +109,23 @@ class TestDetectDuplicates:
 
 class TestQualityReport:
     def test_generate_report(self, tmp_path: Path):
-        df = pd.DataFrame({
-            "Date": pd.date_range("2020-01-01", periods=3),
-            "Latitude": [15.0, 16.0, 17.0],
-            "Longitude": [76.0, 77.0, 77.5],
-            "Rainfall": [10.0, 20.0, 30.0],
-        })
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range("2020-01-01", periods=3),
+                "Latitude": [15.0, 16.0, 17.0],
+                "Longitude": [76.0, 77.0, 77.5],
+                "Rainfall": [10.0, 20.0, 30.0],
+            }
+        )
         f = tmp_path / "test_data.parquet"
         df.to_parquet(f)
         config = {
             "date_range": {"start": "2020-01-01", "end": "2020-12-31"},
             "karnataka_bounds": {
-                "min_lat": 11.5, "max_lat": 18.5, "min_lon": 74.0, "max_lon": 78.5,
+                "min_lat": 11.5,
+                "max_lat": 18.5,
+                "min_lon": 74.0,
+                "max_lon": 78.5,
             },
         }
         report = generate_quality_report({"rainfall": f}, config)

@@ -9,10 +9,10 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from risk.evaluation.hazard_evaluator import HazardEvaluator
-from risk.evaluation.twin_adapter import TwinInputs, extract_twin_inputs
 from risk.evaluation.forecast_adapter import extract_forecast_inputs
+from risk.evaluation.hazard_evaluator import HazardEvaluator
 from risk.evaluation.quality_gate import severity_from_score
+from risk.evaluation.twin_adapter import TwinInputs, extract_twin_inputs
 from risk.models.hazard import HazardAssessment
 
 logger = logging.getLogger(__name__)
@@ -352,8 +352,8 @@ class RiskService:
     async def assess_batch(
         self,
         location_ids: list[str],
-        latitudes: list[float] | None = None,
-        longitudes: list[float] | None = None,
+        _latitudes: list[float] | None = None,
+        _longitudes: list[float] | None = None,
     ) -> dict[str, _Assessment]:
         results: dict[str, _Assessment] = {}
         for loc_id in location_ids:
@@ -363,8 +363,8 @@ class RiskService:
     async def get_risk_trend(
         self,
         location_id: str,
-        latitude: float = 0.0,
-        longitude: float = 0.0,
+        _latitude: float = 0.0,
+        _longitude: float = 0.0,
         _observations: list[Any] | None = None,
         _days: int = 90,
     ) -> list[_Assessment]:
@@ -401,9 +401,10 @@ class RiskService:
             store = ForecastStore()
             recent = store.list_recent(limit=5)
             for f in recent:
-                if f.location_id == location_id:
-                    if forecast_id is None or f.forecast_id == forecast_id:
-                        return f
+                if f.location_id == location_id and (
+                    forecast_id is None or f.forecast_id == forecast_id
+                ):
+                    return f
         except Exception as exc:
             logger.warning("Failed to get forecast for %s: %s", location_id, exc)
         return None
@@ -428,7 +429,7 @@ class RiskService:
         return {"supported": supported, "unsupported": unsupported}
 
     def _empty_assessment(self, location_id: str) -> _Assessment:
-        from risk.models.hazard import Severity, DataQuality, Freshness
+        from risk.models.hazard import DataQuality, Freshness, Severity
 
         dummy = HazardAssessment(
             location_id=location_id,

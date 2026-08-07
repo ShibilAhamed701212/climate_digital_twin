@@ -67,7 +67,9 @@ def get_rag_service() -> Any:
             def __init__(self, api: KnowledgeAPI) -> None:
                 self._api = api
 
-            async def ask(self, query: str, k: int = 5, _collection_id: str | None = None) -> list[Any]:
+            async def ask(
+                self, query: str, k: int = 5, _collection_id: str | None = None
+            ) -> list[Any]:
                 results = self._api.search(query=query, top_k=k, score_threshold=0.0)
                 adapted: list[Any] = []
                 for rank, item in enumerate(results, start=1):
@@ -102,7 +104,9 @@ def get_rag_service() -> Any:
                     str(path), category="manual", title=title, source=source
                 )
                 n_chunks = int(getattr(result, "num_chunks", 0) or 0)
-                doc_id = getattr(result, "document_id", None) or getattr(doc, "document_id", path.stem)
+                doc_id = getattr(result, "document_id", None) or getattr(
+                    doc, "document_id", path.stem
+                )
                 if hasattr(doc, "document_id"):
                     doc.document_id = doc_id
                 return [SimpleNamespace(chunk_id=f"{doc_id}-{i}") for i in range(max(n_chunks, 1))]

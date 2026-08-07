@@ -32,16 +32,29 @@ class TestRiskAPIContract:
         from risk.api.contract import RiskAPI
 
         class TestImpl(RiskAPI):
-            def calculate_risk(self, location_id, _district, _max_temp, _min_temp, _rainfall, **_kwargs):
+            def calculate_risk(
+                self, location_id, _district, _max_temp, _min_temp, _rainfall, **_kwargs
+            ):
                 return {"location_id": location_id, "score": 50.0}
 
-            def calculate_heat_risk(self, _max_temp, _consecutive_hot_days=0, _seasonal_anomaly=0.0):
+            def calculate_heat_risk(
+                self, _max_temp, _consecutive_hot_days=0, _seasonal_anomaly=0.0
+            ):
                 return {"score": 50.0}
 
-            def calculate_flood_risk(self, _rainfall, _multi_day_accumulation=None, _forecast_uncertainty=0.0):
+            def calculate_flood_risk(
+                self, _rainfall, _multi_day_accumulation=None, _forecast_uncertainty=0.0
+            ):
                 return {"score": 30.0}
 
-            def calculate_drought_risk(self, _rainfall, _historical_mean_rainfall=100.0, _max_temp=30.0, _historical_mean_temp=28.0, _dry_period_days=0):
+            def calculate_drought_risk(
+                self,
+                _rainfall,
+                _historical_mean_rainfall=100.0,
+                _max_temp=30.0,
+                _historical_mean_temp=28.0,
+                _dry_period_days=0,
+            ):
                 return {"score": 20.0}
 
             def generate_explanation(self, prediction, feature_values, _prediction_confidence=0.0):

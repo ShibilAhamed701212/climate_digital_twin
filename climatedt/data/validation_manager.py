@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +53,7 @@ class ValidationDatasetManager:
             "spatial_resolution": spatial_resolution,
             "temporal_resolution": temporal_resolution,
             "license": license_info,
-            "registered_at": datetime.now(timezone.utc).isoformat(),
+            "registered_at": datetime.now(UTC).isoformat(),
             "authenticity": "REAL",
             "quality": "raw",
             **extra,
@@ -84,7 +84,7 @@ class ValidationDatasetManager:
             "file_size_bytes": file_size,
             "sha256_prefix": sha256[:16],
             "sha256_full": sha256,
-            "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            "downloaded_at": datetime.now(UTC).isoformat(),
             "download_url": download_url,
         }
 

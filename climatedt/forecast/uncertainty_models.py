@@ -89,7 +89,7 @@ class ForecastWithUncertainty:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ForecastWithUncertainty":
+    def from_dict(cls, data: dict[str, Any]) -> ForecastWithUncertainty:
         pi = data.get("prediction_intervals", {})
         cal = data.get("calibration", {})
         qh = cal.get("q_hat", {})

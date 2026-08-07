@@ -185,23 +185,34 @@ class TestReportGenerator:
         from simulator.reports.report_generator import ReportGenerator
 
         scenario = ScenarioDefinition(
-            scenario_id="test", name="", description="",
-            scenario_type="temperature", parameters={"temperature_delta": 2.0},
+            scenario_id="test",
+            name="",
+            description="",
+            scenario_type="temperature",
+            parameters={"temperature_delta": 2.0},
         )
         results = [
             SimulationResult(
                 location_id="KA-BLR-001",
                 scenario_id="test",
                 timestamp="2024-01-01T00:00:00",
-                baseline={}, simulated={}, deltas={},
-                duration_ms=1.0, success=False,
+                baseline={},
+                simulated={},
+                deltas={},
+                duration_ms=1.0,
+                success=False,
                 error_message="fail",
             ),
         ]
         run = ScenarioRun(
-            run_id="run_fail", scenario=scenario, results=results,
-            started_at="", completed_at="",
-            total_duration_ms=1.0, location_count=1, status="completed",
+            run_id="run_fail",
+            scenario=scenario,
+            results=results,
+            started_at="",
+            completed_at="",
+            total_duration_ms=1.0,
+            location_count=1,
+            status="completed",
         )
         agg = ReportGenerator._aggregate_deltas(run)
         assert agg == {}

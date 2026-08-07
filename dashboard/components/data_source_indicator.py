@@ -6,7 +6,6 @@ from typing import Any
 
 import streamlit as st
 
-
 STATUS_LABELS = {
     "LIVE": ("🟢", "Live"),
     "CACHED": ("🟡", "Cached"),

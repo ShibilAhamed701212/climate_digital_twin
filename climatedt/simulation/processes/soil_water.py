@@ -87,7 +87,7 @@ def daily_water_balance(
         )
     if not 0.0 <= storage_mm <= capacity_mm:
         raise ValueError(f"storage_mm must be within [0, capacity], got {storage_mm!r}")
-    if not 0.0 < capacity_mm:
+    if not capacity_mm > 0.0:
         raise ValueError(f"capacity_mm must be positive, got {capacity_mm!r}")
     if not 0.0 <= depletion_fraction <= 1.0:
         raise ValueError(f"depletion_fraction must be in 0..1, got {depletion_fraction!r}")
@@ -107,10 +107,8 @@ def daily_water_balance(
             rs_mj=solar_radiation_mj,
             pressure_kpa=pressure_kpa or 101.3,
         )
-        et_method = "FAO56_PENMAN_MONTEITH"
     else:
         pet = hargreaves_et0(tmax_c, tmin_c, latitude_deg, jday, krs)
-        et_method = "HARGREAVES_SAMANI"
 
     runoff = scs_runoff(precipitation_mm, cn_ii, antecedent_5d_mm)
 

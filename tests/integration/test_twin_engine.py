@@ -16,7 +16,11 @@ def engine(tmp_path: Path) -> DigitalTwinEngine:
     config_path = tmp_path / "twin_config.yaml"
     config = {
         "twin": {"name": "test_twin", "version": "1.0", "region": "Karnataka"},
-        "storage": {"engine": "duckdb", "path": str(tmp_path / "twin_store"), "parquet_compression": "snappy"},
+        "storage": {
+            "engine": "duckdb",
+            "path": str(tmp_path / "twin_store"),
+            "parquet_compression": "snappy",
+        },
         "state": {
             "max_versions_per_entity": 1000,
             "enforce_immutable": True,
@@ -48,9 +52,7 @@ class TestDigitalTwinEngine:
         e = engine.create_entity("KA-BLR-001", 12.97, 77.59)
         e = e.update_state(rainfall=50, max_temp=32, min_temp=20)
         engine.ingest_observation(e)
-        f = e.update_state(
-            rainfall=60, max_temp=30, min_temp=19, prediction_confidence=0.85
-        )
+        f = e.update_state(rainfall=60, max_temp=30, min_temp=19, prediction_confidence=0.85)
         engine.apply_forecast(f)
         current = engine.get_current_state("KA-BLR-001")
         forecast = engine.get_forecast_state("KA-BLR-001")
@@ -60,9 +62,9 @@ class TestDigitalTwinEngine:
     def test_full_lifecycle(self, engine: DigitalTwinEngine):
         e = engine.create_entity("KA-BLR-001", 12.97, 77.59)
         engine.ingest_observation(e.update_state(rainfall=50, max_temp=32, min_temp=20))
-        engine.apply_forecast(e.update_state(
-            rainfall=60, max_temp=30, min_temp=19, prediction_confidence=0.85
-        ))
+        engine.apply_forecast(
+            e.update_state(rainfall=60, max_temp=30, min_temp=19, prediction_confidence=0.85)
+        )
         engine.apply_scenario(
             e.update_state(rainfall=80, max_temp=35, min_temp=22),
             scenario_id="temp_plus_2",
@@ -91,7 +93,11 @@ class TestDigitalTwinEngine:
         config_path = tmp_path / "twin_config.yaml"
         config = {
             "twin": {"name": "test_twin", "version": "1.0", "region": "Karnataka"},
-            "storage": {"engine": "duckdb", "path": str(tmp_path / "twin_store"), "parquet_compression": "snappy"},
+            "storage": {
+                "engine": "duckdb",
+                "path": str(tmp_path / "twin_store"),
+                "parquet_compression": "snappy",
+            },
             "state": {"validate_coordinates": False},
             "events": {"enabled": True, "max_subscribers": 50},
             "api": {"host": "0.0.0.0", "port": 8001},

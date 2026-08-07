@@ -56,7 +56,9 @@ class TestStateManager:
         history = manager.get_version_history("KA-BLR-001")
         assert len(history) == 2
 
-    def test_rollback_creates_new_version(self, manager: StateManager, sample_entity: ClimateEntity):
+    def test_rollback_creates_new_version(
+        self, manager: StateManager, sample_entity: ClimateEntity
+    ):
         v1 = manager.create_version(sample_entity)
         manager.create_version(sample_entity.update_state(rainfall=50))
         v3 = manager.rollback("KA-BLR-001", 1)

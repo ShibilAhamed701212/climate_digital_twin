@@ -1,5 +1,3 @@
-
-
 class ScenarioType:
     TEMPERATURE = "temperature"
     RAINFALL = "rainfall"
