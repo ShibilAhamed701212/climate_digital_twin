@@ -124,7 +124,7 @@ class ScenarioEngine:
 
         if scenario_type == "temperature":
             delta = params.get("temperature_delta", 0)
-            if isinstance(delta, (int, float)):
+            if isinstance(delta, int | float):
                 if "max_temp" in result:
                     result["max_temp"] = round(float(result["max_temp"]) + delta, 2)
                 if "min_temp" in result:
@@ -132,7 +132,7 @@ class ScenarioEngine:
 
         elif scenario_type == "rainfall":
             pct = params.get("rainfall_change_pct", 0)
-            if isinstance(pct, (int, float)) and "rainfall" in result:
+            if isinstance(pct, int | float) and "rainfall" in result:
                 result["rainfall"] = round(max(0, float(result["rainfall"]) * (1 + pct / 100)), 2)
 
         elif scenario_type == "monsoon":

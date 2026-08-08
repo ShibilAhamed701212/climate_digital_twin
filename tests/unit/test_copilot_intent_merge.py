@@ -98,9 +98,9 @@ class TestBHAIIntentMerge:
         ]
         for query in queries:
             result = agent.classify(query)
-            assert result.intent == IntentType.UNKNOWN or result.intent == IntentType.GREETING, (
-                f"Failed for: {query}"
-            )
+            assert (
+                result.intent == IntentType.UNKNOWN or result.intent == IntentType.GREETING
+            ), f"Failed for: {query}"
 
     def test_extract_location(self, agent: IntentAgent) -> None:
         result = agent.classify("What's the risk in Bangalore?")

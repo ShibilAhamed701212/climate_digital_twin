@@ -522,7 +522,6 @@ class TestEntityStateAtTimeContinue:
 
 class TestQueryStatesInTimeRangeContinue:
     def test_skip_none_states(self, store):
-
         s1 = make_state(timestamp=datetime(2024, 6, 1, 6, 0, tzinfo=UTC))
         s2 = make_state(timestamp=datetime(2024, 6, 1, 12, 0, tzinfo=UTC))
         store.save_state(s1)
@@ -600,7 +599,6 @@ class TestClearRetry:
         assert store._base_dir.exists()
 
     def test_clear_permission_all_fail(self, store):
-
         def always_fail(_path):
             raise PermissionError("always fails")
 

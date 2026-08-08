@@ -44,7 +44,7 @@ def entity_detail_table(entity: dict[str, Any]) -> None:
     def _v(v: Any, unit: str = "") -> Any:
         if v is None or v == "":
             return "Unavailable"
-        if isinstance(v, (int, float)):
+        if isinstance(v, int | float):
             return f"{v:.1f} {unit}".strip()
         return v
 

@@ -70,7 +70,7 @@ class ScenarioSimulatorTool(BaseTool):
         valid_types = ["temperature", "rainfall", "monsoon", "extreme_event"]
         if "scenario_type" in kwargs and kwargs["scenario_type"] not in valid_types:
             return False, f"scenario_type must be one of {valid_types}"
-        if "value" in kwargs and not isinstance(kwargs["value"], (int, float)):
+        if "value" in kwargs and not isinstance(kwargs["value"], int | float):
             return False, "value must be a number"
         if "location" in kwargs and not isinstance(kwargs["location"], str):
             return False, "location must be a string"

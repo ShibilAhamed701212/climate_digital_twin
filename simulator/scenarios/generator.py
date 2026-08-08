@@ -212,7 +212,7 @@ class ScenarioGenerator:
             "duration_days": duration_days,
         }
         for k, v in parameters.items():
-            if k not in standard_keys and not isinstance(v, (int, float, str)):
+            if k not in standard_keys and not isinstance(v, int | float | str):
                 continue
             merged[k] = v
 
@@ -236,7 +236,7 @@ class ScenarioGenerator:
             issues.append(f"Longitude {lon} out of range [-180, 180]")
 
         duration = params.get("duration_days", 30)
-        if isinstance(duration, (int, float)):
+        if isinstance(duration, int | float):
             if duration <= 0:
                 issues.append(f"Duration {duration} must be positive")
             if duration > 3650:
@@ -308,7 +308,7 @@ class ScenarioGenerator:
     @staticmethod
     def estimate_end_date(scenario: ScenarioDefinition) -> datetime:
         duration = scenario.parameters.get("duration_days", 30)
-        if isinstance(duration, (int, float)):
+        if isinstance(duration, int | float):
             return datetime.now(UTC) + timedelta(days=int(duration))
         return datetime.now(UTC) + timedelta(days=30)
 
