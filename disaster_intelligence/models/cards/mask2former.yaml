@@ -1,0 +1,11 @@
+id: mask2former
+task: flood_extent
+version: "0"
+framework: weights-required
+license: not-bundled
+input: not applicable
+output: not applicable
+enabled: false
+reason: no compatible pretrained EO checkpoint
+weights_env: MODEL_WEIGHTS_MASK2FORMER
+note: Official Mask2Former checkpoints are COCO/ADE20K. Land-cover Mask2Former is not flood extent.

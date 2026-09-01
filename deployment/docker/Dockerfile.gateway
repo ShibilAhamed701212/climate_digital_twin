@@ -1,8 +1,9 @@
 FROM python:3.11-slim
+LABEL org.opencontainers.image.version="2.1.0"
 WORKDIR /app
 COPY pyproject.toml .
 RUN pip install --no-cache-dir \
-    "fastapi>=0.104.0" uvicorn pydantic pyyaml httpx \
+    "fastapi>=0.104.0" uvicorn pydantic pyyaml httpx aiohttp \
     "pandas>=2.0" "numpy>=1.24" pyarrow duckdb faiss-cpu scikit-learn
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 COPY backend/ ./backend/
@@ -16,7 +17,7 @@ COPY config/ ./config/
 COPY data/real ./data/real
 ENV PYTHONPATH=/app
 EXPOSE 8000
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')" || exit 1
 RUN groupadd -r appuser && useradd -r -g appuser appuser && mkdir -p /home/appuser /app/data /app/data/processed /app/data/forecasts /app/data/real && chown -R appuser:appuser /home/appuser /app/data
 USER appuser
 CMD ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

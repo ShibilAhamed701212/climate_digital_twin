@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import requests
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from copilot.clients.forecast_client import ForecastClient, ForecastUnavailableError
@@ -35,8 +36,6 @@ def _raw_to_forecast(raw: list[list[float]], days: int) -> list[dict[str, Any]]:
                 "max_temp": round(max_temp, 1),
                 "min_temp": round(min_temp, 1),
                 "rainfall_mm": round(max(0.0, rainfall), 1),
-                # ponytail: model doesn't predict humidity, rough proxy from rainfall
-                "humidity_pct": round(min(95, 50 + rainfall * 10), 1),
             }
         )
     return forecast
@@ -101,4 +100,13 @@ class ForecastTool(BaseTool):
         }
 
     def health_check(self) -> tuple[bool, str]:
-        return True, "forecast_tool healthy"
+        from copilot.clients.forecast_client import FORECAST_ENGINE_URL, GATEWAY_URL
+
+        for url in (f"{GATEWAY_URL}/health", f"{FORECAST_ENGINE_URL}/health"):
+            try:
+                resp = requests.get(url, timeout=2)
+                if resp.ok:
+                    return True, "forecast_tool healthy"
+            except Exception:
+                continue
+        return False, "forecast endpoints unreachable"

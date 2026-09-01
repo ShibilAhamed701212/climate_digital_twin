@@ -3,6 +3,7 @@ Classify the user's climate-related query into one of these intents:
 - twin_state: current digital twin state, live conditions
 - scenario: what-if simulations, hypothetical climate changes
 - risk: climate risk assessment, heat/flood/drought danger
+- disaster: satellite damage, flood extent, inundation, relief, affected hospitals
 - rag_query: explanatory questions about climate concepts
 - report: generate climate reports or summaries
 - greeting: hello, hi, greetings

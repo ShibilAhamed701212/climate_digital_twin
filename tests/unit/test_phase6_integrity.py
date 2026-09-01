@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -102,8 +103,17 @@ class TestPipelineNoFabrication:
 # Gateway contract: 503 with structured error, never fabricated data
 # ---------------------------------------------------------------------------
 class TestForecastUnavailableContract:
-    def _client_with_unavailable(self, error_code: str, message: str):
+    @staticmethod
+    def _iter_api_routes(router: Any):
         from fastapi.routing import APIRoute
+
+        for r in router.routes:
+            if isinstance(r, APIRoute):
+                yield r
+            elif hasattr(r, "original_router"):  # FastAPI >=0.121 _IncludedRouter
+                yield from TestForecastUnavailableContract._iter_api_routes(r.original_router)
+
+    def _client_with_unavailable(self, error_code: str, message: str):
         from fastapi.testclient import TestClient
 
         import backend.api.main as api_main
@@ -116,8 +126,11 @@ class TestForecastUnavailableContract:
             raise ForecastUnavailableError(error_code, message)
 
         app = api_main.create_app()
+        # Resolve the pipeline dependency from the app's own route tree so
+        # the override targets exactly the callable the routes were built
+        # with (robust across FastAPI versions and module re-imports).
         forecast_route = next(
-            r for r in app.routes if isinstance(r, APIRoute) and r.path == "/forecast/predict"
+            r for r in self._iter_api_routes(app.router) if r.path == "/forecast/predict"
         )
         dep_callable = next(
             d.call

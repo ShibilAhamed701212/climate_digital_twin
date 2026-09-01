@@ -131,10 +131,10 @@ async def get_risk_trend(
     try:
         assessments = await risk_service.get_risk_trend(
             location_id=location_id,
-            latitude=latitude,
-            longitude=longitude,
-            observations=[],
-            days=days,
+            _latitude=latitude,
+            _longitude=longitude,
+            _observations=[],
+            _days=days,
         )
         return RiskTrendResponse(
             location_id=location_id,
@@ -193,7 +193,7 @@ async def explain_risk(
         )[:5]
 
         return RiskExplainResponse(
-            assessment_id=request.assessment_id,
+            assessment_id=getattr(assessment, "assessment_id", "") or "",
             hazard_contributions=hazard_contributions,
             top_factors=top_factors,
         )

@@ -11,7 +11,7 @@ from models.data_loader import DatasetNotFoundError
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Forecast Engine", version="1.0.0")
+app = FastAPI(title="Forecast Engine", version="2.1.0")
 
 _inference: ForecastInference | None = None
 
@@ -40,7 +40,7 @@ class PredictResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "forecast-engine", "version": "1.0.0"}
+    return {"status": "healthy", "service": "forecast-engine", "version": "2.1.0"}
 
 
 @app.post("/forecast/predict", response_model=PredictResponse)
@@ -48,6 +48,7 @@ def predict(req: PredictRequest) -> PredictResponse:
     try:
         inf = _get_inference()
         result = inf.predict()
+        info = inf.get_model_info()
     except DatasetNotFoundError as exc:
         raise HTTPException(
             status_code=503,
@@ -56,10 +57,10 @@ def predict(req: PredictRequest) -> PredictResponse:
     return PredictResponse(
         location_id=req.location_id,
         horizon=req.horizon,
-        model=req.model,
+        model=str(info.get("model_name") or info.get("architecture") or "unknown"),
         predictions=result["predictions"],
         confidence_intervals=result["confidence_intervals"],
-        metadata=result["metadata"],
+        metadata={**result.get("metadata", {}), **info},
     )
 
 

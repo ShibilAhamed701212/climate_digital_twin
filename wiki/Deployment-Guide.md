@@ -78,6 +78,7 @@ docker compose ps
 ### Deployment Profiles
 
 - **Core Microservices**: `docker compose up -d`
+- **Optional Disaster Intelligence (`disaster`)**: `docker compose --profile disaster up -d` (origin bound to `127.0.0.1:8008`; prod overlay publishes no host ports)
 - **Optional Redis Cache**: `docker compose --profile optional up -d`
 - **Monitoring Stack (Prometheus + Grafana)**: `docker compose --profile monitoring up -d`
 

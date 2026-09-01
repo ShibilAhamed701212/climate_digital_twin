@@ -27,6 +27,7 @@ class PlanningAgent:
             IntentType.RISK: self._plan_risk,
             IntentType.RAG_QUERY: self._plan_rag,
             IntentType.REPORT: self._plan_report,
+            IntentType.DISASTER: self._plan_disaster,
             IntentType.GREETING: self._plan_greeting,
         }
         return planners.get(intent, self._plan_unknown)
@@ -120,6 +121,31 @@ class PlanningAgent:
                 ),
             ],
         )
+
+    def _plan_disaster(self, intent: IntentResult) -> Plan:
+        loc = intent.entities.get("location", "KA-BLR-001")
+        query = intent.raw_query.lower()
+        action = "summary"
+        if "hospital" in query or "school" in query or "infra" in query:
+            action = "infra"
+        elif "relief" in query:
+            action = "relief"
+        steps = [
+            ToolCall(
+                tool_name="disaster_intelligence",
+                parameters={"location": loc, "action": action},
+                description=f"Query disaster overlay for {loc}",
+            )
+        ]
+        if "why" in query or "explain" in query or "ndma" in query:
+            steps.append(
+                ToolCall(
+                    tool_name="rag_retriever",
+                    parameters={"query": intent.raw_query, "top_k": 3},
+                    description="Retrieve disaster guidance",
+                )
+            )
+        return Plan(intent=IntentType.DISASTER, steps=steps)
 
     def _plan_greeting(self, _intent: IntentResult) -> Plan:
         return Plan(intent=IntentType.GREETING, steps=[])

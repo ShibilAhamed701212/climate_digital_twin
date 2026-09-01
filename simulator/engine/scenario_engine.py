@@ -68,7 +68,8 @@ class ScenarioEngine:
             params = scenario.parameters
 
             if scenario.scenario_type == "combined":
-                sub_scenarios_list = params.get("scenarios", [])
+                sub_scenarios_raw = params.get("scenarios", [])
+                sub_scenarios_list = sub_scenarios_raw if isinstance(sub_scenarios_raw, list) else []
                 simulated = dict(baseline)
                 for sub in sub_scenarios_list:
                     sub_type = sub.get("scenario_type", "")

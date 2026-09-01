@@ -40,6 +40,22 @@ class KnowledgeAPI:
             embedding_model=self.embedding_model,
             config=config,
         )
+        self._pre_fit_embeddings()
+
+    def _pre_fit_embeddings(self) -> None:
+        """Pre-fit the embedding model on all indexed chunk texts.
+
+        This is needed because TF-IDF/SVD strategies require fitting on the
+        full corpus before they can produce meaningful query embeddings.
+        Without this, search queries are encoded in isolation, producing
+        degenerate vectors with zero similarity scores.
+        """
+        all_texts: list[str] = []
+        for _chunk_id, text in self.vector_store._chunk_texts.items():
+            if text and text.strip():
+                all_texts.append(text)
+        if all_texts:
+            self.embedding_model.encode(all_texts)
 
     def index_document(self, file_path: str, **metadata: Any) -> IndexingResult:
         """Index a single document."""

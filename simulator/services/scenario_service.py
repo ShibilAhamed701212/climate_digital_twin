@@ -95,6 +95,19 @@ class ScenarioService:
 
         baseline_data = self._collect_baseline(location_ids)
         run = self.scenario_engine.run_simulation(scenario, baseline_data)
+        if scenario.scenario_type == "post_disaster_recovery":
+            import json
+
+            from climatedt.disaster.client import DisasterHttpClient
+
+            assessment_id = str(scenario.parameters.get("assessment_id") or "")
+            payload: dict[str, Any] = {"available": False}
+            if assessment_id and assessment_id != "pending":
+                fetched = DisasterHttpClient().assessment(assessment_id)
+                if fetched:
+                    payload = {"available": True, "assessment": fetched}
+            merged = {**dict(scenario.parameters), "disaster_assessment_json": json.dumps(payload)}
+            object.__setattr__(run.scenario, "parameters", merged)
 
         # Isolation: simulated scenario states are NEVER persisted into the
         # twin repository.  Results stay in-memory in the ScenarioRun; the
@@ -157,6 +170,8 @@ class ScenarioService:
 
     def _collect_baseline(self, location_ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Collect baseline current states from the twin."""
+        if hasattr(self.twin, "reload_from_repository"):
+            self.twin.reload_from_repository()
         all_locations = self.twin.service.state_manager.get_all_location_ids()
         if location_ids:
             ids = [lid for lid in location_ids if lid in all_locations]

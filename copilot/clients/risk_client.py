@@ -8,8 +8,48 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-RISK_SERVICE_URL = os.environ.get("RISK_SERVICE_URL", "http://risk-engine:8003")
+RISK_SERVICE_URL = os.environ.get("RISK_SERVICE_URL", "http://localhost:8003")
 CLIENT_TIMEOUT = float(os.environ.get("CLIENT_TIMEOUT", "5"))
+
+
+def _numeric_score(obj: Any) -> float | None:
+    if obj is None:
+        return None
+    if isinstance(obj, (int, float)):
+        return float(obj)
+    if isinstance(obj, dict):
+        for key in ("score", "composite_score", "value"):
+            if key in obj and isinstance(obj[key], (int, float)):
+                return float(obj[key])
+    return None
+
+
+def flatten_risk_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Map nested RiskReport.to_dict() into the copilot score contract."""
+    if isinstance(payload.get("scores"), dict):
+        scores = dict(payload["scores"])
+        if all(k in scores for k in ("heat", "flood", "drought", "composite")):
+            return scores
+
+    heat = _numeric_score(payload.get("heat_risk"))
+    flood = _numeric_score(payload.get("flood_risk") or payload.get("heavy_rain_risk"))
+    drought = _numeric_score(payload.get("drought_risk") or payload.get("dryness_risk"))
+    composite_obj = payload.get("composite_risk")
+    composite = _numeric_score(composite_obj)
+    category = None
+    if isinstance(composite_obj, dict):
+        category = composite_obj.get("category")
+    if category is None:
+        category = payload.get("category")
+
+    flattened = {
+        "heat": heat,
+        "flood": flood,
+        "drought": drought,
+        "composite": composite,
+        "category": category,
+    }
+    return flattened
 
 
 class RiskClient:
@@ -25,4 +65,5 @@ class RiskClient:
             timeout=timeout,
         )
         resp.raise_for_status()
-        return resp.json()["scores"]
+        payload = resp.json()
+        return flatten_risk_payload(payload)

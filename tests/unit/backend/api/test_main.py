@@ -26,15 +26,19 @@ def gateway_config() -> GatewayConfig:
 
 @pytest.fixture
 def app(gateway_config: GatewayConfig) -> Any:
+    # Import BEFORE patching: importing inside the patch context would bind
+    # the mock into backend.api.main permanently (patch would save/restore
+    # the mock itself), leaking the test config into later tests.
+    from backend.api.main import create_app
+
     with (
         patch("backend.api.config.get_gateway_config", return_value=gateway_config),
+        patch("backend.api.main.get_gateway_config", return_value=gateway_config),
         patch("backend.api.dependencies.get_risk_service", return_value=AsyncMock()),
         patch("backend.api.dependencies.get_scenario_service", return_value=AsyncMock()),
         patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
         patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
     ):
-        from backend.api.main import create_app
-
         return create_app()
 
 
@@ -69,6 +73,16 @@ class TestMainApp:
         resp = client.get("/health")
         assert resp.status_code == 200
         assert resp.json()["status"] == "healthy"
+
+    def test_openapi_operation_ids_unique(self, client: TestClient) -> None:
+        spec = client.get("/openapi.json").json()
+        ids: list[str] = []
+        for path_item in spec["paths"].values():
+            for operation in path_item.values():
+                if isinstance(operation, dict) and "operationId" in operation:
+                    ids.append(operation["operationId"])
+        assert ids
+        assert len(ids) == len(set(ids))
 
     def test_value_error_handler_returns_400(self, app: Any) -> None:
         @app.get("/trigger-value-error")
@@ -170,6 +184,10 @@ class TestMiddleware:
     def test_api_key_auth_blocks_without_key(self) -> None:
         config = GatewayConfig(api_key_enabled=True, api_key="secret-key")
         p1, p2 = self._patch_get_gateway_config(config)
+        # Import BEFORE patching so the real function is what patch saves
+        # and restores in backend.api.main's namespace.
+        from backend.api.main import create_app
+
         with (
             p1,
             p2,
@@ -178,8 +196,6 @@ class TestMiddleware:
             patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
             patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
         ):
-            from backend.api.main import create_app
-
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.post(
@@ -191,6 +207,10 @@ class TestMiddleware:
     def test_api_key_auth_accepts_valid_key(self) -> None:
         config = GatewayConfig(api_key_enabled=True, api_key="secret-key")
         p1, p2 = self._patch_get_gateway_config(config)
+        # Import BEFORE patching so the real function is what patch saves
+        # and restores in backend.api.main's namespace.
+        from backend.api.main import create_app
+
         with (
             p1,
             p2,
@@ -199,8 +219,6 @@ class TestMiddleware:
             patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
             patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
         ):
-            from backend.api.main import create_app
-
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.post(
@@ -213,6 +231,10 @@ class TestMiddleware:
     def test_api_key_auth_rejects_invalid_key(self) -> None:
         config = GatewayConfig(api_key_enabled=True, api_key="secret-key")
         p1, p2 = self._patch_get_gateway_config(config)
+        # Import BEFORE patching so the real function is what patch saves
+        # and restores in backend.api.main's namespace.
+        from backend.api.main import create_app
+
         with (
             p1,
             p2,
@@ -221,8 +243,6 @@ class TestMiddleware:
             patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
             patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
         ):
-            from backend.api.main import create_app
-
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.post(
@@ -251,6 +271,10 @@ class TestMiddleware:
     def test_api_key_auth_rejects_wrong_format(self) -> None:
         config = GatewayConfig(api_key_enabled=True, api_key="secret-key")
         p1, p2 = self._patch_get_gateway_config(config)
+        # Import BEFORE patching so the real function is what patch saves
+        # and restores in backend.api.main's namespace.
+        from backend.api.main import create_app
+
         with (
             p1,
             p2,
@@ -259,8 +283,6 @@ class TestMiddleware:
             patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
             patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
         ):
-            from backend.api.main import create_app
-
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.post(
@@ -291,6 +313,10 @@ class TestMiddleware:
             cors_origins=["http://localhost:3000"],
         )
         p1, p2 = self._patch_get_gateway_config(config)
+        # Import BEFORE patching so the real function is what patch saves
+        # and restores in backend.api.main's namespace.
+        from backend.api.main import create_app
+
         with (
             p1,
             p2,
@@ -299,8 +325,6 @@ class TestMiddleware:
             patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
             patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
         ):
-            from backend.api.main import create_app
-
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.options(
@@ -425,7 +449,7 @@ class TestLifespan:
         import asyncio
 
         asyncio.run(self._run_lifespan(MagicMock()))
-        assert "Climate Digital Twin API v0.1.0 starting up" in caplog.text
+        assert "Climate Digital Twin API v2.1.0 starting up" in caplog.text
         assert "4/4 services initialized" in caplog.text
 
     def test_lifespan_catches_module_not_found(self, caplog: Any) -> None:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import secrets
 import time
-from collections import defaultdict
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
@@ -11,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api.config import get_gateway_config
+from backend.api.rate_limit import take_token
 
 _logger = logging.getLogger(__name__)
 
@@ -18,7 +18,6 @@ _AUTH_EXEMPT_PATHS = {"/health", "/health/ready", "/health/live", "/", "/docs", 
 
 _RATE_LIMIT_WINDOW = 60
 _RATE_LIMIT_MAX = 300
-_rate_limit_store: dict[str, tuple[float, int]] = defaultdict(lambda: (0.0, 0))
 
 
 class RequestTimingMiddleware(BaseHTTPMiddleware):
@@ -73,17 +72,27 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
-        now = time.monotonic()
+        bucket = "default"
+        limit = _RATE_LIMIT_MAX
+        if path.startswith("/disaster/ingest/upload"):
+            bucket = "die_upload"
+            limit = 5
+        elif path.startswith("/disaster/jobs") or path.startswith("/disaster/ingest"):
+            bucket = "die_jobs"
+            limit = 20
+        elif "/stream" in path or "/layers/" in path:
+            bucket = "die_stream"
+            limit = 600
+        elif path.startswith("/disaster"):
+            bucket = "die_read"
+            limit = 120
 
-        window_start, count = _rate_limit_store[client_ip]
-        if now - window_start > _RATE_LIMIT_WINDOW:
-            count = 0
-            window_start = now
-
-        if count >= _RATE_LIMIT_MAX:
+        allowed, retry_after, remaining = take_token(
+            f"{client_ip}:{bucket}", limit, _RATE_LIMIT_WINDOW
+        )
+        if not allowed:
             from fastapi.responses import JSONResponse
 
-            retry_after = int(_RATE_LIMIT_WINDOW - (now - window_start))
             return JSONResponse(
                 status_code=429,
                 content={
@@ -94,11 +103,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 headers={"Retry-After": str(max(1, retry_after))},
             )
 
-        count += 1
-        _rate_limit_store[client_ip] = (window_start, count)
-
         response = await call_next(request)
-        response.headers["X-RateLimit-Remaining"] = str(_RATE_LIMIT_MAX - count)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
         return response
 
 

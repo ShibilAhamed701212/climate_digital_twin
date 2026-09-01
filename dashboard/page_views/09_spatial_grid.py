@@ -6,16 +6,23 @@ import logging
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import folium
 import numpy as np
 import pandas as pd
 import streamlit as st
-import xarray as xr
 from streamlit_folium import st_folium
 
 from dashboard.config.config import DEFAULT_ZOOM, SAMPLE_LOCATIONS
+
+if TYPE_CHECKING:
+    import xarray as xr
+
+try:
+    import xarray as xr
+except ImportError:  # pragma: no cover - optional heavy dependency
+    xr = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 DATA_DIR = Path("data/validation/era5/karnataka/raw")
@@ -111,6 +118,12 @@ def _backend_overlay(api: Any, row: pd.Series) -> dict[str, Any]:
 
 def render(api: Any, filters: dict[str, Any]) -> None:
     st.title("Karnataka Spatial Grid")
+    if xr is None:
+        st.error(
+            "The Spatial Grid page requires the optional ERA5 dependencies. "
+            'Install them with: pip install ".[era5]"'
+        )
+        return
     st.markdown(
         "Full 651-cell ERA5 grid at native 0.25° resolution. All base layers are REAL ERA5 data."
     )
@@ -126,14 +139,20 @@ def render(api: Any, filters: dict[str, Any]) -> None:
         months = [m for m in range(1, 13) if (DATA_DIR / f"era5_{year}{m:02d}.nc").exists()]
         month = st.selectbox("Month", months, format_func=lambda m: f"{year}-{m:02d}")
     ds, acc = _load_month(year, month)
+    n_steps = int(ds.sizes["valid_time"])
+    # One-shot animation state: pop it so the slider stays the source of
+    # truth afterwards instead of permanently shadowing user input.
+    saved_idx = st.session_state.pop("spatial_time", None)
     with col3:
         time_idx = st.slider(
-            "Time step", 0, int(ds.sizes["valid_time"]) - 1, int(ds.sizes["valid_time"]) - 1
+            "Time step",
+            0,
+            n_steps - 1,
+            min(int(saved_idx), n_steps - 1) if saved_idx is not None else n_steps - 1,
         )
     if st.button("Advance animation"):
-        st.session_state["spatial_time"] = (time_idx + 1) % int(ds.sizes["valid_time"])
+        st.session_state["spatial_time"] = (time_idx + 1) % n_steps
         st.rerun()
-    time_idx = st.session_state.get("spatial_time", time_idx)
 
     df = _frame(ds, acc, time_idx)
     variables = {

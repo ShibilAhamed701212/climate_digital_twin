@@ -57,6 +57,8 @@ def render(api: DashboardAPI, filters: dict) -> None:
         simulate_btn = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
 
     current = api.get_current_state(location_id)
+    if current is not None and current.get("status") == "unavailable":
+        current = None
 
     with col2:
         if simulate_btn and current:
@@ -77,8 +79,8 @@ def render(api: DashboardAPI, filters: dict) -> None:
                 with tab1:
                     col_a, col_b, col_c = st.columns(3)
                     var_key = variable_to_field(variable)
-                    before_val = current.get(var_key, 0)
-                    after_val = scenario_state.get(var_key, 0)
+                    before_val = float(current.get(var_key) or 0)
+                    after_val = float(scenario_state.get(var_key) or 0)
 
                     with col_a:
                         metric_card("Before", f"{before_val:.1f}")
@@ -133,7 +135,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
                     "location_id": location_id,
                     "latitude": filters.get("latitude", 12.97),
                     "longitude": filters.get("longitude", 77.59),
-                    "temperature_2m": current.get("max_temp", 25.0) if current else 25.0,
+                    "temperature_2m": (current.get("max_temp") if current else None) or 25.0,
                 },
                 num_simulations=mc_runs,
             )

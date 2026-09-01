@@ -1,0 +1,8 @@
+id: s1-threshold-v0
+task: flood_extent
+version: "0"
+framework: numpy-threshold
+license: Apache-2.0
+input: single-band uint8 TIFF
+output: binary water mask
+enabled: true

@@ -42,6 +42,7 @@ class RiskAssessRequest(BaseModel):
     seasonal_anomaly: float = 0.0
     forecast_uncertainty: float = 0.0
     prediction_confidence: float = 0.0
+    agriculture_features: dict[str, float | str] | None = None
 
 
 class RiskReportRequest(RiskAssessRequest):
@@ -64,7 +65,7 @@ async def lifespan(_app: FastAPI):
     _engine = None
 
 
-app = FastAPI(title="Risk Engine API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Risk Engine API", version="2.1.0", lifespan=lifespan)
 
 
 def _get_engine() -> RiskEngine:
@@ -75,7 +76,7 @@ def _get_engine() -> RiskEngine:
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "risk-engine", "version": "1.0.0"}
+    return {"status": "healthy", "service": "risk-engine", "version": "2.1.0"}
 
 
 @app.post("/risk/assess")
@@ -95,6 +96,7 @@ def assess_risk(req: RiskAssessRequest) -> dict[str, Any]:
         seasonal_anomaly=req.seasonal_anomaly,
         forecast_uncertainty=req.forecast_uncertainty,
         prediction_confidence=req.prediction_confidence,
+        agriculture_features=req.agriculture_features,
     )
     return report.to_dict()
 

@@ -17,8 +17,12 @@ def api():
 class TestApiClientHistorical:
     """Cover get_historical — success path (lines 266-271)."""
 
+    @patch("dashboard.services.api_client.DashboardAPI._historical_from_parquet")
     @patch("dashboard.services.api_client.requests.Session.get")
-    def test_get_historical_success(self, mock_get, api):
+    def test_get_historical_success(self, mock_get, mock_parquet, api):
+        # Gateway returned fewer than 10 versions, so the client would
+        # supplement from local parquet — isolate the test from local files.
+        mock_parquet.return_value = []
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
             "versions": [

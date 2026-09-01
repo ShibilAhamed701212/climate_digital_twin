@@ -243,3 +243,86 @@ class TestUpdateStateAuthoritativeSourceGuard:
         manager._store.save_state.return_value = MagicMock(version_id="v1")
         result = await manager.update_state("KA-BLR-001", delta, source="twin_synchronizer")
         assert result is not None
+
+
+class TestRegression6TwinOverlayPointerRouteExists:
+    """Regression: Twin must expose /overlay-pointer routes for DIE integration.
+
+    Historical context: The Disaster Intelligence Engine (DIE) syncs assessment
+    pointers to Twin via HttpTwinPointerAdapter. When Twin lacked these routes,
+    DIE would receive HTTP 404 during assessment finalization. This regression
+    ensures Twin always exposes the overlay-pointer endpoints.
+    """
+
+    def test_twin_api_registers_overlay_pointer_post_route(self) -> None:
+        from simulator.api.main import app
+
+        paths = {getattr(route, "path", "") for route in app.routes}
+        assert "/overlay-pointer" in paths, "Twin API must expose POST /overlay-pointer for DIE sync"
+
+    def test_twin_api_registers_overlay_pointer_get_route(self) -> None:
+        from simulator.api.main import app
+
+        paths = {getattr(route, "path", "") for route in app.routes}
+        assert "/overlay-pointer/{location_id}" in paths, "Twin API must expose GET /overlay-pointer/{location_id}"
+
+    def test_http_twin_pointer_adapter_raises_on_404(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Reproduce the live HTTP 404 when Twin has no overlay-pointer route."""
+        from disaster_intelligence.adapters.http.twin_pointer import HttpTwinPointerAdapter
+        from disaster_intelligence.domain.entities import TwinOverlayPointer
+
+        class _Resp:
+            status_code = 404
+
+        class _Client:
+            def __init__(self, *args: object, **kwargs: object) -> None:
+                _ = args, kwargs
+
+            def __enter__(self) -> "_Client":
+                return self
+
+            def __exit__(self, *args: object) -> None:
+                _ = args
+
+            def post(self, url: str, json: dict) -> _Resp:
+                assert url.endswith("/overlay-pointer")
+                _ = json
+                return _Resp()
+
+        monkeypatch.setattr(
+            "disaster_intelligence.adapters.http.twin_pointer.httpx.Client",
+            _Client,
+        )
+        adapter = HttpTwinPointerAdapter("http://127.0.0.1:8001")
+        pointer = TwinOverlayPointer(
+            location_id="KA-HAS-001",
+            assessment_id="A1",
+            event_id="E1",
+            disaster_type="flood",
+            href_assessment="/disaster/assessments/A1",
+            updated_at="2026-01-01T00:00:00Z",
+        )
+        with pytest.raises(RuntimeError, match="HTTP 404"):
+            adapter.upsert(pointer)
+
+    def test_twin_overlay_pointer_roundtrip(self) -> None:
+        """Verify Twin accepts and returns overlay pointers via REST."""
+        from fastapi.testclient import TestClient
+        from simulator.api.main import app
+
+        client = TestClient(app)
+        payload = {
+            "location_id": "KA-BLR-001",
+            "assessment_id": "A_REGRESSION_TEST",
+            "event_id": "E1",
+            "disaster_type": "flood",
+            "href_assessment": "/disaster/assessments/A_REGRESSION_TEST",
+            "updated_at": "2026-08-16T00:00:00Z",
+        }
+        resp = client.post("/overlay-pointer", json=payload)
+        assert resp.status_code == 200
+        assert resp.json()["ok"] is True
+
+        got = client.get("/overlay-pointer/KA-BLR-001")
+        assert got.status_code == 200
+        assert got.json()["assessment_id"] == "A_REGRESSION_TEST"

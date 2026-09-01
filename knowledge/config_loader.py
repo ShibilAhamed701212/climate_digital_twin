@@ -27,7 +27,7 @@ def load_rag_config(config_path: str = "knowledge/configs/rag.yaml") -> dict[str
             "embedding_model": "all-MiniLM-L6-v2",
             "embedding_dimension": 384,
         },
-        "retrieval": {"top_k": 5, "score_threshold": 0.5, "enable_metadata_filtering": True},
+        "retrieval": {"top_k": 5, "score_threshold": 0.0, "enable_metadata_filtering": True},
         "vector_store": {
             "type": "faiss",
             "index_path": "knowledge/vector_store/index.faiss",

@@ -98,6 +98,9 @@ def render(api: DashboardAPI, filters: dict) -> None:
     with tab3:
         st.subheader("Forecast State")
         if forecast:
+            model_src = forecast[0].get("model_id", "") or forecast[0].get("data_source", "")
+            if model_src:
+                st.caption(f"Model: {model_src}")
             cols = st.columns(min(len(forecast), 3))
             for i, f in enumerate(forecast[:3]):
                 with cols[i]:
@@ -105,7 +108,8 @@ def render(api: DashboardAPI, filters: dict) -> None:
                     st.metric("Rainfall", f"{f.get('rainfall', 0):.1f} mm")
                     st.metric("Max Temp", f"{f.get('max_temp', 0):.1f} °C")
                     st.metric("Min Temp", f"{f.get('min_temp', 0):.1f} °C")
-                    st.caption(f"Confidence: {f.get('prediction_confidence', 0):.2f}")
+                    conf = f.get('prediction_confidence', 0)
+                    st.caption(f"Confidence: {conf:.2f}" if conf > 0 else "Confidence: N/A")
         else:
             st.info("No forecast data available")
 

@@ -33,7 +33,7 @@ data/raw/*
 data/real/*
 data/validation/*
 data/forecasts/*
-data/hazard/*
+data/disaster/*
 data/manifests/*
 data/scenarios/*
 data/simulations/*
@@ -41,6 +41,8 @@ data/benchmarks/*
 data/twin_store/*
 data/test_twin_store/*
 data/twin_sync/*
+data/hazard/*
+data/feedback/*
 !data/**/.gitkeep
 *.nc
 *.parquet
@@ -50,6 +52,9 @@ data/twin_sync/*
 models/checkpoints/*
 models/exported/*
 models/evaluation/*
+models/eo/**
+!models/eo/**/.gitkeep
+!models/eo/**/README.md
 !models/**/.gitkeep
 
 # Logs
@@ -95,6 +100,10 @@ knowledge/vector_store/*.pkl
 wiki-push-temp/
 t2.py
 t3.py
+.freebuff/
+out.txt
+tmp_list.txt
+mypy_output.txt
 
 # Training logs
 lightning_logs/

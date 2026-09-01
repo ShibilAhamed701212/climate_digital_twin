@@ -119,6 +119,19 @@ def get_rag_service() -> Any:
                 return out
 
         _rag_service = _KnowledgeRAGAdapter(knowledge_api)
+        # Provide a knowledge_base shim so /rag/collections works.
+        class _KBShim:
+            def __init__(self, api: KnowledgeAPI) -> None:
+                self._api = api
+            def list_collections(self) -> list[dict[str, str]]:
+                # Return a single default collection derived from the store stats.
+                try:
+                    store = self._api.vector_store
+                    n_chunks = len(store.chunks) if hasattr(store, "chunks") else 0
+                except Exception:
+                    n_chunks = 0
+                return [{"id": "default", "name": "Default Collection", "chunk_count": n_chunks}]
+        _rag_service.knowledge_base = _KBShim(knowledge_api)  # type: ignore[attr-defined]
         _logger.info("RAGService initialized via KnowledgeAPI adapter")
     return _rag_service
 

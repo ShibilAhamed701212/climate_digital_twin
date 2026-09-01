@@ -7,11 +7,12 @@ dataclasses in risk_models.py without replacing them.
 
 from __future__ import annotations
 
+import contextlib
 import enum
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 
 class AssessmentType(enum.StrEnum):
@@ -158,9 +159,26 @@ class HazardAssessment:
 
         return {k: _serialize(v) for k, v in self.__dict__.items()}
 
+    # Enum fields that need string → enum conversion on deserialization
+    _ENUM_FIELDS: ClassVar[dict[str, type[enum.Enum]]] = {
+        "assessment_type": AssessmentType,
+        "severity": Severity,
+        "data_quality": DataQuality,
+        "data_freshness": Freshness,
+    }
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HazardAssessment:
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+        converted: dict[str, Any] = {}
+        for k, v in data.items():
+            if k not in cls.__dataclass_fields__:
+                continue
+            enum_cls = cls._ENUM_FIELDS.get(k)
+            if enum_cls is not None and isinstance(v, str):
+                with contextlib.suppress(ValueError):
+                    v = enum_cls(v)
+            converted[k] = v
+        return cls(**converted)
 
 
 @dataclass

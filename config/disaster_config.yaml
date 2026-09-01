@@ -1,0 +1,66 @@
+region: Karnataka
+allow_outside_aoi: false
+aoi_bounds:
+  min_lat: 11.5
+  max_lat: 18.5
+  min_lon: 74.0
+  max_lon: 78.5
+aoi_file: config/aoi/karnataka.geojson
+location_map_file: config/aoi/location_ids.geojson
+stac:
+  provider: cdse
+  search_url: https://catalogue.dataspace.copernicus.eu/stac/search
+  collections:
+    - sentinel-1-grd
+    - sentinel-2-l2a
+    - landsat-ot-l2
+  host_allowlist:
+    - catalogue.dataspace.copernicus.eu
+    - stac.dataspace.copernicus.eu
+    - download.dataspace.copernicus.eu
+    - eodata.dataspace.copernicus.eu
+    - sentinelhub.copernicus.eu
+    - identity.dataspace.copernicus.eu
+    - zipper.dataspace.copernicus.eu
+  max_pages: 5
+  page_limit: 20
+  mpc_search_url: https://planetarycomputer.microsoft.com/api/stac/v1/search
+  mpc_host_allowlist:
+    - planetarycomputer.microsoft.com
+    - sentinel2l2a01.blob.core.windows.net
+    - sentinel1euwestrtc.blob.core.windows.net
+  cmr_search_url: https://cmr.earthdata.nasa.gov/stac/ASF/search
+  cmr_host_allowlist:
+    - cmr.earthdata.nasa.gov
+    - datapool.asf.alaska.edu
+    - e4ftl01.cr.usgs.gov
+    - data.lpdaac.earthdatacloud.nasa.gov
+pairing:
+  min_days_before: 7
+flood_threshold:
+  vv_db: -16.0
+  vh_db: -23.0
+  dn_max: 80
+osm:
+  extract_path: data/osm/karnataka.geojson
+  amenities:
+    - hospital
+    - school
+    - clinic
+relief_weights:
+  pop: 0.4
+  flood_frac: 0.4
+  hospitals_hit: 0.2
+limits:
+  max_upload_mb: 256
+  geojson_limit: 2000
+  geojson_max: 5000
+  max_pixels: 16000000
+  max_bands: 8
+  single_flight: true
+  stac_sync_max: 5
+  max_storage_mb: 20480
+ttl_days: 90
+stac_cache_hours: 6
+logging:
+  json: true

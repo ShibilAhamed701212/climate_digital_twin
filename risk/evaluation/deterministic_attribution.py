@@ -87,7 +87,7 @@ def build_heavy_rain_attribution(
             )
         )
 
-    accum = multi_day_accumulation if multi_day_accumulation is not None else rainfall * 0.6
+    accum = multi_day_accumulation if multi_day_accumulation is not None else rainfall
     if accum > 0:
         accum_threshold = threshold_24h * 3 * 0.5
         effect = "increases_hazard" if accum >= accum_threshold else "neutral"

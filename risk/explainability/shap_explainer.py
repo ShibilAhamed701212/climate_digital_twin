@@ -1,8 +1,8 @@
-"""SHAP-based explainability for climate predictions.
+"""Deterministic feature attribution serialized in the SHAPExplanation schema.
 
-Generates feature attributions, local/global explanations, and
-machine-readable SHAP output. Uses synthetic SHAP values when no
-trained model is available (offline/hackathon mode).
+This module does not run KernelSHAP or shap.Explainer. Attributions are
+rule-based contributions from the same scoring features used by RiskEngine.
+The field name shap_value is retained for API compatibility.
 """
 
 import logging
@@ -24,21 +24,10 @@ def generate_explanation(
     prediction_confidence: float = 0.0,
     config: dict[str, Any] | None = None,
 ) -> SHAPExplanation:
-    """Generate SHAP-based explanation for a climate prediction.
+    """Generate deterministic feature attribution for a climate risk score.
 
-    When a trained model is available, this wraps real SHAP computation.
-    In the offline fallback mode, it estimates feature contributions
-    deterministically based on domain knowledge and YAML config.
-
-    Args:
-        prediction: The risk score or prediction value.
-        feature_values: Dict of feature names to their values.
-        prediction_confidence: Confidence level (0-1) of the forecast.
-        config: SHAP configuration from risk.yaml.
-
-    Returns:
-        SHAPExplanation with feature attributions, top contributors,
-        and a risk interpretation string.
+    Uses domain scoring features (temperature, rainfall, dry/hot streaks).
+    Does not invoke the SHAP library.
     """
     cfg = config or {}
     random_seed = cfg.get("random_seed", 42)
@@ -86,11 +75,10 @@ def _estimate_shap_values(
     feature_values: dict[str, float],
     base_value: float,
 ) -> list[float]:
-    """Estimate feature contributions deterministically.
+    """Deterministic feature contributions that sum toward prediction - base.
 
-    Uses domain-knowledge heuristics to approximate SHAP values:
-    higher-magnitude features with risk-relevant values get larger
-    positive (risk-increasing) or negative (risk-decreasing) contributions.
+    Weights follow risk-engine heuristics (heat vs rainfall vs drought
+    duration), not KernelSHAP sampling.
     """
     contributions: list[float] = []
     prediction_deviation = prediction - base_value

@@ -60,7 +60,7 @@ class RiskTrendResponse(BaseModel):
 
 
 class RiskExplainRequest(BaseModel):
-    assessment_id: str = Field(..., description="Assessment to explain")
+    assessment_id: str | None = Field(None, description="Assessment to explain")
     location_id: str | None = Field(None, description="Location ID for the assessment")
     latitude: float = Field(default=0.0, ge=-90.0, le=90.0)
     longitude: float = Field(default=0.0, ge=-180.0, le=180.0)
@@ -68,7 +68,7 @@ class RiskExplainRequest(BaseModel):
 
 
 class RiskExplainResponse(BaseModel):
-    assessment_id: str = Field(..., description="Assessment identifier")
+    assessment_id: str = Field("", description="Assessment identifier")
     hazard_contributions: dict[str, dict[str, float]] = Field(
         ..., description="Feature contributions per hazard type"
     )

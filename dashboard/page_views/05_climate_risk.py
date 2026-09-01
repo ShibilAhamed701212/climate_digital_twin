@@ -126,12 +126,17 @@ def render(api: DashboardAPI, filters: dict) -> None:
         else:
             st.info("No SHAP explanation data available")
 
-        if current:
+        if current and current.get("status") != "unavailable":
             st.subheader("Current Conditions")
             col1, col2, col3 = st.columns(3)
             with col1:
-                metric_card("Rainfall", f"{current.get('rainfall', 0):.1f} mm")
+                metric_card("Rainfall", f"{float(current.get('rainfall') or 0):.1f} mm")
             with col2:
-                metric_card("Current Temp", f"{current.get('current_temp', 0):.1f} °C")
+                metric_card("Current Temp", f"{float(current.get('current_temp') or 0):.1f} °C")
             with col3:
-                metric_card("Daily Extremes", "Unavailable")
+                max_t = current.get("max_temp")
+                min_t = current.get("min_temp")
+                if max_t and min_t:
+                    metric_card("Daily Extremes", f"{float(max_t):.1f} / {float(min_t):.1f} °C")
+                else:
+                    metric_card("Daily Extremes", "Unavailable")

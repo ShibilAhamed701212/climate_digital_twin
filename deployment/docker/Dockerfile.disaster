@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+LABEL org.opencontainers.image.version="2.1.0"
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml .
+RUN pip install --no-cache-dir \
+    "fastapi>=0.109" "uvicorn[standard]>=0.27" pydantic pyyaml httpx \
+    "numpy>=1.24" "python-multipart>=0.0.9"
+COPY disaster_intelligence/ ./disaster_intelligence/
+COPY climatedt/disaster ./climatedt/disaster
+COPY config/ ./config/
+ENV PYTHONPATH=/app
+ENV DISASTER_DATA_DIR=/data/disaster
+ENV GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8008
+STOPSIGNAL SIGTERM
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8008/health/live')" || exit 1
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && mkdir -p /data/disaster /home/appuser \
+    && chown -R appuser:appuser /data /home/appuser /app
+USER appuser
+CMD ["uvicorn", "disaster_intelligence.api.main:app", "--host", "0.0.0.0", "--port", "8008"]

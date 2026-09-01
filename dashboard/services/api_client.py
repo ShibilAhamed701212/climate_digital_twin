@@ -120,7 +120,7 @@ class DashboardAPI:
                 "max_temp": max_temp,
                 "min_temp": min_temp,
                 "risk_score": data.get("risk_score"),
-                "prediction_confidence": float(data.get("prediction_confidence", 0.85)),
+                "prediction_confidence": float(data.get("prediction_confidence") or 0.0),
                 "state_type": "current",
                 "data_source": data.get("data_source", "twin"),
                 "quality_flag": data.get("quality_flag", ""),
@@ -137,7 +137,7 @@ class DashboardAPI:
             logger.warning("Gateway twin state unavailable: %s", e)
             self._mark_fallback("current_state")
             try:
-                twin_url = os.environ.get("TWIN_STATE_URL", "http://twin-state-mgr:8001")
+                twin_url = os.environ.get("TWIN_STATE_URL", "http://localhost:8001")
                 twin_resp = self._session.get(
                     f"{twin_url}/state/current",
                     params={"location_id": location_id},
@@ -175,7 +175,7 @@ class DashboardAPI:
             )
             if has_data:
                 max_temp = obs_temp.values.get("temperature_2m", 0)
-                obs_min.values.get("temperature_2m_min", 0)
+                min_temp_obs = obs_min.values.get("temperature_2m_min", 0)
                 rainfall = obs_rain.values.get("precipitation_mm", 0)
                 best_obs = next(
                     (
@@ -193,8 +193,8 @@ class DashboardAPI:
                     "timestamp": best_obs.observation_timestamp or datetime.now().isoformat(),
                     "rainfall": rainfall,
                     "current_temp": max_temp,
-                    "max_temp": None,
-                    "min_temp": None,
+                    "max_temp": max_temp,
+                    "min_temp": min_temp_obs,
                     "risk_score": None,
                     "prediction_confidence": best_obs.confidence,
                     "state_type": "current",
@@ -330,6 +330,46 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Forecast unavailable via gateway: %s", e)
             self._mark_fallback("forecast")
+            engine_url = os.environ.get(
+                "FORECAST_ENGINE_URL", "http://localhost:8006"
+            ).rstrip("/")
+            try:
+                sidecar = self._session.post(
+                    f"{engine_url}/forecast/predict",
+                    json={"location_id": location_id, "horizon": int(horizon)},
+                    timeout=self.timeout,
+                )
+                sidecar.raise_for_status()
+                payload = sidecar.json()
+                values = payload.get("predictions", payload.get("values", []))
+                results = []
+                for i, day in enumerate(values):
+                    if not isinstance(day, (list, tuple)):
+                        day = [day]
+                    results.append(
+                        {
+                            "location_id": location_id,
+                            "latitude": meta["lat"],
+                            "longitude": meta["lon"],
+                            "district": meta["district"],
+                            "timestamp": (datetime.now() + timedelta(days=i + 1)).isoformat(),
+                            "rainfall": round(float(day[0]) if len(day) > 0 else 0.0, 2),
+                            "max_temp": round(float(day[1]) if len(day) > 1 else float(day[0]), 2),
+                            "min_temp": round(
+                                float(day[2]) if len(day) > 2 else float(day[0] if day else 0.0),
+                                2,
+                            ),
+                            "prediction_confidence": 0.0,
+                            "state_type": "forecast",
+                            "data_source": payload.get("model", "forecast-engine"),
+                            "model_id": payload.get("model", ""),
+                            "forecast_id": "",
+                        }
+                    )
+                if results:
+                    return results
+            except Exception as sidecar_exc:
+                logger.warning("Forecast sidecar unavailable: %s", sidecar_exc)
             return []
 
     # ------------------------------------------------------------------
@@ -371,13 +411,47 @@ class DashboardAPI:
                         "data_source": state.get("data_source", ""),
                     }
                 )
-            if len(series) < 2:
+            # Gateway version history is often thin (a few snapshots).
+            # When fewer than 10 versions exist, supplement with parquet
+            # data which has hundreds of daily records.
+            if len(series) < 10:
                 local_series = self._historical_from_parquet(location_id)
-                if len(local_series) >= 2:
-                    return local_series
+                if len(local_series) > len(series):
+                    return local_series[-90:]
             return series[-90:]
         except Exception as e:
-            logger.warning("History unavailable from gateway: %s — trying local data", e)
+            logger.warning("History unavailable from gateway: %s — trying twin sidecar", e)
+            twin_url = os.environ.get("TWIN_STATE_URL", "http://localhost:8001").rstrip("/")
+            try:
+                twin_resp = self._session.get(
+                    f"{twin_url}/state/history",
+                    params={"location_id": location_id},
+                    timeout=self.timeout,
+                )
+                twin_resp.raise_for_status()
+                rows = twin_resp.json()
+                if isinstance(rows, list) and len(rows) >= 2:
+                    series = []
+                    for state in rows:
+                        if not isinstance(state, dict):
+                            continue
+                        series.append(
+                            {
+                                "location_id": location_id,
+                                "timestamp": state.get("timestamp", ""),
+                                "rainfall": float(state.get("rainfall", 0)),
+                                "max_temp": float(state.get("max_temp", 0)),
+                                "min_temp": float(state.get("min_temp", 0)),
+                                "humidity_pct": state.get("humidity_pct", 0),
+                                "pressure_hpa": state.get("pressure_hpa", 0),
+                                "state_type": "historical",
+                                "data_source": state.get("data_source", ""),
+                            }
+                        )
+                    if len(series) >= 2:
+                        return series[-90:]
+            except Exception as sidecar_exc:
+                logger.warning("Twin history sidecar unavailable: %s", sidecar_exc)
             self._mark_fallback("historical")
             return self._historical_from_parquet(location_id)
 
@@ -472,37 +546,6 @@ class DashboardAPI:
             resp = self._session.get(f"{self.base_url}/scenario/templates", timeout=self.timeout)
             resp.raise_for_status()
             payload = resp.json()
-            # #region agent log
-            _dbg_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug-fb7a7b.log"
-            )
-            try:
-                import json as _json
-
-                with open(_dbg_path, "a", encoding="utf-8") as _f:
-                    _f.write(
-                        _json.dumps(
-                            {
-                                "sessionId": "fb7a7b",
-                                "hypothesisId": "A",
-                                "location": "api_client.get_scenarios",
-                                "message": "templates payload",
-                                "data": {
-                                    "payload_type": type(payload).__name__,
-                                    "templates_type": type(
-                                        (payload or {}).get("templates")
-                                    ).__name__
-                                    if isinstance(payload, dict)
-                                    else None,
-                                },
-                                "timestamp": int(time.time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass
-            # #endregion
             raw = (
                 payload.get("templates", payload.get("scenarios", []))
                 if isinstance(payload, dict)
@@ -864,178 +907,51 @@ class DashboardAPI:
     def get_pipeline_status(self, location_id: str) -> dict[str, Any]:
         """Check whether the live provider-to-Copilot workflow is usable."""
         checks: dict[str, bool] = {}
-        # #region agent log
-        _dbg_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug-fb7a7b.log"
-        )
-
-        def _dbg(hyp, loc, msg, data=None):
-            try:
-                import json as _json
-
-                with open(_dbg_path, "a", encoding="utf-8") as _f:
-                    _f.write(
-                        _json.dumps(
-                            {
-                                "sessionId": "fb7a7b",
-                                "hypothesisId": hyp,
-                                "location": loc,
-                                "message": msg,
-                                "data": data or {},
-                                "timestamp": int(time.time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass
-
-        # #endregion
         try:
-            health = self._session.get(f"{self.base_url}/health", timeout=5).json()
+            health = self._session.get(f"{self.base_url}/health", timeout=10).json()
             services = health.get("services", {})
-            checks["gateway"] = health.get("status") == "healthy"
+            checks["gateway"] = services.get("gateway") == "healthy" or health.get("status") in {
+                "healthy",
+                "degraded",
+            }
             checks["observation"] = services.get("gateway") == "healthy"
             checks["twin"] = services.get("twin") in {"available", "healthy"}
             checks["forecast"] = services.get("forecast") in {"available", "healthy"}
             checks["risk"] = services.get("risk") in {"available", "healthy"}
             checks["scenario"] = services.get("scenario") in {"available", "healthy"}
-            # #region agent log
-            _dbg(
-                "A",
-                "api_client.py:get_pipeline_status",
-                "gateway health ok",
-                {
-                    "base_url": self.base_url,
-                    "health": health,
-                    "checks_so_far": {
-                        k: checks[k]
-                        for k in ("gateway", "twin", "forecast", "risk", "scenario")
-                        if k in checks
-                    },
-                },
-            )
-            # #endregion
-        except requests.RequestException as e:
+        except requests.RequestException:
             checks["gateway"] = False
-            # #region agent log
-            _dbg(
-                "A",
-                "api_client.py:get_pipeline_status",
-                "gateway unreachable",
-                {"base_url": self.base_url, "error": str(e)},
-            )
-            # #endregion
+            checks["observation"] = False
+            checks["twin"] = False
+            checks["forecast"] = False
+            checks["risk"] = False
+            checks["scenario"] = False
 
         state = self.get_current_state(location_id)
         checks["live_provider"] = bool(state and state.get("data_source") == "open_meteo")
-        # #region agent log
-        _dbg(
-            "C",
-            "api_client.py:get_pipeline_status",
-            "live_provider check",
-            {
-                "location_id": location_id,
-                "data_source": (state or {}).get("data_source") if state else None,
-                "live_provider": checks["live_provider"],
-                "has_state": state is not None,
-            },
-        )
-        # #endregion
         checks["risk_data"] = self.get_risk(location_id) is not None
-        # #region agent log
-        _dbg(
-            "B",
-            "api_client.py:get_pipeline_status",
-            "risk_data check",
-            {"risk_data": checks["risk_data"]},
-        )
-        # #endregion
         try:
             models = self._session.get(f"{self.base_url}/forecast/models", timeout=5).json()
             checks["real_model"] = any(
                 m.get("authenticity") == "REAL" and m.get("status") == "VALIDATED"
                 for m in models.get("models", [])
             )
-            # #region agent log
-            _dbg(
-                "D",
-                "api_client.py:get_pipeline_status",
-                "real_model check",
-                {
-                    "real_model": checks["real_model"],
-                    "model_count": len(models.get("models", [])),
-                    "models": [
-                        {
-                            "name": m.get("name"),
-                            "authenticity": m.get("authenticity"),
-                            "status": m.get("status"),
-                        }
-                        for m in models.get("models", [])[:8]
-                    ],
-                },
-            )
-            # #endregion
-        except requests.RequestException as e:
+        except requests.RequestException:
             checks["real_model"] = False
-            # #region agent log
-            _dbg(
-                "D",
-                "api_client.py:get_pipeline_status",
-                "forecast models unreachable",
-                {"error": str(e)},
-            )
-            # #endregion
         try:
             copilot_url = os.environ.get("COPILOT_API_URL", "http://localhost:8005")
-            copilot = self._session.get(f"{copilot_url}/health", timeout=5).json()
-            checks["copilot"] = copilot.get("status") == "healthy" and copilot.get(
-                "ollama", {}
-            ).get("ok", False)
-            # #region agent log
-            _dbg(
-                "E",
-                "api_client.py:get_pipeline_status",
-                "copilot check",
-                {"copilot_url": copilot_url, "copilot": copilot, "ok": checks["copilot"]},
-            )
-            # #endregion
-        except requests.RequestException as e:
+            copilot = self._session.get(f"{copilot_url}/health/live", timeout=3).json()
+            checks["copilot"] = copilot.get("status") in {"healthy", "alive", True}
+        except requests.RequestException:
             checks["copilot"] = False
-            # #region agent log
-            _dbg("E", "api_client.py:get_pipeline_status", "copilot unreachable", {"error": str(e)})
-            # #endregion
         try:
             rag = self._session.get(
                 os.environ.get("RAG_SERVICE_URL", "http://localhost:8004") + "/health",
                 timeout=5,
             ).json()
             checks["rag"] = rag.get("status") == "healthy"
-            # #region agent log
-            _dbg(
-                "B",
-                "api_client.py:get_pipeline_status",
-                "rag check",
-                {"rag": rag, "ok": checks["rag"]},
-            )
-            # #endregion
-        except requests.RequestException as e:
+        except requests.RequestException:
             checks["rag"] = False
-            # #region agent log
-            _dbg("B", "api_client.py:get_pipeline_status", "rag unreachable", {"error": str(e)})
-            # #endregion
-        # #region agent log
-        _dbg(
-            "A",
-            "api_client.py:get_pipeline_status",
-            "final pipeline status",
-            {
-                "live": all(checks.values()),
-                "checks": checks,
-                "failed": [n for n, ok in checks.items() if not ok],
-            },
-        )
-        # #endregion
         return {"live": all(checks.values()), "checks": checks}
 
     # ------------------------------------------------------------------
@@ -1108,30 +1024,6 @@ class DashboardAPI:
             resp.raise_for_status()
             data = resp.json()
             results = data.get("results", [])
-            # #region agent log
-            _dbg_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug-fb7a7b.log"
-            )
-            try:
-                import json as _json
-
-                with open(_dbg_path, "a", encoding="utf-8") as _f:
-                    _f.write(
-                        _json.dumps(
-                            {
-                                "sessionId": "fb7a7b",
-                                "hypothesisId": "R",
-                                "location": "api_client.search_knowledge",
-                                "message": "rag results",
-                                "data": {"count": len(results), "query": query[:80]},
-                                "timestamp": int(time.time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass
-            # #endregion
             return [
                 {
                     "rank": int(r.get("rank", i + 1)),
@@ -1207,30 +1099,6 @@ class DashboardAPI:
             resp = self._session.get(f"{self.base_url}/feedback/stats", timeout=self.timeout)
             resp.raise_for_status()
             stats = resp.json()
-            # #region agent log
-            _dbg_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug-fb7a7b.log"
-            )
-            try:
-                import json as _json
-
-                with open(_dbg_path, "a", encoding="utf-8") as _f:
-                    _f.write(
-                        _json.dumps(
-                            {
-                                "sessionId": "fb7a7b",
-                                "hypothesisId": "F",
-                                "location": "api_client.get_feedback_data",
-                                "message": "feedback stats",
-                                "data": stats,
-                                "timestamp": int(time.time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass
-            # #endregion
             # Try recent entries endpoint if added; otherwise keep empty list when total is 0.
             list_resp = self._session.get(f"{self.base_url}/feedback/entries", timeout=self.timeout)
             if list_resp.status_code == 200:
@@ -1345,6 +1213,121 @@ class DashboardAPI:
                 }
             )
         return rows
+
+    def list_disaster_events(self) -> list[dict[str, Any]]:
+        try:
+            resp = requests.get(f"{self.base_url}/disaster/events", timeout=self.timeout)
+            if resp.ok:
+                return list(resp.json().get("items") or [])
+        except requests.RequestException as exc:
+            logger.warning("Disaster events unavailable: %s", exc)
+        return []
+
+    def list_disaster_jobs(self, event_id: str | None = None) -> list[dict[str, Any]]:
+        try:
+            params = {"event_id": event_id} if event_id else None
+            resp = requests.get(
+                f"{self.base_url}/disaster/jobs", params=params, timeout=self.timeout
+            )
+            if resp.ok:
+                return list(resp.json().get("items") or [])
+        except requests.RequestException as exc:
+            logger.warning("Disaster jobs unavailable: %s", exc)
+        return []
+
+    def get_disaster_job(self, job_id: str) -> dict[str, Any]:
+        try:
+            resp = requests.get(f"{self.base_url}/disaster/jobs/{job_id}", timeout=self.timeout)
+            if resp.ok:
+                return resp.json()
+        except requests.RequestException as exc:
+            logger.warning("Disaster job unavailable: %s", exc)
+        return {"available": False}
+
+    def get_disaster_assessment(self, assessment_id: str) -> dict[str, Any]:
+        try:
+            resp = requests.get(
+                f"{self.base_url}/disaster/assessments/{assessment_id}", timeout=self.timeout
+            )
+            if resp.ok:
+                return resp.json()
+        except requests.RequestException as exc:
+            logger.warning("Disaster assessment unavailable: %s", exc)
+        return {"available": False}
+
+    def get_disaster_geojson(self, assessment_id: str, layer: str = "buildings") -> dict[str, Any]:
+        try:
+            resp = requests.get(
+                f"{self.base_url}/disaster/assessments/{assessment_id}/geojson",
+                params={"layer": layer, "limit": 2000},
+                timeout=self.timeout,
+            )
+            if resp.ok:
+                return resp.json()
+        except requests.RequestException as exc:
+            logger.warning("Disaster geojson unavailable: %s", exc)
+        return {"type": "FeatureCollection", "features": []}
+
+    def list_disaster_models(self) -> dict[str, Any]:
+        try:
+            resp = requests.get(f"{self.base_url}/disaster/models", timeout=self.timeout)
+            if resp.ok:
+                return resp.json()
+        except requests.RequestException as exc:
+            logger.warning("Disaster models unavailable: %s", exc)
+        return {"items": [], "available": False}
+
+    def get_twin_overlay(self, location_id: str) -> dict[str, Any]:
+        try:
+            resp = requests.get(
+                f"{self.base_url}/disaster/twin/{location_id}", timeout=self.timeout
+            )
+            if resp.ok:
+                return resp.json()
+        except requests.RequestException as exc:
+            logger.warning("Twin overlay unavailable: %s", exc)
+        return {"available": False, "location_id": location_id}
+
+    def create_disaster_event(self, payload: dict[str, Any]) -> dict[str, Any]:
+        resp = requests.post(f"{self.base_url}/disaster/events", json=payload, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.json()
+
+    def upload_disaster_scene(
+        self, event_id: str, file_bytes: bytes, filename: str, license_name: str
+    ) -> dict[str, Any]:
+        resp = requests.post(
+            f"{self.base_url}/disaster/ingest/upload",
+            files={"file": (filename, file_bytes, "image/tiff")},
+            data={"event_id": event_id, "license": license_name},
+            timeout=max(self.timeout, 60),
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def create_disaster_job(self, event_id: str, twin_sync: bool = True) -> dict[str, Any]:
+        resp = requests.post(
+            f"{self.base_url}/disaster/jobs",
+            json={"event_id": event_id, "twin_sync": twin_sync},
+            timeout=self.timeout,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_disaster_report(
+        self, assessment_id: str, location: str, fmt: str = "markdown"
+    ) -> bytes:
+        try:
+            resp = requests.get(
+                f"{self.base_url}/disaster/assessments/{assessment_id}/report",
+                params={"location": location, "fmt": fmt},
+                timeout=self.timeout,
+            )
+            if resp.ok:
+                return resp.content
+        except requests.RequestException as exc:
+            logger.warning("Disaster report unavailable: %s", exc)
+        return b"No verified disaster assessment is available.\n"
 
 
 def create_api_client() -> DashboardAPI:

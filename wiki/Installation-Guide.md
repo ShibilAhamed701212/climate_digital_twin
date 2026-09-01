@@ -49,6 +49,9 @@ docker compose up --build -d
 
 # Verify services are running
 docker compose ps
+
+# Optional: Disaster Intelligence Engine (:8008)
+docker compose --profile disaster up --build -d
 ```
 
 ### Method 3: Make Commands

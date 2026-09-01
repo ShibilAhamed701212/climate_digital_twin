@@ -9,12 +9,15 @@ Endpoints:
   POST /scenarios/simulate      — apply a what-if scenario
   POST /rollback                — rollback twin to a specific version
   GET  /state/version-history   — get version history for a location
+  POST /overlay-pointer         — upsert a DIE assessment pointer (not TwinState)
+  GET  /overlay-pointer/{id}    — read a DIE assessment pointer
 """
 
 from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -22,6 +25,9 @@ from pydantic import BaseModel, Field
 
 from simulator.engine.twin_engine import DigitalTwinEngine
 from simulator.entities.climate_entity import ClimateEntity
+from simulator.repository.overlay_pointer_store import OverlayPointerStore
+
+_overlay_store = OverlayPointerStore()
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +70,7 @@ class SyncRequest(BaseModel):
     min_temp: float = 18.0
     risk_score: float = 0.0
     prediction_confidence: float = 0.0
-    data_source: str = "IMD"
+    data_source: str = "observation"
 
 
 class SyncResponse(BaseModel):
@@ -108,7 +114,7 @@ async def lifespan(_app: FastAPI):
     _engine = None
 
 
-app = FastAPI(title="Twin State Manager API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Twin State Manager API", version="2.1.0", lifespan=lifespan)
 
 
 def _get_engine() -> DigitalTwinEngine:
@@ -122,7 +128,7 @@ def _get_engine() -> DigitalTwinEngine:
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "twin-state-mgr", "version": "1.0.0"}
+    return {"status": "healthy", "service": "twin-state-mgr", "version": "2.1.0"}
 
 
 # ── State Endpoints ──────────────────────────────────────────────
@@ -161,7 +167,7 @@ def sync_observation(req: SyncRequest) -> dict[str, Any]:
         latitude=req.latitude,
         longitude=req.longitude,
         district=req.district,
-        timestamp=req.timestamp or __import__("datetime").datetime.now().isoformat(),
+        timestamp=req.timestamp or datetime.now().isoformat(),
         rainfall=req.rainfall,
         max_temp=req.max_temp,
         min_temp=req.min_temp,
@@ -189,6 +195,40 @@ def get_forecast_state(location_id: str, horizon: str | None = None) -> dict[str
             detail=f"No forecast state found for location '{location_id}'",
         )
     return StateResponse(**state).model_dump()
+
+
+class ForecastApplyRequest(BaseModel):
+    location_id: str
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    district: str = ""
+    timestamp: str | None = None
+    rainfall: float = 0.0
+    max_temp: float = 25.0
+    min_temp: float = 18.0
+    prediction_confidence: float = 0.0
+
+
+@app.post("/forecast/apply", response_model=SyncResponse, status_code=201)
+def apply_forecast_state(req: ForecastApplyRequest) -> dict[str, Any]:
+    engine = _get_engine()
+    entity = ClimateEntity(
+        location_id=req.location_id,
+        latitude=req.latitude,
+        longitude=req.longitude,
+        district=req.district,
+        timestamp=req.timestamp or datetime.now().isoformat(),
+        rainfall=req.rainfall,
+        max_temp=req.max_temp,
+        min_temp=req.min_temp,
+        prediction_confidence=req.prediction_confidence,
+        data_source="forecast",
+    )
+    try:
+        result = engine.apply_forecast(entity)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    return SyncResponse(**result).model_dump()
 
 
 # ── Scenarios ────────────────────────────────────────────────────
@@ -227,3 +267,28 @@ def rollback_state(req: RollbackRequest) -> dict[str, Any]:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     return RollbackResponse(**result).model_dump()
+
+
+class OverlayPointerRequest(BaseModel):
+    location_id: str
+    assessment_id: str
+    event_id: str
+    disaster_type: str
+    href_assessment: str
+    updated_at: str
+    source: str = "disaster-engine"
+    kpis: dict[str, Any] | None = None
+
+
+@app.post("/overlay-pointer")
+def upsert_overlay_pointer(req: OverlayPointerRequest) -> dict[str, Any]:
+    _overlay_store.upsert(req.model_dump())
+    return {"ok": True}
+
+
+@app.get("/overlay-pointer/{location_id}")
+def get_overlay_pointer(location_id: str) -> dict[str, Any]:
+    row = _overlay_store.get(location_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="overlay pointer not found")
+    return row

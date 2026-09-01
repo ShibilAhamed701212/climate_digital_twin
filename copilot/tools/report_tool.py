@@ -43,7 +43,7 @@ class ReportGeneratorTool(BaseTool):
             }
 
     def validate(self, **kwargs: Any) -> tuple[bool, str]:
-        valid_types = ["summary", "detailed", "risk", "forecast"]
+        valid_types = ["summary", "detailed", "risk", "forecast", "disaster"]
         if "report_type" in kwargs and kwargs["report_type"] not in valid_types:
             return False, f"report_type must be one of {valid_types}"
         if "location" in kwargs and not isinstance(kwargs["location"], str):

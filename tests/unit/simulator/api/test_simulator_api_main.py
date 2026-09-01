@@ -56,7 +56,7 @@ class TestHealth:
         data = resp.json()
         assert data["status"] == "healthy"
         assert data["service"] == "twin-state-mgr"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == "2.1.0"
 
 
 class TestGetCurrentState:
@@ -223,3 +223,24 @@ class TestRollback:
         )
         assert resp.status_code == 422
         assert "Invalid version" in resp.json()["detail"]
+
+
+class TestOverlayPointer:
+    def test_upsert_and_get(self, client):
+        payload = {
+            "location_id": "KA-HAS-001",
+            "assessment_id": "A1",
+            "event_id": "E1",
+            "disaster_type": "flood",
+            "href_assessment": "/disaster/assessments/A1",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+        resp = client.post("/overlay-pointer", json=payload)
+        assert resp.status_code == 200
+        got = client.get("/overlay-pointer/KA-HAS-001")
+        assert got.status_code == 200
+        assert got.json()["assessment_id"] == "A1"
+
+    def test_missing(self, client):
+        resp = client.get("/overlay-pointer/missing-loc")
+        assert resp.status_code == 404

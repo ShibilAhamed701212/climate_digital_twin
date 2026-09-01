@@ -95,6 +95,7 @@ class ResponseGenerator:
             IntentType.RISK: self._format_risk,
             IntentType.RAG_QUERY: self._format_rag,
             IntentType.REPORT: self._format_report,
+            IntentType.DISASTER: self._format_disaster,
         }
         return generators.get(intent, self._format_default)
 
@@ -116,8 +117,10 @@ class ResponseGenerator:
                 loc = r.data.get("location", "Karnataka")
                 lines = [f"**{loc} — {len(forecasts)}-Day Forecast**", ""]
                 for f in forecasts:
+                    humid = f.get("humidity_pct")
+                    humid_part = f", Humidity {humid}%" if humid is not None else ""
                     lines.append(
-                        f"Day {f['day']} ({f['date']}): Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rainfall {f['rainfall_mm']}mm, Humidity {f['humidity_pct']}%"
+                        f"Day {f['day']} ({f['date']}): Max {f['max_temp']}°C, Min {f['min_temp']}°C, Rainfall {f['rainfall_mm']}mm{humid_part}"
                     )
                 return "\n".join(lines)
         return "Forecast data unavailable."
@@ -131,7 +134,7 @@ class ResponseGenerator:
                     f"- Max Temperature: {s['max_temp']}°C\n"
                     f"- Min Temperature: {s['min_temp']}°C\n"
                     f"- Rainfall: {s['rainfall_mm']}mm\n"
-                    f"- Humidity: {s['humidity_pct']}%\n"
+                    f"- Humidity: {s.get('humidity_pct', 'N/A')}%\n"
                     f"- Last Updated: {s['timestamp']}"
                 )
         return "Twin state unavailable."
@@ -183,7 +186,6 @@ class ResponseGenerator:
         for r in results:
             if r.success and r.tool_name == "report_generator" and "report" in r.data:
                 return f"**Generated Report**\n\n{r.data['report']}"
-        # Fall back to combining available data
         parts = ["**Combined Climate Report**", ""]
         for r in results:
             if r.success:
@@ -196,6 +198,51 @@ class ResponseGenerator:
                     ra = r.data["risk_assessment"]
                     parts.append(f"Risk: Composite {ra['composite_risk']}/100 ({ra['category']})")
         return "\n".join(parts)
+
+    def _format_disaster(self, _intent: IntentResult, results: list[ToolResult]) -> str:
+        for r in results:
+            if not r.success:
+                continue
+            data = r.data
+            if data.get("available") is False:
+                return data.get("error") or "No verified disaster assessment is available."
+            overlay = data.get("overlay") or {}
+            kpis = overlay.get("kpis") or data.get("kpis") or {}
+            flags = overlay.get("quality_flags") or data.get("quality_flags") or []
+            lines = [
+                f"**Disaster overlay — {data.get('location')}**",
+                "",
+                f"- Assessment: {overlay.get('assessment_id', 'n/a')}",
+                f"- Flood area km²: {kpis.get('flood_area_km2', 'unavailable')}",
+                f"- Buildings in water: {kpis.get('buildings_in_water', 'unavailable')}",
+                f"- Hospitals in water: {kpis.get('hospitals_in_water', 'unavailable')}",
+                f"- Population exposed: {kpis.get('pop_exposed_est') if kpis.get('pop_exposed_est') is not None else 'unavailable'}",
+                f"- Quality flags: {', '.join(flags) if flags else 'none'}",
+                f"- Authenticity: {overlay.get('authenticity') or data.get('authenticity') or 'unspecified'}",
+                f"- Models: {overlay.get('model_cards') or data.get('model_cards') or 'threshold'}",
+                f"- model_id: {data.get('model_id') or overlay.get('model_id') or (overlay.get('model_cards') or {}).get('flood')}",
+                f"- runtime: {data.get('runtime') or overlay.get('runtime') or (overlay.get('model_cards') or {}).get('runtime')}",
+                f"- confidence_type: {data.get('confidence_type') or overlay.get('confidence_type') or (overlay.get('model_cards') or {}).get('confidence_type')}",
+                f"- sensor: {data.get('sensor') or overlay.get('sensor')}",
+                f"- polarization: {data.get('polarization') or overlay.get('polarization')}",
+                f"- fallback_used: {data.get('fallback_used') or overlay.get('fallback_used')}",
+                f"- provenance: {data.get('provenance') or overlay.get('model_cards') or {}}",
+                f"- Source: GET /disaster/twin/{data.get('location')} "
+                f"(assessment {overlay.get('assessment_id', 'n/a')})",
+                f"- Processing: {data.get('processing_ms', 'n/a')} ms",
+                "",
+                "Counts are copied from that assessment (inundation ∩ OSM), "
+                "not independent measurements or structural damage grades.",
+            ]
+            if data.get("relief"):
+                lines.append("")
+                lines.append("Relief ranks (weighted_v0):")
+                for zone in (data["relief"].get("zones") or [])[:5]:
+                    lines.append(
+                        f"- {zone.get('location_id')}: score={zone.get('score')} rank={zone.get('rank')}"
+                    )
+            return "\n".join(lines)
+        return "No verified disaster assessment is available."
 
     def _format_default(self, intent: IntentResult, results: list[ToolResult]) -> str:
         return f"Processed your {intent.intent.value} request. Data retrieved from {len(results)} sources."

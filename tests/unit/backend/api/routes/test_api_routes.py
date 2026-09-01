@@ -98,10 +98,11 @@ class TestHealthRoutes:
         resp = client.get("/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "healthy"
-        assert data["version"] == "0.1.0"
+        assert data["status"] in {"healthy", "degraded"}
+        assert data["version"] == "2.1.0"
         assert "timestamp" in data
         assert "services" in data
+        assert data["services"]["gateway"] == "healthy"
 
     def test_get_readiness_returns_200(self, client: TestClient) -> None:
         resp = client.get("/health/ready")

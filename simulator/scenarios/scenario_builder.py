@@ -75,6 +75,12 @@ PRESET_SCENARIOS: dict[str, dict[str, Any]] = {
         "scenario_type": "extreme_event",
         "parameters": {"event_type": "drought", "rainfall_change_pct": -80.0, "duration_days": 30},
     },
+    "post_disaster_recovery": {
+        "name": "Post-disaster recovery",
+        "description": "Reads DIE assessment KPIs as exogenous recovery inputs (climate physics unchanged)",
+        "scenario_type": "post_disaster_recovery",
+        "parameters": {"assessment_id": "pending", "rainfall_change_pct": 0.0},
+    },
 }
 
 

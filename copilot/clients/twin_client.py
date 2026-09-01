@@ -8,7 +8,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-TWIN_SERVICE_URL = os.environ.get("TWIN_SERVICE_URL", "http://twin-state-mgr:8001")
+TWIN_SERVICE_URL = os.environ.get("TWIN_SERVICE_URL", "http://localhost:8001")
 CLIENT_TIMEOUT = float(os.environ.get("CLIENT_TIMEOUT", "5"))
 
 

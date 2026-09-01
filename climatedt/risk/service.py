@@ -135,42 +135,6 @@ class RiskService:
             longitude=_longitude,
         )
 
-        # #region agent log
-        try:
-            import json as _json
-            import time as _time
-            from pathlib import Path as _Path
-
-            _p = _Path("debug-fb7a7b.log")
-            with _p.open("a", encoding="utf-8") as _f:
-                _f.write(
-                    _json.dumps(
-                        {
-                            "sessionId": "fb7a7b",
-                            "hypothesisId": "A",
-                            "location": "RiskService.assess_location",
-                            "message": "enriched twin inputs",
-                            "data": {
-                                "location_id": location_id,
-                                "max_temp": twin_inputs.max_temp,
-                                "min_temp": twin_inputs.min_temp,
-                                "rainfall": twin_inputs.rainfall,
-                                "dry_period_days": twin_inputs.dry_period_days,
-                                "consecutive_hot_days": twin_inputs.consecutive_hot_days,
-                                "multi_day_accumulation": twin_inputs.multi_day_accumulation,
-                                "seasonal_anomaly": twin_inputs.seasonal_anomaly,
-                                "data_source": twin_inputs.data_source,
-                                "authenticity": twin_inputs.authenticity,
-                            },
-                            "timestamp": int(_time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-        except Exception:
-            pass
-        # #endregion
-
         assessments, _ = self._evaluator.process_and_store(
             twin_inputs=twin_inputs,
             forecast_inputs=None,
@@ -209,6 +173,7 @@ class RiskService:
             "input_seasonal_anomaly": str(twin_inputs.seasonal_anomaly),
             "input_data_source": str(twin_inputs.data_source),
         }
+        self._attach_disaster_metadata(result, location_id)
         return result
 
     async def _enrich_twin_inputs(
@@ -427,6 +392,39 @@ class RiskService:
                     "method": cfg.get("method", ""),
                 }
         return {"supported": supported, "unsupported": unsupported}
+
+    def _attach_disaster_metadata(self, result: _Assessment, location_id: str) -> None:
+        import os
+
+        if os.environ.get("RISK_DIE_FUSION", "false").lower() not in {"1", "true", "yes", "on"}:
+            return
+        try:
+            from climatedt.disaster.client import DisasterHttpClient
+
+            overlay = DisasterHttpClient().twin_overlay(location_id)
+        except Exception as exc:
+            logger.debug("DIE overlay fetch skipped: %s", exc)
+            result.metadata["disaster_available"] = "false"
+            return
+        available = bool(overlay.get("available"))
+        result.metadata["disaster_available"] = "true" if available else "false"
+        if not available:
+            return
+        kpis = overlay.get("kpis") or {}
+        frac = kpis.get("flood_area_km2")
+        result.metadata["disaster_assessment_id"] = str(overlay.get("assessment_id") or "")
+        result.metadata["observed_flood_area_km2"] = "" if frac is None else str(frac)
+        result.metadata["observed_flood_fraction"] = str(
+            (overlay.get("kpis") or {}).get("flood_fraction", "")
+        )
+        zonal_frac = None
+        # Prefer per-location fraction when present on overlay kpis
+        if "flood_fraction" in kpis and kpis["flood_fraction"] is not None:
+            zonal_frac = kpis["flood_fraction"]
+        if zonal_frac is not None:
+            result.metadata["observed_flood_fraction"] = str(zonal_frac)
+        if os.environ.get("RISK_DIE_ADJUST_SCORE", "false").lower() in {"1", "true", "yes"}:
+            logger.warning("RISK_DIE_ADJUST_SCORE is set but score mutation is disabled in V2.0")
 
     def _empty_assessment(self, location_id: str) -> _Assessment:
         from risk.models.hazard import DataQuality, Freshness, Severity

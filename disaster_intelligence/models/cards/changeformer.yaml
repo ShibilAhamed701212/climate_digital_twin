@@ -1,0 +1,15 @@
+id: changeformer
+task: change_detection
+version: "0"
+framework: changeformer-v6
+license: MIT (weights non-commercial research; contact authors for commercial use)
+sensor: optical RGB
+dataset: LEVIR-CD
+input: paired RGB 256x256 before/after
+output: binary change mask
+enabled: false
+reason: not a flood mapper; architecture not vendored
+weights_env: MODEL_WEIGHTS_CHANGEFORMER
+source_url: https://github.com/wgcban/ChangeFormer/releases/tag/v0.1.0
+paper_url: https://arxiv.org/abs/2202.11901
+note: Do not use as MODEL_FLOOD. Optional download of official LEVIR zip; inference requires ChangeFormerV6 net_G.

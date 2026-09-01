@@ -10,6 +10,7 @@ services:
       - ./simulator/configs:/app/simulator/configs
     environment:
       - CLIMATEDT_DATA_DIR=${CLIMATEDT_DATA_DIR:-/app/data}
+      - TWIN_STORE_DIR=/app/data/twin_store
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
@@ -78,7 +79,11 @@ services:
       twin-state-mgr:
         condition: service_healthy
     volumes:
+      - twin_data:/app/data
       - ./simulator/configs:/app/simulator/configs
+    environment:
+      - TWIN_STORE_DIR=/app/data/twin_store
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
       interval: 30s
@@ -206,6 +211,10 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - OLLAMA_TIMEOUT=300
       - API_BASE_URL=http://fastapi-gateway:8000
+      - FORECAST_ENGINE_URL=http://forecast-engine:8006
+      - RISK_SERVICE_URL=http://risk-engine:8003
+      - TWIN_SERVICE_URL=http://twin-state-mgr:8001
+      - RAG_SERVICE_URL=http://rag-service:8004
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - GATEWAY_HOST=fastapi-gateway
       - GATEWAY_PORT=8000
@@ -219,7 +228,7 @@ services:
       scenario-engine:
         condition: service_started
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health/live')"]
       interval: 30s
       timeout: 10s
       start_period: 15s
@@ -249,8 +258,18 @@ services:
       - "${GATEWAY_PORT:-8000}:8000"
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - GATEWAY_CORS_ORIGINS=${GATEWAY_CORS_ORIGINS:-http://localhost:3000,http://localhost:8051}
+      - GATEWAY_CORS_ORIGINS=${GATEWAY_CORS_ORIGINS:-http://localhost:3000,http://localhost:8501}
       - GATEWAY_API_KEY_ENABLED=${GATEWAY_API_KEY_ENABLED:-false}
+      - TWIN_HEALTH_URL=http://twin-state-mgr:8001/health
+      - TWIN_ENGINE_URL=http://twin-state-mgr:8001
+      - FORECAST_HEALTH_URL=http://forecast-engine:8006/health
+      - SCENARIO_HEALTH_URL=http://scenario-engine:8002/health
+      - RISK_HEALTH_URL=http://risk-engine:8003/health
+      - RAG_HEALTH_URL=http://rag-service:8004/health
+      - COPILOT_HEALTH_URL=http://copilot-agent:8005/health/live
+      - DISASTER_ENGINE_URL=http://disaster-engine:8008
+      - DISASTER_HEALTH_URL=${DISASTER_HEALTH_URL:-}
+      - RATE_LIMIT_REDIS_URL=${RATE_LIMIT_REDIS_URL:-}
     depends_on:
       twin-state-mgr:
         condition: service_healthy
@@ -265,7 +284,7 @@ services:
       copilot-agent:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
       interval: 30s
       timeout: 10s
       start_period: 20s
@@ -292,10 +311,11 @@ services:
       context: .
       dockerfile: deployment/docker/Dockerfile.dashboard
     ports:
-      - "${DASHBOARD_PORT:-8051}:8501"
+      - "${DASHBOARD_PORT:-8501}:8501"
     environment:
       - API_BASE_URL=http://fastapi-gateway:8000
       - TWIN_STATE_URL=http://twin-state-mgr:8001
+      - FORECAST_ENGINE_URL=http://forecast-engine:8006
       - COPILOT_API_URL=http://copilot-agent:8005
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
@@ -404,6 +424,12 @@ services:
       - ./deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -445,6 +471,72 @@ services:
     networks:
       - twin_network
 
+  disaster-engine:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.disaster
+    profiles:
+      - disaster
+    ports:
+      - "127.0.0.1:${DISASTER_PORT:-8008}:8008"
+    volumes:
+      - disaster_data:/data/disaster
+      - disaster_models:/models
+      # Named volume stays the default /models tree. Optional host bind is /mnt/host-models
+      # (set HOST_MODEL_WEIGHTS_DIR=D:/ClimateDigitalTwin/models). The CPU DIE image has no
+      # torch; learned U-Net still requires the learned/GPU runtime, not this mount alone.
+      - ${HOST_MODEL_WEIGHTS_DIR:-./models/eo}:/mnt/host-models:ro
+      - ./config:/app/config
+    environment:
+      - DISASTER_DATA_DIR=/data/disaster
+      - TWIN_SERVICE_URL=http://twin-state-mgr:8001
+      - TWIN_POINTER_ENABLED=${TWIN_POINTER_ENABLED:-true}
+      - MODEL_FLOOD=${MODEL_FLOOD:-unet}
+      - MODEL_FLOOD_FALLBACK=${MODEL_FLOOD_FALLBACK:-none}
+      - MODEL_DEVICE=${MODEL_DEVICE:-auto}
+      - MODEL_RUNTIME=${MODEL_RUNTIME:-auto}
+      - GPU_ENABLED=${GPU_ENABLED:-false}
+      - MODEL_WEIGHTS_DIR=${MODEL_WEIGHTS_DIR:-/models}
+      - MODEL_WEIGHTS_UNET=${MODEL_WEIGHTS_UNET:-/mnt/host-models/flood/unet/model.pt}
+      - MODEL_WEIGHTS_SEGFORMER=${MODEL_WEIGHTS_SEGFORMER:-}
+      - MODEL_WEIGHTS_MASK2FORMER=${MODEL_WEIGHTS_MASK2FORMER:-}
+      - MODEL_WEIGHTS_CHANGEFORMER=${MODEL_WEIGHTS_CHANGEFORMER:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CDSE_USERNAME=${CDSE_USERNAME:-}
+      - CDSE_PASSWORD=${CDSE_PASSWORD:-}
+      - EARTHDATA_USERNAME=${EARTHDATA_USERNAME:-}
+      - EARTHDATA_PASSWORD=${EARTHDATA_PASSWORD:-}
+      - EARTHDATA_TOKEN=${EARTHDATA_TOKEN:-}
+      - SH_CLIENT_ID=${SH_CLIENT_ID:-}
+      - SH_CLIENT_SECRET=${SH_CLIENT_SECRET:-}
+      - STAC_PROVIDER=${STAC_PROVIDER:-cdse}
+      - STAC_FAILOVER=${STAC_FAILOVER:-false}
+      - DIE_API_KEY=${DIE_API_KEY:-}
+      - DIE_ALLOWED_ORIGINS=${DIE_ALLOWED_ORIGINS:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/health/live')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    restart: unless-stopped
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - twin_network
+
 volumes:
   twin_data:
   model_data:
@@ -452,6 +544,8 @@ volumes:
   ollama_data:
   report_data:
   redis_data:
+  disaster_data:
+  disaster_models:
 
 networks:
   twin_network:

@@ -1,4 +1,4 @@
-.PHONY: help install test lint format cov download-data pipeline train dashboard docker up down demo clean install-all
+.PHONY: help install test lint format cov download-data pipeline train dashboard docker up down demo clean install-all validate
 
 help:
 	@echo "Climate Digital Twin — Make Commands"
@@ -7,6 +7,7 @@ help:
 	@echo "  make install-all   — Install with all extras (dev + ollama)"
 	@echo "  make test          — Run all tests"
 	@echo "  make lint          — Run linter (ruff)"
+	@echo "  make validate      — mypy DIE, OpenAPI contract, compose config"
 	@echo "  make format        — Format code with ruff"
 	@echo "  make cov           — Run tests with coverage"
 	@echo "  make download-data — Download/generate required datasets"
@@ -14,7 +15,7 @@ help:
 	@echo "  make train         — Train forecasting models"
 	@echo "  make dashboard     — Launch dashboard locally"
 	@echo "  make docker        — Build Docker images"
-	@echo "  make up            — Start all services with Docker Compose"
+	@echo "  make up-disaster   — Start climate stack + Disaster Intelligence profile"
 	@echo "  make down          — Stop all services"
 	@echo "  make demo          — Full demo walkthrough"
 	@echo "  make clean         — Clean temporary files"
@@ -31,11 +32,16 @@ test:
 lint:
 	ruff check .
 
+validate:
+	python -m mypy disaster_intelligence --ignore-missing-imports
+	python scripts/validate_openapi.py
+	docker compose --profile disaster config --quiet
+
 format:
 	ruff format .
 
 cov:
-	pytest --cov=climatedt --cov=backend --cov-report=xml --cov-report=term
+	pytest --cov=climatedt --cov=backend --cov=disaster_intelligence --cov=copilot --cov=risk --cov-report=xml --cov-report=term
 
 download-data:
 	python scripts/download_data.py --dataset all
@@ -60,12 +66,10 @@ up:
 	@echo ""
 	@echo "Dashboard:        http://localhost:8501"
 	@echo "API Gateway:      http://localhost:8000"
-	@echo "Twin State Mgr:   http://localhost:8001"
-	@echo "Scenario Engine:  http://localhost:8002"
-	@echo "Risk Engine:      http://localhost:8003"
-	@echo "RAG Service:      http://localhost:8004"
-	@echo "Copilot Agent:    http://localhost:8005"
-	@echo "Forecast Engine:  http://localhost:8006"
+
+up-disaster:
+	docker compose --profile disaster up --build -d
+	@echo "Disaster Intelligence: http://localhost:8008"
 
 down:
 	docker compose down

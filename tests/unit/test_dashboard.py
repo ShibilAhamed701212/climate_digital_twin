@@ -37,7 +37,7 @@ class TestDashboardConfig:
         assert API_BASE_URL == "http://localhost:8000"
         assert KARNATAKA_BOUNDS["min_lat"] == 11.5
         assert PAGE_CONFIG["layout"] == "wide"
-        assert len(PAGES) == 10
+        assert len(PAGES) == 11
         assert len(PILOT_DISTRICTS) == 5
         assert len(SAMPLE_LOCATIONS) == 10
 
@@ -56,6 +56,7 @@ class TestDashboardConfig:
             "Knowledge Base",
             "Spatial Grid",
             "Feedback",
+            "Disaster Intelligence",
         ]
 
     def test_config_color_schemes(self):

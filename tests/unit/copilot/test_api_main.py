@@ -46,7 +46,7 @@ class TestAppCreation:
         from copilot.api.main import app
 
         assert app.title == "Climate Copilot API"
-        assert app.version == "1.0.0"
+        assert app.version == "2.1.0"
 
 
 class TestHealthEndpoint:

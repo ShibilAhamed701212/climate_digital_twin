@@ -49,6 +49,9 @@ Formats retrieved document chunks into clean markdown context prompts for LLM re
 | `government/` | Policy & Action Plans | Climate adaptation policies, disaster management guidelines |
 | `risk/` | Vulnerability Studies | Flood maps, drought mitigation frameworks, heatwave guidelines |
 | `research/` | Academic Literature | Climate change projections and regional impact studies |
+| `disaster/` | Disaster Intelligence | Sentinel-1 flood mapping notes, OSM inundation interpretation, NDMA flood response |
+
+To include the disaster collection, run `python scripts/index_knowledge_base.py` (scans `knowledge/documents/`).
 
 ---
 

@@ -69,6 +69,11 @@ Manages the knowledge base with document indexing, chunking, embedding, and retr
 
 **Key modules:** `knowledge/retriever/`, `knowledge/vector_store/`, `knowledge/pipelines/`
 
+### Disaster Intelligence Engine (`:8008`, Compose profile `disaster`)
+Optional origin for satellite inundation overlays. Gateway reverse-proxies `/disaster/*`. Twin climate parquet is unchanged; overlay pointers only.
+
+**Key modules:** `disaster_intelligence/`
+
 ### Copilot Agent (`:8005`)
 AI-powered conversational assistant. Classifies user intent, plans tool invocations, executes queries against backend services, and generates natural-language responses using Ollama (Qwen 3).
 
@@ -80,7 +85,7 @@ Unified API entry point. Routes requests to appropriate backend services, handle
 **Key modules:** `backend/api/`
 
 ### Streamlit Dashboard (`:8501`)
-10-page interactive frontend built with Streamlit. Features real-time charts (Plotly), spatial maps (Folium), scenario comparison, risk visualization, knowledge base exploration, and an AI chat interface.
+11-page interactive frontend built with Streamlit. Features real-time charts (Plotly), spatial maps (Folium), scenario comparison, risk visualization, knowledge base exploration, disaster overlays, and an AI chat interface.
 
 **Key modules:** `dashboard/page_views/`, `dashboard/services/api_client.py`
 

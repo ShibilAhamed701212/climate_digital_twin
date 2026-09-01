@@ -20,7 +20,7 @@ Returns overall service health status.
 {
   "status": "healthy",
   "timestamp": "2026-08-07T00:00:00Z",
-  "version": "0.1.0"
+  "version": "2.1.0"
 }
 ```
 
@@ -209,7 +209,17 @@ Submit user feedback on predictions or system behavior.
 
 ---
 
-## Error Responses
+## Disaster Intelligence
+
+### `GET /disaster/twin/{location_id}`
+Latest overlay summary for a twin location (`available: false` if none).
+
+### `POST /disaster/jobs`
+Queue a flood-extent + OSM assessment job. Origin service `:8008`; gateway reverse-proxies `/disaster/*`.
+
+Additional origin routes: `POST /disaster/events`, `POST /disaster/ingest/upload`, `POST /disaster/ingest/stac`, `POST /disaster/ingest/drop`, `GET /disaster/jobs` (`event_id`, `status`, pagination), `GET /disaster/jobs/{id}`, `GET /disaster/jobs/{id}/stream`, `GET /disaster/jobs/{id}/mask`, `GET /disaster/assessments/{id}`, `GET /disaster/assessments/{id}/geojson`, `GET /disaster/assessments/{id}/report` (`fmt=markdown|pdf|json|csv|geojson`), `POST /disaster/relief/plan`, `GET /disaster/models`, `GET /disaster/integrations`, `GET /metrics`.
+
+Enable with `docker compose --profile disaster up`.
 
 All error responses follow a consistent format:
 

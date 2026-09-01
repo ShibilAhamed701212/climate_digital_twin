@@ -82,6 +82,7 @@ PAGES = [
     {"title": "Knowledge Base", "file": "08_knowledge_base", "icon": "📚"},
     {"title": "Spatial Grid", "file": "09_spatial_grid", "icon": "🗺️"},
     {"title": "Feedback", "file": "10_feedback", "icon": "💬"},
+    {"title": "Disaster Intelligence", "file": "11_disaster_intelligence", "icon": "🛰️"},
 ]
 
 HORIZONS = {"1-Day": 1, "3-Day": 3, "7-Day": 7}

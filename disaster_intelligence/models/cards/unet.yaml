@@ -1,0 +1,19 @@
+id: unet
+task: flood_extent
+version: "0"
+framework: torch-smp-unet-resnet34
+license: MIT
+sensor: sentinel-1
+dataset: Sen1Floods11
+input: Sentinel-1 VV+VH sigma0 dB (2 channels), 512 tiles, per-channel z-score
+output: binary water mask (0 dry, 1 water)
+enabled: true
+enabled_when: weights and torch and segmentation_models_pytorch
+weights_env: MODEL_WEIGHTS_UNET
+source_url: https://huggingface.co/Governor6191/sar-flood-extent-unet-resnet34
+paper_url: https://openaccess.thecvf.com/content_CVPRW_2020/html/w11/Bonafilia_Sen1Floods11_A_Georeferenced_Dataset_to_Train_and_Test_Deep_Learning_CVPRW_2020_paper.html
+code_url: https://github.com/Governor6191/sar-flood-extent
+input_channels: 2
+classes: 2
+confidence_type: softmax_margin
+note: Upstream authors publish Sen1Floods11 test IoU; this deployment does not claim those metrics until reproduced here. Single-band uint8 ingest is not a valid input.

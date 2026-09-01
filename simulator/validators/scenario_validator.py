@@ -42,6 +42,8 @@ def validate_scenario_parameters(
         errors.extend(_validate_extreme_event(parameters, cfg))
     elif scenario_type == "combined":
         errors.extend(_validate_combined(parameters, cfg))
+    elif scenario_type == "post_disaster_recovery":
+        errors.extend(_validate_post_disaster_recovery(parameters))
     else:
         errors.append(f"Unsupported scenario type: {scenario_type}")
 
@@ -126,6 +128,14 @@ def _validate_combined(params: dict[str, Any], cfg: dict[str, Any]) -> list[str]
         sp = sub.get("parameters", {})
         sub_errors = validate_scenario_parameters(st, sp)
         errors.extend(f"sub[{i}]: {e}" for e in sub_errors)
+    return errors
+
+
+def _validate_post_disaster_recovery(params: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    assessment_id = params.get("assessment_id")
+    if not assessment_id or not isinstance(assessment_id, str):
+        errors.append("assessment_id is required for post_disaster_recovery")
     return errors
 
 

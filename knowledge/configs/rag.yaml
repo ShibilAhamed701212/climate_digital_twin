@@ -6,7 +6,7 @@ rag:
 
 retrieval:
   top_k: 5
-  score_threshold: 0.5
+  score_threshold: 0.0
   enable_metadata_filtering: true
 
 vector_store:

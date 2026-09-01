@@ -23,6 +23,14 @@ def render(api: DashboardAPI, filters: dict) -> None:
     current = api.get_current_state(location_id)
     forecasts = api.get_forecast(location_id, horizon=horizon)
 
+    # Show fallback notice if fewer predictions than requested
+    if forecasts and len(forecasts) < horizon:
+        st.info(
+            f"Showing {len(forecasts)} of {horizon} requested days. "
+            f"Full multi-day forecast unavailable via gateway (model loading issue); "
+            f"using direct LSTM engine prediction."
+        )
+
     col1, col2 = st.columns([3, 2])
 
     with col1:
@@ -42,17 +50,23 @@ def render(api: DashboardAPI, filters: dict) -> None:
                 f"{latest.get(variable_to_field(variable), 0):.1f}",
                 help_text=f"Day {horizon} forecast",
             )
+            conf = latest.get("prediction_confidence", 0)
+            conf_label = f"{conf:.2f}" if conf > 0 else "N/A (model fallback)"
             metric_card(
                 "Confidence",
-                f"{latest.get('prediction_confidence', 0):.2f}",
+                conf_label,
                 help_text="Model confidence (0-1)",
             )
+            model_src = latest.get("model_id", "") or latest.get("data_source", "")
+            if model_src:
+                st.caption(f"Model: {model_src}")
             st.divider()
             st.subheader("Day-by-Day")
             for i, f in enumerate(forecasts):
                 val = f.get(variable_to_field(variable), 0)
-                conf = f.get("prediction_confidence", 0)
-                st.markdown(f"**Day {i + 1}:** {val:.1f} (confidence: {conf:.2f})")
+                day_conf = f.get("prediction_confidence", 0)
+                conf_str = f"{day_conf:.2f}" if day_conf > 0 else "N/A"
+                st.markdown(f"**Day {i + 1}:** {val:.1f} (confidence: {conf_str})")
 
     st.divider()
     st.subheader("Forecast Confidence Trend")

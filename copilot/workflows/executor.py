@@ -40,7 +40,7 @@ class Executor:
                     )
                 )
             except Exception as e:
-                elapsed = (time.time() - start) * 1000
+                elapsed = (time.perf_counter() - start) * 1000
                 results.append(
                     ToolResult(
                         tool_name=step.tool_name,

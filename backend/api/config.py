@@ -30,17 +30,31 @@ class GatewayConfig:
             "GATEWAY_CORS_ORIGINS", "http://localhost:3000,http://localhost:8501"
         ).split(",")
     )
-    api_key_enabled: bool = field(default=True)
+    api_key_enabled: bool = field(
+        default_factory=lambda: os.environ.get("GATEWAY_API_KEY_ENABLED", "false").lower() == "true"
+    )
     api_key: str = field(default_factory=lambda: os.environ.get("GATEWAY_API_KEY", ""))
     docs_url: str = "/docs"
     openapi_url: str = "/openapi.json"
     app_title: str = "Climate Digital Twin API"
-    app_version: str = "0.1.0"
+    app_version: str = "2.1.0"
     app_description: str = (
         "Unified REST API for the Climate Digital Twin platform. "
         "Provides endpoints for risk assessment, scenario simulation, "
         "forecasting, RAG knowledge retrieval, feedback capture, "
-        "and digital twin state management."
+        "digital twin state management, and disaster intelligence."
+    )
+    disaster_engine_url: str = field(
+        default_factory=lambda: os.environ.get("DISASTER_ENGINE_URL", "http://127.0.0.1:8008")
+    )
+    disaster_proxy_timeout_s: float = field(
+        default_factory=lambda: float(os.environ.get("DISASTER_PROXY_TIMEOUT_S", "120"))
+    )
+    twin_engine_url: str = field(
+        default_factory=lambda: os.environ.get("TWIN_ENGINE_URL", "http://127.0.0.1:8001")
+    )
+    twin_proxy_timeout_s: float = field(
+        default_factory=lambda: float(os.environ.get("TWIN_PROXY_TIMEOUT_S", "120"))
     )
 
 

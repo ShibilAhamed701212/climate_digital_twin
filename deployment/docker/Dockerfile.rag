@@ -1,6 +1,8 @@
 FROM python:3.11-slim
+LABEL org.opencontainers.image.version="2.1.0"
 WORKDIR /app
 COPY pyproject.toml .
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir "fastapi>=0.104.0" uvicorn pydantic pyyaml sentence-transformers faiss-cpu "numpy>=1.24" "pandas>=2.0"
 COPY knowledge/ ./knowledge/
 COPY config/ ./config/

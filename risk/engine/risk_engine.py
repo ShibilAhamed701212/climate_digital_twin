@@ -3,6 +3,8 @@
 Coordinates scoring modules, SHAP explainability, and report generation.
 """
 
+import asyncio
+import concurrent.futures
 import logging
 from typing import Any
 
@@ -232,6 +234,21 @@ class RiskEngine:
             weights=self.composite_config.get("weights"),
         )
 
+    @staticmethod
+    def _run_coroutine_sync(coro: Any) -> Any:
+        """Run a coroutine to completion from synchronous code.
+
+        Safe to call both with and without a running event loop:
+        asyncio.run() raises when called inside one (e.g. from the async
+        risk service), so execute on a worker thread in that case.
+        """
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, coro).result()
+
     def assess_agriculture_risk(
         self,
         location_id: str,
@@ -240,9 +257,7 @@ class RiskEngine:
         if not features:
             return None
         model = AgricultureRiskModel()
-        import asyncio
-
-        return asyncio.run(model.assess(location_id=location_id, **features))
+        return self._run_coroutine_sync(model.assess(location_id=location_id, **features))
 
     def _generate_explanation(
         self,

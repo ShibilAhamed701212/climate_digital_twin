@@ -1,0 +1,17 @@
+# Optional overlay: docker compose --profile disaster -f docker-compose.yml -f docker-compose.gpu.yml up
+# Requires an NVIDIA GPU and the NVIDIA Container Toolkit.
+# Learned U-Net still needs torch+smp in the image (not in the CPU Dockerfile).
+# TensorRT/OpenVINO/ONNX Runtime GPU are optional; missing accelerators fall back to CPU/torch.
+services:
+  disaster-engine:
+    environment:
+      - GPU_ENABLED=true
+      - MODEL_DEVICE=cuda
+      - MODEL_RUNTIME=auto
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

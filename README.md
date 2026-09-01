@@ -12,6 +12,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://docs.docker.com/compose/)
 [![Code Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen.svg)](https://github.com/ShibilAhamed701212/climate_digital_twin)
+[![Version](https://img.shields.io/badge/version-2.1.0--rc.1-blue.svg)](CHANGELOG.md)
 
 </div>
 
@@ -28,11 +29,11 @@ Climate Digital Twin is a full-stack platform that creates a **digital replica o
 | **🔄 Digital Twin State** | Versioned, observable replica of regional climate state with real-time data synchronization |
 | **📈 Multi-Model Forecasting** | Ensemble of 8 model architectures (LSTM, Transformer, XGBoost, Prophet, Baseline, plus simplified implementations inspired by iTransformer, PatchTST, and TimeMixer) |
 | **🔮 Scenario Simulation** | Monte Carlo simulation engine with perturbation models for what-if climate scenarios |
-| **⚠️ Climate Risk Assessment** | Automated heat, flood, and drought risk scoring with SHAP explainability |
+| **⚠️ Climate Risk Assessment** | Automated heat, flood, and drought risk scoring with deterministic feature attribution |
 | **📚 Knowledge Base (RAG)** | FAISS vector store with hybrid semantic + BM25 search over climate documents |
 | **🤖 AI Copilot** | Conversational AI assistant powered by Ollama (Qwen 3) for natural-language climate queries |
 | **🗺️ Spatial Analysis** | Grid-based twin with coupled simulation processes (evapotranspiration, runoff, soil water, SPEI drought) |
-| **📊 Interactive Dashboard** | 10-page Streamlit dashboard with real-time charts, maps, and Folium-based spatial views |
+| **📊 Interactive Dashboard** | 11-page Streamlit dashboard with real-time charts, maps, Folium spatial views, and disaster intelligence |
 
 ---
 
@@ -43,13 +44,13 @@ The platform follows a **microservices architecture** with 10 containerized serv
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        Streamlit Dashboard (:8501)                    │
-│  Climate Overview │ Forecasts │ Twin State │ Scenarios │ Risk │ ...  │
+│  Climate Overview │ Forecasts │ Twin State │ Scenarios │ Risk │ Disaster │ ...  │
 └──────────────────────┬───────────────────────────────────────────────┘
                        │
                        ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                    FastAPI Gateway (:8000)                            │
-│  /twin  /forecast  /scenario  /risk  /rag  /feedback  /health       │
+│  /twin  /forecast  /scenario  /risk  /rag  /feedback  /health  /disaster    │
 └──┬──────────┬──────────┬──────────┬──────────┬──────────┬────────────┘
    │          │          │          │          │          │
    ▼          ▼          ▼          ▼          ▼          ▼
@@ -65,7 +66,7 @@ The platform follows a **microservices architecture** with 10 containerized serv
                                                   └──────────┘
 ```
 
-**Supporting Services:** Report Service (:8007) · Redis (optional) · Prometheus + Grafana (monitoring profile)
+**Supporting Services:** Report Service (:8007) · Disaster Intelligence (:8008, Compose profile `disaster`; optional `docker-compose.gpu.yml`) · Redis (optional) · Prometheus + Grafana (monitoring profile)
 
 ---
 
@@ -132,7 +133,7 @@ docker compose up --build -d
 climate-digital-twin/
 │
 ├── backend/                  # FastAPI API gateway & route handlers
-│   ├── api/                  #   Routes: twin, forecast, scenario, risk, rag, feedback
+│   ├── api/                  #   Routes: twin, forecast, scenario, risk, rag, feedback, disaster
 │   ├── core/                 #   Shared backend utilities
 │   └── services/             #   Forecast inference service
 │
@@ -169,7 +170,7 @@ climate-digital-twin/
 │
 ├── risk/                     # Climate risk assessment engine
 │   ├── scoring/              #   Heat, flood, drought, and composite risk scoring
-│   ├── explainability/       #   SHAP-based feature attribution & insight generation
+│   ├── explainability/       #   Deterministic feature attribution (SHAPExplanation schema)
 │   ├── evaluation/           #   Hazard evaluator, alert policies, quality gates
 │   ├── models/               #   Risk data models (hazard assessments)
 │   └── store/                #   Alert & hazard persistent stores
@@ -191,6 +192,12 @@ climate-digital-twin/
 │   ├── llm/                  #   Ollama LLM client
 │   ├── memory/               #   Conversation memory
 │   └── prompts/              #   System & tool prompt templates
+│
+├── disaster_intelligence/    # Disaster Intelligence Engine (SAR threshold + OSM overlays)
+│   ├── domain/               #   Entities, flood/OSM/zonal rules
+│   ├── application/          #   Jobs, ingest, assessment
+│   ├── adapters/             #   STAC, JSONL, GeoJSON OSM, twin HTTP
+│   └── api/                  #   Origin FastAPI :8008
 │
 ├── pipeline/                 # Data ingestion & processing pipeline
 │   ├── providers/            #   Open-Meteo, NASA POWER, IMD data providers
@@ -254,7 +261,7 @@ The risk engine provides multi-hazard climate risk scoring:
 - **🌧️ Flood Risk** — Rainfall intensity, multi-day accumulation, forecast uncertainty
 - **☀️ Drought Risk** — Rainfall deficit, dry period duration, temperature stress
 - **📊 Composite Risk** — Weighted aggregation across all hazard types
-- **🔍 Explainability** — SHAP-based feature attribution for every risk score
+- **🔍 Explainability** — Deterministic rule-based feature attribution for every risk score (not KernelSHAP)
 
 ---
 
@@ -380,6 +387,19 @@ Full OpenAPI documentation available at `http://localhost:8000/docs`
 | `knowledge/configs/` | RAG indexing and retrieval settings |
 | `models/configs/` | Model hyperparameters and training configs |
 | `simulator/configs/` | Simulation engine parameters |
+
+---
+
+## Known limitations
+
+- Scope is **Karnataka**, not a national-scale twin.
+- **IMD** production fetch remains `AUTH_REQUIRED` until DSP credentials are configured (`IMD_ENABLED=false` by default).
+- NASA POWER rows are kept only when temperature, rainfall, humidity, pressure, and wind are all present (no fabricated meteorology).
+- Validated forecast registry currently uses **baseline-real-v1** and **lstm-real-v2**. Other architectures in-tree are not the served production path.
+- Risk explanations use deterministic scoring contributions in the existing API schema; they are not KernelSHAP.
+- Copilot LLM answers depend on a local Ollama model and can exceed 60s; tools fall back to sidecars when the gateway is down.
+- Rebuild `fastapi-gateway` after source changes. Stale images previously crashed on `FeedbackCaptureService(store=...)`.
+- Host disk space on the Docker drive must be sufficient for image rebuilds.
 
 ---
 

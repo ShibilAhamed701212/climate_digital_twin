@@ -6,8 +6,6 @@ from unittest.mock import patch
 
 import yaml
 
-from risk.models.risk_models import HazardType, RiskCategory, RiskScore
-
 
 def _make_config(**overrides):
     base = {
@@ -56,16 +54,13 @@ class TestRiskEngine:
         cfg = tmp_path / "risk.yaml"
         cfg.write_text(yaml.dump(_make_config()))
         engine = RiskEngine(str(cfg))
-        with patch("asyncio.run") as mock_run:
-            mock_run.return_value = RiskScore(
-                hazard_type=HazardType.AGRICULTURE,
-                score=0.5,
-                category=RiskCategory.MODERATE,
-                description="test",
-            )
-            result = engine.assess_agriculture_risk("loc-001", {"crop_stage": "vegetative"})
-            assert result is not None
-            assert result.score == 0.5
+        # Exercise the real path: vegetative sensitivity is 1.0 and no
+        # numeric features are given, so the raw score is exactly 50 -> 0.5.
+        # (Mocking _run_coroutine_sync would leak its never-awaited
+        # coroutine argument.)
+        result = engine.assess_agriculture_risk("loc-001", {"crop_stage": "vegetative"})
+        assert result is not None
+        assert result.score == 0.5
 
     def test_assess_all_with_agriculture(self, tmp_path):
         from risk.engine.risk_engine import RiskEngine

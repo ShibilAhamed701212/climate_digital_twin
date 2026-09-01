@@ -14,6 +14,7 @@ class IntentType(StrEnum):
     REPORT = "report"
     GREETING = "greeting"
     FEEDBACK = "feedback"
+    DISASTER = "disaster"
     UNKNOWN = "unknown"
 
 

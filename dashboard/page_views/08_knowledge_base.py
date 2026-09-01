@@ -97,23 +97,63 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
             if st.button("Create Collection", use_container_width=True) and new_collection:
                 st.info(f"Collection '{new_collection}' created (placeholder).")
 
-        with col1:
-            collections = [
-                {"id": "default", "name": "Default Collection", "docs": 12, "chunks": 156},
-                {"id": "imd_reports", "name": "IMD Reports", "docs": 8, "chunks": 94},
-                {"id": "ipcc_data", "name": "IPCC Assessment Data", "docs": 5, "chunks": 312},
-            ]
+        with col1:            # Fetch real collections from the gateway or RAG service
+            collections = []
+            try:
+                import requests as _req
 
-            for coll in collections:
-                with st.container():
-                    stc1, stc2, stc3, stc4 = st.columns([3, 1, 1, 1])
-                    stc1.markdown(f"**{coll['name']}**")
-                    stc2.metric("Docs", coll["docs"])
-                    stc3.metric("Chunks", coll["chunks"])
-                    if stc4.button("Select", key=f"sel_{coll['id']}"):
-                        st.session_state["selected_collection"] = coll["id"]
-                        st.info(f"Selected collection: {coll['name']}")
-                    st.divider()
+                from dashboard.config.config import API_BASE_URL
+
+                gateway_url = API_BASE_URL.rstrip("/")
+                resp = _req.get(f"{gateway_url}/rag/collections", timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw = data.get("collections", data if isinstance(data, list) else [])
+                    for c in raw:
+                        if isinstance(c, dict):
+                            collections.append(c)
+            except Exception:
+                pass
+
+            # Fallback: try the dedicated RAG service
+            if not collections:
+                try:
+                    import requests as _req
+
+                    from dashboard.config.config import RAG_SERVICE_URL
+
+                    rag_url = RAG_SERVICE_URL.rstrip("/")
+                    resp = _req.get(f"{rag_url}/health", timeout=5)
+                    if resp.status_code == 200:
+                        health = resp.json()
+                        doc_count = health.get("total_documents", health.get("documents", 0))
+                        chunk_count = health.get("total_chunks", health.get("chunks", 0))
+                        if doc_count or chunk_count:
+                            collections = [{
+                                "id": "default",
+                                "name": "Default Collection",
+                                "docs": doc_count,
+                                "chunks": chunk_count,
+                            }]
+                except Exception:
+                    pass
+
+            if not collections:
+                st.info(
+                    "No collections available yet. Ingest documents above to populate the knowledge base."
+                )
+            else:
+                for coll in collections:
+                    with st.container():
+                        stc1, stc2, stc3, stc4 = st.columns([3, 1, 1, 1])
+                        coll_name = coll.get("name", coll.get("id", "Unknown"))
+                        stc1.markdown(f"**{coll_name}**")
+                        stc2.metric("Docs", coll.get("docs", coll.get("document_count", 0)))
+                        stc3.metric("Chunks", coll.get("chunks", coll.get("chunk_count", 0)))
+                        if stc4.button("Select", key=f"sel_{coll.get('id', coll_name)}"):
+                            st.session_state["selected_collection"] = coll.get("id", coll_name)
+                            st.info(f"Selected collection: {coll_name}")
+                        st.divider()
 
     st.divider()
     st.caption(f"Knowledge Base | {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}")

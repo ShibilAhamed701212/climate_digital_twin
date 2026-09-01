@@ -165,8 +165,10 @@ def predict(
         if not isinstance(pred_list[0], list):
             pred_list = [pred_list]
         std_per_sample = raw_preds.std(dim=1, keepdim=True).expand_as(raw_preds)
-        ci_lower = (raw_preds - 1.96 * std_per_sample).tolist()
-        ci_upper = (raw_preds + 1.96 * std_per_sample).tolist()
+        ci_lower_t = _validator.validate(raw_preds - 1.96 * std_per_sample)
+        ci_upper_t = _validator.validate(raw_preds + 1.96 * std_per_sample)
+        ci_lower = ci_lower_t.tolist()
+        ci_upper = ci_upper_t.tolist()
         return {
             "predictions": pred_list,
             "confidence_intervals": {

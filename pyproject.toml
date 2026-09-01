@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "climate-digital-twin"
-version = "0.1.0"
+version = "2.1.0"
 description = "AI-Powered Climate Digital Twin for India — Real-time climate monitoring, forecasting, risk assessment, and scenario simulation"
 requires-python = ">=3.11"
 
@@ -25,6 +25,7 @@ dependencies = [
     "python-dateutil>=2.8",
     "click>=8.1,<9.0",
     "python-dotenv>=1.0",
+    "python-multipart>=0.0.9",
     "joblib>=1.3",
     "matplotlib>=3.8",
     "cdsapi>=0.6",
@@ -75,27 +76,29 @@ dev = [
 ollama = [
     "ollama>=0.1,<1.0",
 ]
+eo-learned = [
+    "segmentation-models-pytorch>=0.3,<0.5",
+    "rasterio>=1.3",
+]
+onnx = [
+    "onnxruntime>=1.16",
+]
+era5 = [
+    "xarray>=2023.1",
+    "netCDF4>=1.6",
+]
 all = [
-    "climate-digital-twin[dev,ollama]",
+    "climate-digital-twin[dev,ollama,eo-learned,era5]",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["tests*", "docs*"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-asyncio_mode = "auto"
-addopts = "-v --tb=short --cov=backend --cov=pipeline --cov=simulator --cov=dashboard --cov=risk --cov=knowledge --cov=copilot --cov-report=term-missing"
-filterwarnings = [
-    "ignore::pytest.PytestUnknownMarkWarning",
-]
+# Pytest lives in pytest.ini only (avoids "ignoring pytest config in pyproject.toml").
 
 [tool.coverage.run]
-source = ["backend", "pipeline", "simulator", "dashboard", "risk", "knowledge", "copilot"]
+source = ["backend", "pipeline", "simulator", "dashboard", "risk", "knowledge", "copilot", "disaster_intelligence"]
 omit = ["*/tests/*", "*/__init__.py"]
 # NOTE: models/ and runtime/ excluded from Windows coverage because torch C++ DLL crash
 # (torch C++ SEH access violation on Windows — known env limitation)

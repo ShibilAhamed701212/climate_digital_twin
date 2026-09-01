@@ -123,7 +123,7 @@ class MonteCarloEngine:
         for i in range(self._n_samples):
             sampled_params = self.sample_parameters(parameter_distributions)
             scenario_variant = self._build_scenario(scenario_template, sampled_params)
-            perturbed = await self._simulate_single(base_data, scenario_variant, i)
+            perturbed = await self._simulate_single(base_data, scenario_variant, i, sampled_params)
             results.append(perturbed)
 
         summary = self._compute_summary(results)
@@ -212,15 +212,35 @@ class MonteCarloEngine:
         if output_var == 0.0 or len(parameters) == 0:
             return {p: 0.0 for p in parameters}
 
+        has_samples = all(
+            isinstance(r.simulated.get("sampled_params"), dict) for r in results
+        )
+        if has_samples:
+            raw_scores: dict[str, float] = {}
+            for p in parameters:
+                xs = np.array(
+                    [float(r.simulated["sampled_params"].get(p, 0.0)) for r in results],
+                    dtype=np.float64,
+                )
+                if float(np.var(xs)) == 0.0:
+                    raw_scores[p] = 0.0
+                    continue
+                corr = float(np.corrcoef(xs, output_arr)[0, 1])
+                raw_scores[p] = abs(corr) if np.isfinite(corr) else 0.0
+            total = sum(raw_scores.values())
+            if total > 0:
+                return {k: v / total for k, v in raw_scores.items()}
+            return {p: 1.0 / len(parameters) for p in parameters}
+
         equal_importance = 1.0 / len(parameters)
-        scores = {p: equal_importance for p in parameters}
-        return scores
+        return {p: equal_importance for p in parameters}
 
     async def _simulate_single(
         self,
         base_data: list[WeatherObservation],
         scenario: ScenarioDefinition,
         sample_index: int,
+        sampled_params: dict[str, float] | None = None,
     ) -> SimulationResult:
         import time
         from datetime import UTC, datetime
@@ -267,6 +287,7 @@ class MonteCarloEngine:
             "time_series": time_series,
             "time_steps": [t.isoformat() for t in time_steps],
             "summary_statistics": summary_statistics,
+            "sampled_params": dict(sampled_params or {}),
         }
 
         deltas = {}
@@ -305,15 +326,23 @@ class MonteCarloEngine:
         press_delta = custom_params.get("pressure_delta")
 
         for param_name, value in sampled_params.items():
-            if param_name == "temperature_delta":
+            mapped = param_name
+            if param_name in ("temperature_2m", "temperature", "max_temp"):
+                mapped = "temperature_delta"
+            elif param_name in ("precipitation_mm", "rainfall"):
+                mapped = "rainfall_multiplier"
+            elif param_name == "rainfall_change_pct":
+                rain_mult = 1.0 + (value / 100.0)
+                continue
+            if mapped == "temperature_delta":
                 temp_delta = value
-            elif param_name == "rainfall_multiplier":
+            elif mapped == "rainfall_multiplier":
                 rain_mult = value
-            elif param_name == "humidity_delta":
+            elif mapped == "humidity_delta":
                 humid_delta = value
-            elif param_name == "wind_speed_delta":
+            elif mapped == "wind_speed_delta":
                 wind_delta = value
-            elif param_name == "pressure_delta":
+            elif mapped == "pressure_delta":
                 press_delta = value
             else:
                 custom_params[param_name] = value

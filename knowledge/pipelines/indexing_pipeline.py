@@ -93,6 +93,7 @@ class IndexingPipeline:
             texts = [c.content for c in chunks]
             embeddings = self.embedding_model.encode(texts)
             self.vector_store.add(chunks, embeddings)
+            self.vector_store.flush()
             logger.info("Indexed %s: %d chunks", file_path, len(chunks))
             return IndexingResult(
                 document_id=doc.document_id,
@@ -145,7 +146,24 @@ class IndexingPipeline:
         logger.info(
             "Indexed %d of %d files in %s",
             sum(1 for r in results if r.success),
-            len(results),
-            directory,
+            len(results), directory,
         )
+        self.vector_store.flush()
         return results
+
+
+if __name__ == "__main__":
+    import sys
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    docs_dir = sys.argv[1] if len(sys.argv) > 1 else "knowledge/documents"
+    print(f"Indexing documents from: {docs_dir}")
+    pipeline = IndexingPipeline()
+    results = pipeline.index_directory(docs_dir)
+    for r in results:
+        status = "OK" if r.success else f"FAIL ({r.error})"
+        print(f"  [{status}] {r.title}: {r.num_chunks} chunks")
+    total_chunks = sum(r.num_chunks for r in results)
+    successes = sum(1 for r in results if r.success)
+    print(f"\nDone: {successes}/{len(results)} documents indexed, {total_chunks} chunks total")
+    print(f"Vector store: {pipeline.vector_store.total_chunks} chunks in index")

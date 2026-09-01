@@ -86,6 +86,19 @@ _RAG_KEYWORDS: list[str] = [
     r"\bpatterns?\b",
 ]
 
+_DISASTER_KEYWORDS: list[str] = [
+    r"\bdisaster intelligence\b",
+    r"\bdamaged buildings\b",
+    r"\bbuilding damage\b",
+    r"\bflood extent\b",
+    r"\binundation\b",
+    r"\brelief plan\b",
+    r"\baffected hospitals\b",
+    r"\broad blockage\b",
+    r"\bsatellite damage\b",
+    r"\bdisaster assessment\b",
+]
+
 _REPORT_KEYWORDS: list[str] = [
     r"\breport\b",
     r"\bsummary\b",
@@ -125,6 +138,7 @@ _INTENT_WEIGHTS: dict[IntentType, float] = {
     IntentType.RAG_QUERY: 0.75,
     IntentType.REPORT: 0.8,
     IntentType.FEEDBACK: 0.8,
+    IntentType.DISASTER: 0.88,
 }
 
 # ─── Compiled patterns ────────────────────────────────────────
@@ -138,6 +152,7 @@ _INTENT_PATTERNS: dict[IntentType, list[re.Pattern[str]]] = {
     IntentType.RAG_QUERY: [re.compile(p, re.IGNORECASE) for p in _RAG_KEYWORDS],
     IntentType.REPORT: [re.compile(p, re.IGNORECASE) for p in _REPORT_KEYWORDS],
     IntentType.FEEDBACK: [re.compile(p, re.IGNORECASE) for p in _FEEDBACK_KEYWORDS],
+    IntentType.DISASTER: [re.compile(p, re.IGNORECASE) for p in _DISASTER_KEYWORDS],
 }
 
 # ─── Known locations ──────────────────────────────────────────
@@ -231,6 +246,9 @@ class IntentAgent:
 
     def _break_tie(self, top_intents: list[IntentType], query: str) -> IntentType:
         intent_set = set(top_intents)
+
+        if IntentType.DISASTER in intent_set:
+            return IntentType.DISASTER
 
         if IntentType.SCENARIO in intent_set and re.search(
             r"\bscenario\b|\bsimulat\w*\b|\bwhat if\b|\bwhat would\b", query

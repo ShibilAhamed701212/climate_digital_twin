@@ -210,8 +210,9 @@ async def list_collections(
         return {
             "collections": [
                 {
-                    "id": getattr(c, "collection_id", str(c)),
-                    "name": getattr(c, "name", str(c)),
+                    "id": c.get("id", "") if isinstance(c, dict) else getattr(c, "collection_id", str(c)),
+                    "name": c.get("name", "") if isinstance(c, dict) else getattr(c, "name", str(c)),
+                    "chunk_count": c.get("chunk_count", 0) if isinstance(c, dict) else getattr(c, "chunk_count", 0),
                 }
                 for c in collections
             ]

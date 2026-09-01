@@ -7,10 +7,13 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 
 from backend.api.config import get_gateway_config
 from backend.api.middleware import setup_middleware
 from backend.api.routes import (
+    copilot_proxy,
+    disaster,
     feedback,
     forecast,
     health,
@@ -18,9 +21,15 @@ from backend.api.routes import (
     risk,
     scenario,
     twin,
+    twin_proxy,
 )
 
 _logger = logging.getLogger(__name__)
+
+
+def _unique_operation_id(route: APIRoute) -> str:
+    methods = "_".join(sorted(m.lower() for m in route.methods if m not in {"HEAD", "OPTIONS"}))
+    return f"{route.name}_{methods}" or route.name
 
 
 @asynccontextmanager
@@ -71,6 +80,7 @@ def create_app() -> FastAPI:
         docs_url=config.docs_url,
         openapi_url=config.openapi_url,
         lifespan=lifespan,
+        generate_unique_id_function=_unique_operation_id,
     )
 
     app.include_router(health.router)
@@ -79,7 +89,10 @@ def create_app() -> FastAPI:
     app.include_router(rag.router)
     app.include_router(feedback.router)
     app.include_router(twin.router)
+    app.include_router(twin_proxy.router)
     app.include_router(forecast.router)
+    app.include_router(disaster.router)
+    app.include_router(copilot_proxy.router)
 
     setup_middleware(app)
 

@@ -1,0 +1,112 @@
+version: "2.1"
+models:
+  - model_id: s1-threshold-v0
+    model_name: Sentinel-1 DN threshold
+    architecture: numpy-threshold
+    task: flood_extent
+    sensor: sentinel-1-or-uint8-proxy
+    dataset: none
+    input_bands: ["DN"]
+    input_channels: 1
+    resolution: scene-native
+    classes: ["dry", "water"]
+    checkpoint_path: ""
+    checkpoint_format: none
+    sha256: ""
+    license: Apache-2.0
+    source_url: in-repo
+    paper_url: ""
+    training_dataset: none
+    preprocessing: uint8 DN <= dn_max
+    inference_runtime: numpy
+    device_support: ["cpu"]
+    confidence_method: threshold_boundary_agreement
+    status: enabled
+  - model_id: unet-sen1floods11-resnet34
+    model_name: SAR flood-extent U-Net ResNet34
+    architecture: unet
+    task: flood_extent
+    sensor: sentinel-1
+    dataset: Sen1Floods11
+    input_bands: ["VV", "VH"]
+    input_channels: 2
+    resolution: "10m (Sen1Floods11 chips 512px)"
+    classes: ["dry", "water"]
+    checkpoint_path: D:/ClimateDigitalTwin/models/flood/unet/model.pt
+    checkpoint_format: pt
+    sha256: 45d57e0087f2d3054da8f05cf2a655e2a8f4294417a29334d30addb7950dede9
+    license: MIT
+    source_url: https://huggingface.co/Governor6191/sar-flood-extent-unet-resnet34
+    paper_url: https://github.com/cloudtostreet/Sen1Floods11
+    training_dataset: Sen1Floods11 hand+weak labels
+    preprocessing: per-channel z-score (recovered S1Hand dB mean/std)
+    inference_runtime: torch
+    device_support: ["cpu", "cuda"]
+    confidence_method: softmax_margin
+    status: integrated-when-weights-and-2ch-input
+  - model_id: segformer
+    model_name: SegFormer
+    architecture: segformer
+    task: flood_extent
+    sensor: none
+    dataset: none
+    input_bands: []
+    input_channels: 0
+    resolution: ""
+    classes: []
+    checkpoint_path: ""
+    checkpoint_format: ""
+    sha256: ""
+    license: not-bundled
+    source_url: ""
+    paper_url: https://arxiv.org/abs/2105.15203
+    training_dataset: none compatible
+    preprocessing: ""
+    inference_runtime: none
+    device_support: ["cpu", "cuda"]
+    confidence_method: unavailable
+    status: registered-disabled
+  - model_id: mask2former
+    model_name: Mask2Former
+    architecture: mask2former
+    task: flood_extent
+    sensor: none
+    dataset: none
+    input_bands: []
+    input_channels: 0
+    resolution: ""
+    classes: []
+    checkpoint_path: ""
+    checkpoint_format: ""
+    sha256: ""
+    license: not-bundled
+    source_url: ""
+    paper_url: https://arxiv.org/abs/2112.01527
+    training_dataset: none compatible
+    preprocessing: ""
+    inference_runtime: none
+    device_support: ["cpu", "cuda"]
+    confidence_method: unavailable
+    status: registered-disabled
+  - model_id: changeformer-levir-v6
+    model_name: ChangeFormerV6 LEVIR-CD
+    architecture: changeformer
+    task: change_detection
+    sensor: optical-rgb
+    dataset: LEVIR-CD
+    input_bands: ["R", "G", "B"]
+    input_channels: 3
+    resolution: "256px chips"
+    classes: ["no-change", "change"]
+    checkpoint_path: D:/ClimateDigitalTwin/models/change/changeformer/CD_ChangeFormerV6_LEVIR_b16_lr0.0001_adamw_train_test_200_linear_ce_multi_train_True_multi_infer_False_shuffle_AB_False_embed_dim_256/best_ckpt.pt
+    checkpoint_format: pt
+    sha256: db0dd783c3c3f27d02f55f24fa8199d2b2b47c422c7f7bd2e4d96e2fa65d69f2
+    license: MIT; pretrained weights non-commercial research
+    source_url: https://github.com/wgcban/ChangeFormer/releases/download/v0.1.0/CD_ChangeFormerV6_LEVIR_b16_lr0.0001_adamw_train_test_200_linear_ce_multi_train_True_multi_infer_False_shuffle_AB_False_embed_dim_256.zip
+    paper_url: https://arxiv.org/abs/2202.11901
+    training_dataset: LEVIR-CD
+    preprocessing: RGB pair 256x256
+    inference_runtime: torch-custom-net_G
+    device_support: ["cpu", "cuda"]
+    confidence_method: softmax_margin
+    status: downloaded-optional; flood-disabled; architecture-not-vendored

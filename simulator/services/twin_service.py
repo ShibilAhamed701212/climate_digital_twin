@@ -51,7 +51,8 @@ class TwinService:
     def update_observation(self, entity: ClimateEntity) -> dict[str, Any]:
         """Ingest a new observation from authoritative data sources."""
         entity.state_type = StateType.CURRENT.value
-        entity.data_source = "IMD"
+        source = (entity.data_source or "").strip()
+        entity.data_source = source if source else "observation"
         errors = self._validate_entity(entity)
         if errors:
             raise ValueError(f"Invalid observation: {errors}")

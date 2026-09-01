@@ -40,7 +40,8 @@ def calculate_flood_risk(
     }
 
     if multi_day_accumulation is None:
-        multi_day_accumulation = rainfall * 0.6
+        # Honest 1-day window: same-day rainfall, not a fabricated fraction.
+        multi_day_accumulation = rainfall
 
     intensity_score = _intensity_score(rainfall, heavy_rain_threshold)
     accumulation_score = _accumulation_score(

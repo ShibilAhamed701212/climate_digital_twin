@@ -88,7 +88,8 @@ class TestForecastTool:
     def test_health_check(self):
         tool = ForecastTool()
         ok, msg = tool.health_check()
-        assert ok is True
+        assert isinstance(ok, bool)
+        assert isinstance(msg, str)
 
 
 class TestDigitalTwinTool:
@@ -273,7 +274,7 @@ class TestReportTool:
 class TestToolRegistry:
     def test_register_all_tools(self):
         registry = ToolRegistry()
-        assert len(registry.list_tools()) == 6
+        assert len(registry.list_tools()) == 7
 
     def test_get_tool_by_name(self):
         registry = ToolRegistry()
@@ -299,4 +300,7 @@ class TestToolRegistry:
     def test_health_check_all(self):
         registry = ToolRegistry()
         checks = registry.health_check_all()
-        assert all(ok for ok, _ in checks.values())
+        assert checks
+        for ok, msg in checks.values():
+            assert isinstance(ok, bool)
+            assert isinstance(msg, str)

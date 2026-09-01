@@ -4,9 +4,10 @@ import json
 import logging
 from typing import Any
 
+import requests
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from copilot.clients.rag_client import RAGClient
+from copilot.clients.rag_client import RAG_SERVICE_URL, RAGClient
 from copilot.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -61,4 +62,10 @@ class RAGRetrieverTool(BaseTool):
         }
 
     def health_check(self) -> tuple[bool, str]:
-        return True, "rag_retriever healthy"
+        try:
+            resp = requests.get(f"{RAG_SERVICE_URL}/health", timeout=2)
+            if resp.ok:
+                return True, "rag_retriever healthy"
+            return False, f"rag HTTP {resp.status_code}"
+        except Exception as exc:
+            return False, str(exc)

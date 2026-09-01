@@ -119,9 +119,21 @@ class FAISSStore:
 
             if os.path.exists(self.index_path):
                 self._index = faiss.read_index(self.index_path)
-                logger.info(
-                    "Loaded FAISS index from %s (%d vectors)", self.index_path, self._index.ntotal
-                )
+                loaded_dim = getattr(self._index, "d", self.dimension)
+                if loaded_dim != self.dimension:
+                    logger.warning(
+                        "Persisted FAISS index dimension (%s) does not match configured "
+                        "dimension (%s); rebuilding empty index",
+                        loaded_dim,
+                        self.dimension,
+                    )
+                    self._index = self._build_faiss_index()
+                else:
+                    logger.info(
+                        "Loaded FAISS index from %s (%d vectors)",
+                        self.index_path,
+                        self._index.ntotal,
+                    )
             else:
                 self._index = self._build_faiss_index()
                 logger.info(
@@ -155,15 +167,21 @@ class FAISSStore:
 
     def _save_metadata(self) -> None:
         Path(self.metadata_path).parent.mkdir(parents=True, exist_ok=True)
-        metadata_payload = {
-            "dimension": self.dimension,
-            "index_type": self._index_type,
-            "next_idx": self._next_idx,
-            "id_to_idx": self._id_to_idx,
-            "idx_to_id": {str(k): v for k, v in self._idx_to_id.items()},
-            "metadatas": self._metadatas,
-            "chunk_texts": self._chunk_texts,
-        }
+        # Snapshot mutable state under the lock: this runs on a daemon timer
+        # thread and json.dump iterating live dicts while add()/delete()
+        # mutate them would raise "dictionary changed size during iteration".
+        with self._lock:
+            metadata_payload = {
+                "dimension": self.dimension,
+                "index_type": self._index_type,
+                "next_idx": self._next_idx,
+                "id_to_idx": dict(self._id_to_idx),
+                "idx_to_id": {str(k): v for k, v in self._idx_to_id.items()},
+                "metadatas": {
+                    k: dict(v) if isinstance(v, dict) else v for k, v in self._metadatas.items()
+                },
+                "chunk_texts": dict(self._chunk_texts),
+            }
         with open(self.metadata_path, "w") as f:
             json.dump(metadata_payload, f, default=str)
 
@@ -182,6 +200,11 @@ class FAISSStore:
             )
 
         vectors = np.array(embeddings, dtype=np.float32)
+        if vectors.ndim != 2 or vectors.shape[1] != self.dimension:
+            raise ValueError(
+                f"Embedding dimension ({vectors.shape[1] if vectors.ndim == 2 else 'invalid'}) "
+                f"does not match store dimension ({self.dimension})"
+            )
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         norms = np.where(norms == 0, 1.0, norms)
         normalized = vectors / norms
@@ -403,13 +426,22 @@ class FAISSStore:
 
             if len(embeddings) > 0:
                 count = len(embeddings)
+                vectors = np.asarray(embeddings, dtype=np.float32)
+                if vectors.ndim != 2 or vectors.shape[1] != self.dimension:
+                    raise ValueError(
+                        f"Embedding dimension ({vectors.shape[1] if vectors.ndim == 2 else 'invalid'}) "
+                        f"does not match store dimension ({self.dimension})"
+                    )
+                norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+                norms = np.where(norms == 0, 1.0, norms)
+                normalized = vectors / norms
                 ids = chunk_ids or [f"chunk_{i}" for i in range(count)]
                 indices = np.arange(count, dtype=np.int64)
                 for i, cid in enumerate(ids):
                     self._id_to_idx[cid] = i
                     self._idx_to_id[i] = cid
                 self._next_idx = count
-                self._index.add_with_ids(embeddings.astype(np.float32), indices)
+                self._index.add_with_ids(normalized.astype(np.float32), indices)
                 for i, cid in enumerate(ids):
                     self._metadatas[cid] = metadatas[i] if metadatas and i < len(metadatas) else {}
                     self._chunk_texts[cid] = texts[i] if texts and i < len(texts) else ""
@@ -432,6 +464,12 @@ class FAISSStore:
         self._debounced_index_save.schedule()
         self._debounced_metadata_save.schedule()
         logger.info("Cleared FAISS index")
+
+    def flush(self) -> None:
+        """Force-write pending index and metadata to disk."""
+        self._debounced_index_save.flush()
+        self._debounced_metadata_save.flush()
+        logger.debug("Flushed FAISS index and metadata to disk")
 
     def get_chunk_text(self, chunk_id: str) -> str:
         """Retrieve the text of a chunk by its ID."""

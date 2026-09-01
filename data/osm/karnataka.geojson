@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "osm_id": 1, "building": "yes", "layer": "buildings" },
+      "geometry": { "type": "Polygon", "coordinates": [[[76.0, 12.9], [76.01, 12.9], [76.01, 12.91], [76.0, 12.91], [76.0, 12.9]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "osm_id": 2, "highway": "primary", "layer": "roads" },
+      "geometry": { "type": "LineString", "coordinates": [[76.0, 12.9], [76.05, 12.92]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "osm_id": 3, "amenity": "hospital", "layer": "amenities" },
+      "geometry": { "type": "Point", "coordinates": [76.005, 12.905] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "osm_id": 4, "amenity": "school", "layer": "amenities" },
+      "geometry": { "type": "Point", "coordinates": [77.0, 13.0] }
+    }
+  ]
+}

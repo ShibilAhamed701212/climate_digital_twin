@@ -469,7 +469,7 @@ class TestTradeRegistryEdgeCases:
         from copilot.tools.registry import ToolRegistry
 
         reg = ToolRegistry()
-        assert len(reg.list_tools()) == 6
+        assert len(reg.list_tools()) == 7  # forecast, twin, scenario, risk, rag, report, disaster
 
 
 class TestCopilotOrchestratorConfig:

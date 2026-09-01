@@ -36,6 +36,39 @@ jobs:
       - name: Ruff Format Check
         run: ruff format --check .
 
+  validate:
+    name: Compose OpenAPI mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Mypy disaster_intelligence
+        run: python -m mypy disaster_intelligence --ignore-missing-imports
+      - name: OpenAPI contract
+        run: python scripts/validate_openapi.py
+      - name: Compose config
+        run: docker compose --profile disaster config --quiet
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+      - name: pip-audit
+        run: pip-audit
+
   test:
     name: Complete Test Suite & Coverage
     runs-on: ubuntu-latest
@@ -55,7 +88,7 @@ jobs:
       - name: Download / Seed Datasets
         run: python scripts/download_data.py --dataset synthetic
       - name: Run Complete Test Suite
-        run: python -m pytest tests/ --cov=climatedt --cov=backend --cov-report=xml
+        run: python -m pytest tests/ --cov=climatedt --cov=backend --cov=disaster_intelligence --cov=copilot --cov=risk --cov=simulator --cov-report=xml
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -121,10 +154,10 @@ jobs:
           file: deployment/docker/Dockerfile.rag
           tags: ${{ steps.meta.outputs.tags }}-rag-service
           push: ${{ github.event_name != 'pull_request' }}
-      - name: Build and push copilot-agent
+      - name: Build and push disaster-engine
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: deployment/docker/Dockerfile.copilot
-          tags: ${{ steps.meta.outputs.tags }}-copilot-agent
+          file: deployment/docker/Dockerfile.disaster
+          tags: ${{ steps.meta.outputs.tags }}-disaster-engine
           push: ${{ github.event_name != 'pull_request' }}

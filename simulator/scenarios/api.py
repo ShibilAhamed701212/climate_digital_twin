@@ -72,7 +72,7 @@ async def lifespan(_app: FastAPI):
     _service = None
 
 
-app = FastAPI(title="Scenario Engine API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Scenario Engine API", version="2.1.0", lifespan=lifespan)
 
 
 def _get_service() -> ScenarioService:
@@ -83,7 +83,7 @@ def _get_service() -> ScenarioService:
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "scenario-engine", "version": "1.0.0"}
+    return {"status": "healthy", "service": "scenario-engine", "version": "2.1.0"}
 
 
 @app.post("/scenarios/create")

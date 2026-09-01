@@ -24,13 +24,25 @@ NASA_PARAM_MAP: dict[str, str] = {
     "rainfall": "PRECTOTCORR",
     "max_temp": "T2M_MAX",
     "min_temp": "T2M_MIN",
+    "temperature": "T2M",
+    "humidity": "RH2M",
+    "pressure": "PS",
+    "wind_speed": "WS10M",
+    "wind_dir": "WD10M",
 }
 
 COLUMN_MAP: dict[str, str] = {
     "rainfall": "Rainfall",
     "max_temp": "MaxTemp",
     "min_temp": "MinTemp",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "pressure": "Pressure",
+    "wind_speed": "WindSpeed",
+    "wind_dir": "WindDir",
 }
+
+_NASA_FILL_THRESHOLD = -900.0
 
 _REQUEST_TIMEOUT = 30
 _MAX_RETRIES = 3
@@ -152,16 +164,23 @@ def parse_response(
             dt = datetime(int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]))
             for nasa_key, ds_key in reversed_map.items():
                 raw = params.get(nasa_key, {}).get(date_str)
-                if raw is not None:
-                    col_name = COLUMN_MAP.get(ds_key, ds_key)
-                    all_records[ds_key].append(
-                        {
-                            "Date": dt,
-                            "Latitude": lat,
-                            "Longitude": lon,
-                            col_name: float(raw),
-                        }
-                    )
+                if raw is None:
+                    continue
+                try:
+                    value = float(raw)
+                except (TypeError, ValueError):
+                    continue
+                if value <= _NASA_FILL_THRESHOLD:
+                    continue
+                col_name = COLUMN_MAP.get(ds_key, ds_key)
+                all_records[ds_key].append(
+                    {
+                        "Date": dt,
+                        "Latitude": lat,
+                        "Longitude": lon,
+                        col_name: value,
+                    }
+                )
         result: dict[str, pd.DataFrame] = {}
         for ds_key in param_map:
             if all_records[ds_key]:

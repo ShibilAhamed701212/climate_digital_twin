@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from copilot.tools.base import BaseTool
+from copilot.tools.disaster_tool import DisasterIntelligenceTool
 from copilot.tools.forecast_tool import ForecastTool
 from copilot.tools.rag_tool import RAGRetrieverTool
 from copilot.tools.report_tool import ReportGeneratorTool
@@ -26,6 +27,7 @@ class ToolRegistry:
             RiskAssessorTool(),
             RAGRetrieverTool(),
             ReportGeneratorTool(),
+            DisasterIntelligenceTool(),
         ]
         for tool in defaults:
             meta = tool.describe()

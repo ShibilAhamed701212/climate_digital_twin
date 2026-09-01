@@ -45,11 +45,12 @@ class TestGatewayConfig:
             "http://localhost:3000",
             "http://localhost:8501",
         ]
-        assert cfg.api_key_enabled is True
+        assert cfg.api_key_enabled is False
         assert cfg.api_key == ""
         assert cfg.docs_url == "/docs"
         assert cfg.openapi_url == "/openapi.json"
         assert cfg.app_title == "Climate Digital Twin API"
+        assert cfg.app_version == "2.1.0"
 
     def test_fields_overridable(self) -> None:
         cfg = GatewayConfig(host="0.0.0.0", port=9000, debug=True, api_key_enabled=False)
@@ -65,11 +66,13 @@ class TestGetGatewayConfig:
         c2 = get_gateway_config()
         assert c1 is c2
 
-    def test_disables_auth_when_key_missing(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_defaults_to_disabled_auth(self, caplog: pytest.LogCaptureFixture) -> None:
+        """With the corrected default, api_key_enabled is False when no key is set."""
         caplog.set_level(logging.WARNING)
         cfg = get_gateway_config()
         assert cfg.api_key_enabled is False
-        assert "Disabling API key auth" in caplog.text
+        # No spurious warning needed — default is already safe.
+        assert "Disabling API key auth" not in caplog.text
 
     def test_skips_warning_on_subsequent_call(self, caplog: pytest.LogCaptureFixture) -> None:
         get_gateway_config()
@@ -83,20 +86,22 @@ class TestGetGatewayConfig:
         monkeypatch.setenv("GATEWAY_API_KEY", "super-secret")
         caplog.set_level(logging.WARNING)
         cfg = get_gateway_config()
-        assert cfg.api_key_enabled is True
+        # Default is false; key alone does not enable auth.
+        assert cfg.api_key_enabled is False
         assert cfg.api_key == "super-secret"
-        assert "Disabling API key auth" not in caplog.text
 
     def test_honours_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GATEWAY_HOST", "0.0.0.0")
         monkeypatch.setenv("GATEWAY_PORT", "9999")
         monkeypatch.setenv("GATEWAY_DEBUG", "true")
         monkeypatch.setenv("GATEWAY_CORS_ORIGINS", "*")
+        monkeypatch.setenv("GATEWAY_API_KEY_ENABLED", "false")
         cfg = get_gateway_config()
         assert cfg.host == "0.0.0.0"
         assert cfg.port == 9999
         assert cfg.debug is True
         assert cfg.cors_origins == ["*"]
+        assert cfg.api_key_enabled is False
 
 
 class TestConfigureGateway:

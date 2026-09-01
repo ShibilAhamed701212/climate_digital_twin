@@ -5,6 +5,8 @@ event publishing, and downstream API exposure.
 """
 
 import logging
+import os
+from datetime import datetime
 from typing import Any
 
 import yaml
@@ -30,14 +32,15 @@ class DigitalTwinEngine:
     def __init__(
         self,
         config_path: str = "simulator/configs/twin_config.yaml",
-        store_dir: str = "data/twin_store",
+        store_dir: str | None = None,
     ) -> None:
         self.config_path = config_path
         with open(config_path) as f:
             self.config = yaml.safe_load(f)
         self.event_bus = EventBus()
         self.state_manager = StateManager()
-        self.repository: TwinRepository = ParquetRepository(store_dir)
+        resolved_store = store_dir or os.environ.get("TWIN_STORE_DIR", "data/twin_store")
+        self.repository: TwinRepository = ParquetRepository(resolved_store)
         self.service = TwinService(self.state_manager, self.repository, self.event_bus, config_path)
         self._load_from_repository()
 
@@ -51,6 +54,10 @@ class DigitalTwinEngine:
                 self.state_manager._current[loc_id] = latest
         if location_ids:
             logger.info("Loaded %d locations from repository", len(location_ids))
+
+    def reload_from_repository(self) -> None:
+        """Re-read persisted versions (used by scenario-engine sharing twin_data)."""
+        self._load_from_repository()
 
     def create_entity(
         self,
@@ -113,7 +120,7 @@ class DigitalTwinEngine:
             TwinEvent(
                 event_type="TwinRefreshed",
                 location_id="*",
-                timestamp=__import__("datetime").datetime.now().isoformat(),
+                timestamp=datetime.now().isoformat(),
                 version_id=0,
                 data={"locations": self.state_manager.get_all_location_ids()},
             )

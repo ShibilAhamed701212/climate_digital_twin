@@ -34,6 +34,10 @@
 - Hybrid search fusion score:
   $$Score_{hybrid} = \alpha \cdot Score_{semantic} + (1 - \alpha) \cdot Score_{BM25}$$
 
+### 2.5 Disaster Intelligence Engine (`disaster_intelligence/`)
+- Optional Compose profile `disaster` on port 8008. Gateway reverse-proxies `/disaster/*` without importing raster/CV stacks.
+- Flood MVP: uint8 TIFF threshold + OSM intersection. Twin climate parquet is unchanged; overlay pointers only.
+
 ---
 
 ## 3. Storage Layer Architecture

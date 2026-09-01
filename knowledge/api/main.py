@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from knowledge.api.search_api import KnowledgeAPI
 
-app = FastAPI(title="RAG Knowledge API", version="1.0.0")
+app = FastAPI(title="RAG Knowledge API", version="2.1.0")
 _knowledge_api: KnowledgeAPI | None = None
 
 
@@ -19,6 +19,8 @@ def _get_api() -> KnowledgeAPI:
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 3
+    category: str | None = None
+    source: str | None = None
 
 
 class SearchResult(BaseModel):
@@ -44,7 +46,7 @@ class SearchResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "rag-service", "version": "1.0.0"}
+    return {"status": "healthy", "service": "rag-service", "version": "2.1.0"}
 
 
 @app.post("/search", response_model=SearchResponse)
@@ -52,6 +54,10 @@ def search(req: SearchRequest) -> SearchResponse:
     api = _get_api()
     try:
         results = api.search(query=req.query, top_k=req.top_k)
+        if req.category:
+            results = [r for r in results if r.category == req.category]
+        if req.source:
+            results = [r for r in results if r.source == req.source]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
     return SearchResponse(
