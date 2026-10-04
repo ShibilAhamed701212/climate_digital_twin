@@ -171,7 +171,11 @@ class JobService:
                     flags.append("low_res")
             else:
                 loaded = load_scene_rows(after.local_uri)
-                rows = clip_to_aoi(loaded) if scene_kind(after) == "optical" else sar_preprocess(loaded)
+                rows = (
+                    clip_to_aoi(loaded)
+                    if scene_kind(after) == "optical"
+                    else sar_preprocess(loaded)
+                )
                 flags.extend(quality_control(rows, max_pixels))
             flags.extend(cloud_mask_flags(after.provider, after.product or ""))
             if pair.before_scene_id is None:
@@ -193,7 +197,11 @@ class JobService:
             elif isinstance(runner, UNetFloodRunner) and stack is None:
                 mask = runner.mask_from_rows(rows)
                 confidence = runner.boundary_confidence(rows)
-            elif stack is not None and requested in {"threshold", "s1-threshold-v0", "s1-threshold"}:
+            elif stack is not None and requested in {
+                "threshold",
+                "s1-threshold-v0",
+                "s1-threshold",
+            }:
                 vv_db = float((self._c.config.get("flood_threshold") or {}).get("vv_db") or -16.0)
                 mask = threshold_mask_from_vv(stack.vv, vv_db)
                 confidence = runner.boundary_confidence(rows) if rows else None

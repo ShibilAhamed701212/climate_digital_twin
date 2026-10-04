@@ -105,6 +105,7 @@ def test_missing_weights_status(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     monkeypatch.delenv("MODEL_UNET", raising=False)
     # Patch discover_weights to prevent fallback search of models/eo/ etc.
     import disaster_intelligence.inference.learned as mod
+
     monkeypatch.setattr(mod, "discover_weights", lambda _name: None)
     st = weights_status("unet")
     assert st["present"] is False

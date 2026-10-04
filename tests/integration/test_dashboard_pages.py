@@ -5,7 +5,9 @@ import sys
 import time
 
 import pytest
-from playwright.sync_api import sync_playwright
+
+# Playwright is an optional browser-test dependency; skip cleanly when absent.
+sync_playwright = pytest.importorskip("playwright.sync_api").sync_playwright
 
 DASHBOARD_URL = "http://localhost:8501"
 

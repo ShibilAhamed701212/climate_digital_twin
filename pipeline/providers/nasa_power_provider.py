@@ -70,7 +70,11 @@ def _nasa_to_weather_observations(
         return []
     merged = frames[0]
     for extra in frames[1:]:
-        merge_on = [c for c in ("Date", "Latitude", "Longitude") if c in merged.columns and c in extra.columns]
+        merge_on = [
+            c
+            for c in ("Date", "Latitude", "Longitude")
+            if c in merged.columns and c in extra.columns
+        ]
         if not merge_on:
             continue
         merged = merged.merge(extra, on=merge_on, how="outer")

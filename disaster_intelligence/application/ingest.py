@@ -156,7 +156,9 @@ class IngestService:
                 self._c.stac.download(str(plan["vh"]), vh_dest)
             sidecar = Path(dest).with_suffix(".s1.json")
             try:
-                max_pixels = int((self._c.config.get("limits") or {}).get("max_pixels") or 16_000_000)
+                max_pixels = int(
+                    (self._c.config.get("limits") or {}).get("max_pixels") or 16_000_000
+                )
                 max_side = min(3500, int(max_pixels**0.5))
                 aoi_bounds = row.get("aoi_bounds") or scene.bounds
                 if not aoi_bounds:
@@ -219,7 +221,9 @@ class IngestService:
                     vv_p, vh_p = found["vv"], found["vh"]
                 else:
                     vv_p, vh_p = extract_s1_measurements(dest_path, meas_dir)
-                max_pixels = int((self._c.config.get("limits") or {}).get("max_pixels") or 16_000_000)
+                max_pixels = int(
+                    (self._c.config.get("limits") or {}).get("max_pixels") or 16_000_000
+                )
                 max_side = min(3500, int(max_pixels**0.5))
                 aoi_bounds = row.get("aoi_bounds") or scene.bounds
                 if not aoi_bounds:

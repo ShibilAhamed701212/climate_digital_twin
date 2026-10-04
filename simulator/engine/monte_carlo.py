@@ -212,9 +212,7 @@ class MonteCarloEngine:
         if output_var == 0.0 or len(parameters) == 0:
             return {p: 0.0 for p in parameters}
 
-        has_samples = all(
-            isinstance(r.simulated.get("sampled_params"), dict) for r in results
-        )
+        has_samples = all(isinstance(r.simulated.get("sampled_params"), dict) for r in results)
         if has_samples:
             raw_scores: dict[str, float] = {}
             for p in parameters:

@@ -81,9 +81,12 @@ coverage.xml
 *.html
 output/
 simulator/outputs/*
+!simulator/outputs/*.py
 risk/outputs/*
 knowledge/reports/*
+!knowledge/reports/*.py
 copilot/reports/*
+!copilot/reports/*.py
 
 # Vector stores & Pickles
 *.index

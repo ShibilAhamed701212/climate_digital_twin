@@ -146,7 +146,9 @@ def _from_sidecar(path: Path) -> S1Stack:
     if vv_path and vh_path:
         vv, _vh_unused, geo = read_float32_vv_vh(Path(str(vv_path)))
         _ = _vh_unused
-        raise ValidationError("Split vv/vh sidecar must use a 2-channel stack file", "INVALID_GEOTIFF")
+        raise ValidationError(
+            "Split vv/vh sidecar must use a 2-channel stack file", "INVALID_GEOTIFF"
+        )
     raise ValidationError("S1 sidecar is missing the stack GeoTIFF", "INVALID_GEOTIFF")
 
 
@@ -201,9 +203,7 @@ def _rasterio_read_band(path: Path, wanted: str) -> tuple[list[list[float]], dic
             else:
                 idx = 1 if wanted == "VV" else min(2, src.count)
                 if wanted == "VH" and src.count < 2:
-                    raise ValidationError(
-                        "Raster has no VH band", "INSUFFICIENT_POLARIZATION"
-                    )
+                    raise ValidationError("Raster has no VH band", "INSUFFICIENT_POLARIZATION")
         elif wanted == "VH":
             raise ValidationError("Single-band raster has no VH", "INSUFFICIENT_POLARIZATION")
         arr = src.read(idx)

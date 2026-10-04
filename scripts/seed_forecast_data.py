@@ -38,7 +38,10 @@ def _is_monsoon(month: int) -> int:
 def generate(n_samples: int, seq_len: int = 30) -> pd.DataFrame:
     """Generate a realistic climate dataset for Karnataka with seasonal patterns."""
     rows = n_samples + seq_len
-    data = {col: [] for col in FEATURE_COLUMNS}
+    # Rolling columns are derived after the loop, so only the per-day columns
+    # are collected here (pre-seeding them as empty lists broke DataFrame()).
+    base_columns = [c for c in FEATURE_COLUMNS if not c.startswith("Rolling")]
+    data: dict[str, list[float]] = {col: [] for col in base_columns}
 
     rng = np.random.default_rng(42)
 
@@ -89,7 +92,7 @@ def generate(n_samples: int, seq_len: int = 30) -> pd.DataFrame:
     df["RollingTemp7"] = df["MaxTemp"].rolling(window=7, min_periods=1).mean().round(2)
     df["RollingTemp30"] = df["MaxTemp"].rolling(window=30, min_periods=1).mean().round(2)
 
-    return df
+    return df[FEATURE_COLUMNS]
 
 
 def main():

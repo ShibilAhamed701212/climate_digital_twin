@@ -258,13 +258,17 @@ class TestRegression6TwinOverlayPointerRouteExists:
         from simulator.api.main import app
 
         paths = {getattr(route, "path", "") for route in app.routes}
-        assert "/overlay-pointer" in paths, "Twin API must expose POST /overlay-pointer for DIE sync"
+        assert (
+            "/overlay-pointer" in paths
+        ), "Twin API must expose POST /overlay-pointer for DIE sync"
 
     def test_twin_api_registers_overlay_pointer_get_route(self) -> None:
         from simulator.api.main import app
 
         paths = {getattr(route, "path", "") for route in app.routes}
-        assert "/overlay-pointer/{location_id}" in paths, "Twin API must expose GET /overlay-pointer/{location_id}"
+        assert (
+            "/overlay-pointer/{location_id}" in paths
+        ), "Twin API must expose GET /overlay-pointer/{location_id}"
 
     def test_http_twin_pointer_adapter_raises_on_404(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reproduce the live HTTP 404 when Twin has no overlay-pointer route."""
@@ -278,7 +282,7 @@ class TestRegression6TwinOverlayPointerRouteExists:
             def __init__(self, *args: object, **kwargs: object) -> None:
                 _ = args, kwargs
 
-            def __enter__(self) -> "_Client":
+            def __enter__(self) -> _Client:
                 return self
 
             def __exit__(self, *args: object) -> None:
@@ -308,6 +312,7 @@ class TestRegression6TwinOverlayPointerRouteExists:
     def test_twin_overlay_pointer_roundtrip(self) -> None:
         """Verify Twin accepts and returns overlay pointers via REST."""
         from fastapi.testclient import TestClient
+
         from simulator.api.main import app
 
         client = TestClient(app)

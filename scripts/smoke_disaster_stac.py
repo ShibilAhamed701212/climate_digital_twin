@@ -25,7 +25,9 @@ def main() -> int:
         "coordinates": [[[77.4, 12.8], [77.8, 12.8], [77.8, 13.15], [77.4, 13.15], [77.4, 12.8]]],
     }
     try:
-        items = adapter.search(aoi, "2024-01-01T00:00:00Z", "2024-01-08T00:00:00Z", ["sentinel-1-grd"])
+        items = adapter.search(
+            aoi, "2024-01-01T00:00:00Z", "2024-01-08T00:00:00Z", ["sentinel-1-grd"]
+        )
     except Exception as exc:
         print(f"STAC unavailable (external blocker): {exc}")
         return 2
