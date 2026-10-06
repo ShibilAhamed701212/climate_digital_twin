@@ -31,9 +31,11 @@ PAGES = [
     ("Knowledge Base", False),
     ("Spatial Grid", False),
     ("Feedback", False),
+    ("Disaster Intelligence", False),
 ]
 MIN_VISIBLE = 100
-NAV_SB_SEL = '.st-key-nav_select [data-testid="stSelectbox"]'
+# Sidebar navigation is an st.radio keyed "sidebar_nav_radio" (dashboard/components/sidebar_nav.py).
+NAV_SB_SEL = ".st-key-sidebar_nav_radio"
 
 
 def log(msg):
@@ -41,15 +43,8 @@ def log(msg):
 
 
 def navigate_to(page, title):
-    """Navigate to a page using the Navigate selectbox."""
-    nav_sb = page.locator(NAV_SB_SEL)
-    nav_sb.click(timeout=5000)
-    page.wait_for_selector('div[role="option"]', timeout=5000)
-    time.sleep(0.3)
-
-    opt = page.locator('div[role="option"]', has_text=title).first
-    opt.wait_for(timeout=3000)
-    opt.click()
+    """Navigate to a page using the sidebar navigation radio."""
+    page.locator(NAV_SB_SEL).locator("label", has_text=title).first.click(timeout=5000)
     time.sleep(2)
 
 
