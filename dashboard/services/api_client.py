@@ -330,9 +330,7 @@ class DashboardAPI:
         except Exception as e:
             logger.warning("Forecast unavailable via gateway: %s", e)
             self._mark_fallback("forecast")
-            engine_url = os.environ.get(
-                "FORECAST_ENGINE_URL", "http://localhost:8006"
-            ).rstrip("/")
+            engine_url = os.environ.get("FORECAST_ENGINE_URL", "http://localhost:8006").rstrip("/")
             try:
                 sidecar = self._session.post(
                     f"{engine_url}/forecast/predict",
@@ -344,7 +342,7 @@ class DashboardAPI:
                 values = payload.get("predictions", payload.get("values", []))
                 results = []
                 for i, day in enumerate(values):
-                    if not isinstance(day, (list, tuple)):
+                    if not isinstance(day, list | tuple):
                         day = [day]
                     results.append(
                         {

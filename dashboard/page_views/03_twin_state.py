@@ -108,7 +108,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
                     st.metric("Rainfall", f"{f.get('rainfall', 0):.1f} mm")
                     st.metric("Max Temp", f"{f.get('max_temp', 0):.1f} °C")
                     st.metric("Min Temp", f"{f.get('min_temp', 0):.1f} °C")
-                    conf = f.get('prediction_confidence', 0)
+                    conf = f.get("prediction_confidence", 0)
                     st.caption(f"Confidence: {conf:.2f}" if conf > 0 else "Confidence: N/A")
         else:
             st.info("No forecast data available")

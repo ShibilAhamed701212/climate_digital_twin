@@ -15,11 +15,11 @@ CLIENT_TIMEOUT = float(os.environ.get("CLIENT_TIMEOUT", "5"))
 def _numeric_score(obj: Any) -> float | None:
     if obj is None:
         return None
-    if isinstance(obj, (int, float)):
+    if isinstance(obj, int | float):
         return float(obj)
     if isinstance(obj, dict):
         for key in ("score", "composite_score", "value"):
-            if key in obj and isinstance(obj[key], (int, float)):
+            if key in obj and isinstance(obj[key], int | float):
                 return float(obj[key])
     return None
 

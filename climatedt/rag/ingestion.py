@@ -46,8 +46,11 @@ class DocumentIngestion:
         document_id = (
             doc.document_id
             if hasattr(doc, "document_id")
-            else (doc.get("document_id", "") if isinstance(doc, dict) else uuid.uuid4().hex[:16])
+            else (doc.get("document_id") if isinstance(doc, dict) else None)
         )
+        # Chunk ids derive from document_id, so an empty id made every
+        # id-less document produce the same chunk ids and overwrite each other.
+        document_id = document_id or uuid.uuid4().hex[:16]
 
         kdoc = KDocument(
             document_id=document_id,

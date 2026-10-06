@@ -240,7 +240,14 @@ def read_float32_vv_vh(path: Path) -> tuple[list[list[float]], list[list[float]]
             pos += 8
         vv.append(row_vv)
         vh.append(row_vh)
-    geo = {"west": 0.0, "north": 0.0, "xres": 1.0, "yres": 1.0, "width": float(width), "height": float(height)}
+    geo = {
+        "west": 0.0,
+        "north": 0.0,
+        "xres": 1.0,
+        "yres": 1.0,
+        "width": float(width),
+        "height": float(height),
+    }
     if 33550 in tags:
         off = tags[33550][2]
         if off + 24 <= len(data):

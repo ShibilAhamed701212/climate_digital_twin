@@ -11,6 +11,7 @@ from backend.api.main import create_app
 def test_disaster_proxy_maps_502(monkeypatch) -> None:
     # Reset singleton so patched get_gateway_config is invoked
     import backend.api.config as cfg_module
+
     cfg_module._config = None
 
     cfg = GatewayConfig(api_key_enabled=False, disaster_engine_url="http://127.0.0.1:65500")
@@ -36,6 +37,7 @@ def test_disaster_proxy_forwards_ok() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=False)
 
     import backend.api.config as cfg_module
+
     cfg_module._config = None
 
     with (
@@ -68,6 +70,7 @@ def test_disaster_proxy_streams_sse() -> None:
     mock_client.aclose = AsyncMock()
 
     import backend.api.config as cfg_module
+
     cfg_module._config = None
 
     with (
@@ -101,6 +104,7 @@ def test_disaster_proxy_streams_geojson() -> None:
     mock_client.aclose = AsyncMock()
 
     import backend.api.config as cfg_module
+
     cfg_module._config = None
 
     with (
