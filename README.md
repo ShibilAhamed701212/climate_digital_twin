@@ -430,8 +430,9 @@ Interactive docs: `http://localhost:8000/docs`. API-key auth is off by default; 
 - Copilot LLM answers depend on a local Ollama model and can exceed 60s; tools fall back to sidecars when the gateway is down.
 - Rebuild `fastapi-gateway` after source changes. Stale images previously crashed on `FeedbackCaptureService(store=...)`.
 - Host disk space on the Docker drive must be sufficient for image rebuilds.
-- API-key auth is opt-in, and if it is enabled without `GATEWAY_API_KEY` the gateway logs a warning and runs **without** auth.
-- `OnlineLearner.incorporate_feedback` compares prediction errors with themselves, so its drift score is always 0 and it never signals a retrain from that path.
+- API-key auth is opt-in (`GATEWAY_API_KEY_ENABLED=true`). If it is enabled without `GATEWAY_API_KEY`, protected routes return `503 AUTH_MISCONFIGURED` until a key is set; `/health` and the docs stay open.
+- The dashboard and copilot clients do not send a gateway API key, so they cannot reach protected gateway routes while auth is enabled (`docker-compose.prod.yml` enables it; set `GATEWAY_API_KEY` in `.env`).
+- Feedback drift detection keeps its error history in memory per gateway process, so it resets on restart.
 - RAG collections are metadata only: ingestion does not tag chunks with a `collection_id`, so collection stats report 0 chunks and `collection_id` does not scope search.
 - `climatedt.spatial` requires `xarray` (the `era5` extra) and has no tests in the default dev install.
 - The forecast service image copies `data/real/`, which is git-ignored; images built from a clean checkout contain no real data unless it is provided at build or run time.
@@ -446,6 +447,8 @@ Interactive docs: `http://localhost:8000/docs`. API-key auth is off by default; 
 - `climatedt/rag/ingestion.py` gave dict documents without a `document_id` an empty id, so their chunk ids collided and overwrote each other in the vector store.
 - `climatedt/integrity/twin_store_scanner.py` counted non-REAL states as `real_states`.
 - `Dockerfile.forecast` failed in CI because `data/real/` did not exist in a clean checkout.
+- Enabling API-key auth without setting `GATEWAY_API_KEY` used to switch auth off silently. The gateway now fails closed with a 503. CORS preflight (`OPTIONS`) requests to protected routes are no longer rejected with 401.
+- `OnlineLearner.incorporate_feedback` compared prediction errors with themselves, so drift was never detected. It now compares new errors against each model's earlier errors and signals a retrain on a shift.
 - Root-level ad-hoc scripts moved to `scripts/smoke_cdse_search.py` and `scripts/smoke_unet_checkpoint.py`.
 
 ---

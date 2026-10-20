@@ -35,6 +35,20 @@ class TestVerifyApiKey:
         assert "Missing API key" in exc.value.detail
 
     @pytest.mark.asyncio
+    async def test_verify_api_key_fails_closed_without_configured_key(self) -> None:
+        from backend.api.dependencies import verify_api_key
+
+        config = MagicMock()
+        config.api_key_enabled = True
+        config.api_key = ""
+        with patch("backend.api.dependencies.get_gateway_config", return_value=config):
+            creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials="anything")
+            with pytest.raises(HTTPException) as exc:
+                await verify_api_key(credentials=creds)
+
+        assert exc.value.status_code == 503
+
+    @pytest.mark.asyncio
     async def test_verify_api_key_raises_when_invalid(self) -> None:
         from backend.api.dependencies import verify_api_key
 

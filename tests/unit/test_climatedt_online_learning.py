@@ -119,6 +119,27 @@ class TestRetrainSignals:
         assert result["incorporated"] is True
         assert result["retrain_needed"] is False
 
+    @staticmethod
+    def _feedback(record_id: str, errors: list[float]) -> SimpleNamespace:
+        pe = SimpleNamespace(
+            model_name="xgb", absolute_errors={f"v{i}": e for i, e in enumerate(errors)}
+        )
+        return SimpleNamespace(record_id=record_id, prediction_errors=[pe])
+
+    async def test_drift_compares_against_earlier_feedback(self) -> None:
+        learner = OnlineLearner()
+
+        first = await learner.incorporate_feedback(self._feedback("r1", [1.0, 1.1, 0.9, 1.05]))
+        same = await learner.incorporate_feedback(self._feedback("r2", [1.0, 1.1, 0.9, 1.05]))
+        shifted = await learner.incorporate_feedback(self._feedback("r3", [9.0, 9.5, 10.0, 8.7]))
+
+        # No history yet, then an identical distribution: no drift.
+        assert first["retrain_needed"] is False
+        assert same["retrain_needed"] is False
+        # Errors far outside the earlier distribution are flagged as drift.
+        assert shifted["retrain_needed"] is True
+        assert "xgb" in learner._retrain_queue
+
     def test_note_parsers(self) -> None:
         assert OnlineLearner._extract_rating_from_notes("x rating=4") == 4
         assert OnlineLearner._extract_rating_from_notes("none") is None

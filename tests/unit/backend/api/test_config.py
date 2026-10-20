@@ -11,10 +11,11 @@ from backend.api.config import GatewayConfig, _env_int, configure_gateway, get_g
 def reset_config():
     from backend.api import config as _mod
 
-    saved = _mod._config
+    saved = _mod._config, _mod._warned_missing_key
     _mod._config = None
+    _mod._warned_missing_key = False
     yield
-    _mod._config = saved
+    _mod._config, _mod._warned_missing_key = saved
 
 
 class TestEnvInt:
@@ -89,6 +90,20 @@ class TestGetGatewayConfig:
         # Default is false; key alone does not enable auth.
         assert cfg.api_key_enabled is False
         assert cfg.api_key == "super-secret"
+
+    def test_enabled_without_key_fails_closed(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        monkeypatch.setenv("GATEWAY_API_KEY_ENABLED", "true")
+        monkeypatch.delenv("GATEWAY_API_KEY", raising=False)
+        caplog.set_level(logging.ERROR)
+
+        cfg = get_gateway_config()
+        get_gateway_config()
+
+        # Auth must stay enabled; the misconfiguration is logged exactly once.
+        assert cfg.api_key_enabled is True
+        assert caplog.text.count("GATEWAY_API_KEY is not set") == 1
 
     def test_honours_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GATEWAY_HOST", "0.0.0.0")

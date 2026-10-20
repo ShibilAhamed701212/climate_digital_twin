@@ -334,6 +334,55 @@ class TestMiddleware:
         assert resp.status_code == 200
         assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
+    def _make_client(self, config: GatewayConfig) -> TestClient:
+        p1, p2 = self._patch_get_gateway_config(config)
+        from backend.api.main import create_app
+
+        with (
+            p1,
+            p2,
+            patch("backend.api.dependencies.get_risk_service", return_value=AsyncMock()),
+            patch("backend.api.dependencies.get_scenario_service", return_value=AsyncMock()),
+            patch("backend.api.dependencies.get_feedback_capture", return_value=AsyncMock()),
+            patch("backend.api.dependencies.get_twin_manager", return_value=AsyncMock()),
+        ):
+            app = create_app()
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_api_key_auth_fails_closed_when_key_unset(self) -> None:
+        config = GatewayConfig(api_key_enabled=True, api_key="")
+        p1, p2 = self._patch_get_gateway_config(config)
+        client = self._make_client(config)
+        with p1, p2:
+            resp = client.post(
+                "/risk/assess",
+                json={"location_id": "loc-001", "latitude": 0, "longitude": 0},
+                headers={"Authorization": "Bearer "},
+            )
+            health = client.get("/health")
+        assert resp.status_code == 503, f"Got {resp.status_code}: {resp.text}"
+        assert resp.json()["error_code"] == "AUTH_MISCONFIGURED"
+        assert health.status_code == 200
+
+    def test_cors_preflight_on_protected_route_with_api_key_enabled(self) -> None:
+        config = GatewayConfig(
+            api_key_enabled=True,
+            api_key="secret-key",
+            cors_origins=["http://localhost:3000"],
+        )
+        p1, p2 = self._patch_get_gateway_config(config)
+        client = self._make_client(config)
+        with p1, p2:
+            resp = client.options(
+                "/risk/assess",
+                headers={
+                    "Origin": "http://localhost:3000",
+                    "Access-Control-Request-Method": "POST",
+                },
+            )
+        assert resp.status_code == 200, f"Got {resp.status_code}: {resp.text}"
+        assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
 
 class TestReportService:
     def test_report_health(self) -> None:

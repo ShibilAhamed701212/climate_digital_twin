@@ -197,6 +197,12 @@ async def verify_api_key(
     if not config.api_key_enabled:
         return None
 
+    if not config.api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API key auth is enabled but no GATEWAY_API_KEY is configured",
+        )
+
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

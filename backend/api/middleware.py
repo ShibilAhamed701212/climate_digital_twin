@@ -135,7 +135,9 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         config = get_gateway_config()
 
-        if not config.api_key_enabled:
+        # CORS preflight requests never carry credentials; let CORSMiddleware
+        # answer them instead of rejecting them with 401.
+        if not config.api_key_enabled or request.method == "OPTIONS":
             return await call_next(request)
 
         path = request.url.path.rstrip("/")
@@ -143,6 +145,17 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
             path.startswith(exempt) for exempt in {"/health", "/docs", "/openapi"}
         ):
             return await call_next(request)
+
+        if not config.api_key:
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": "API key auth is enabled but no GATEWAY_API_KEY is configured",
+                    "error_code": "AUTH_MISCONFIGURED",
+                },
+            )
 
         auth_header = request.headers.get("Authorization", "")
 
