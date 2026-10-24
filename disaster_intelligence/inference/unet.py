@@ -270,9 +270,7 @@ class UNetFloodRunner:
                     ) from exc
                 self.device = "cpu"
                 self._model = None
-                return self._infer_torch(
-                    vv, vh, already_standardized=already_standardized
-                )
+                return self._infer_torch(vv, vh, already_standardized=already_standardized)
             raise TaskNotEnabledError(f"U-Net inference failed: {exc}") from exc
         if margins:
             self.last_confidence = round(sum(margins) / len(margins), 4)

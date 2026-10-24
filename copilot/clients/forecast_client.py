@@ -9,9 +9,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 GATEWAY_URL = os.environ.get("API_BASE_URL", "http://localhost:8000").rstrip("/")
-FORECAST_ENGINE_URL = os.environ.get("FORECAST_ENGINE_URL", "http://localhost:8006").rstrip(
-    "/"
-)
+FORECAST_ENGINE_URL = os.environ.get("FORECAST_ENGINE_URL", "http://localhost:8006").rstrip("/")
 CLIENT_TIMEOUT = float(os.environ.get("CLIENT_TIMEOUT", "30"))
 
 
@@ -25,7 +23,7 @@ def _extract_series(payload: dict[str, Any]) -> list[list[float]]:
     raw = payload.get("values", payload.get("predictions", []))
     series: list[list[float]] = []
     for row in list(raw):
-        if isinstance(row, (list, tuple)):
+        if isinstance(row, list | tuple):
             series.append([float(x) for x in row])
         else:
             series.append([float(row)])

@@ -97,7 +97,7 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
             if st.button("Create Collection", use_container_width=True) and new_collection:
                 st.info(f"Collection '{new_collection}' created (placeholder).")
 
-        with col1:            # Fetch real collections from the gateway or RAG service
+        with col1:  # Fetch real collections from the gateway or RAG service
             collections = []
             try:
                 import requests as _req
@@ -129,12 +129,14 @@ def render(api: Any, filters: dict) -> None:  # noqa: ARG001
                         doc_count = health.get("total_documents", health.get("documents", 0))
                         chunk_count = health.get("total_chunks", health.get("chunks", 0))
                         if doc_count or chunk_count:
-                            collections = [{
-                                "id": "default",
-                                "name": "Default Collection",
-                                "docs": doc_count,
-                                "chunks": chunk_count,
-                            }]
+                            collections = [
+                                {
+                                    "id": "default",
+                                    "name": "Default Collection",
+                                    "docs": doc_count,
+                                    "chunks": chunk_count,
+                                }
+                            ]
                 except Exception:
                     pass
 

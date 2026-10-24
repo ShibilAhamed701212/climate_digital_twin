@@ -52,6 +52,32 @@ def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _rolling_ols_slope(series: pd.Series, window: int) -> pd.Series:
+    """Least-squares slope of each trailing window (x = 0..n-1), vectorised.
+
+    Equivalent to ``np.polyfit(range(n), y, 1)[0]`` per window with
+    ``min_periods=1``: a 1-point window gives 0.0 and a window holding NaN gives
+    NaN. Calling polyfit per row was O(rows) Python calls and dominated runtime.
+    """
+    y = series.astype(float)
+    t = pd.Series(np.arange(len(y), dtype=float), index=y.index)
+    n = pd.Series(np.ones(len(y)), index=y.index).rolling(window, min_periods=1).sum()
+    has_nan = y.isna().astype(float).rolling(window, min_periods=1).sum() > 0
+    y0 = y.fillna(0.0)
+    sum_y = y0.rolling(window, min_periods=1).sum()
+    sum_ty = (t * y0).rolling(window, min_periods=1).sum()
+    # Shift global index t to window-relative x = t - (t_end - n + 1).
+    start = t - n + 1
+    sum_xy = sum_ty - start * sum_y
+    sum_x = n * (n - 1) / 2
+    sum_xx = (n - 1) * n * (2 * n - 1) / 6
+    denom = n * sum_xx - sum_x**2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        slope = (n * sum_xy - sum_x * sum_y) / denom
+    slope = slope.where(n >= 2, 0.0)
+    return slope.mask(has_nan)
+
+
 def add_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add rolling window features for rainfall and temperature."""
     df = df.sort_values(["Latitude", "Longitude", "Date"]).reset_index(drop=True)
@@ -64,9 +90,7 @@ def add_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: x.rolling(30, min_periods=1).mean()
         )
         df["RainfallTrend"] = df.groupby(group_cols)["Rainfall"].transform(
-            lambda x: x.rolling(30, min_periods=1).apply(
-                lambda y: np.polyfit(range(len(y)), y, 1)[0] if len(y) >= 2 else 0.0
-            )
+            lambda x: _rolling_ols_slope(x, 30)
         )
     if "MaxTemp" in df.columns:
         df["RollingTemp7"] = df.groupby(group_cols)["MaxTemp"].transform(

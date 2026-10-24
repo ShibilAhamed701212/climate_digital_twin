@@ -180,7 +180,7 @@ def render(api: DashboardAPI, filters: dict) -> None:
         if job.get("status") == "failed":
             st.error(job.get("error_message") or "Job failed")
         bar = job.get("progress_pct")
-        if isinstance(bar, (int, float)):
+        if isinstance(bar, int | float):
             st.progress(min(100, max(0, int(bar))) / 100.0)
 
     st.subheader("Jobs / events")

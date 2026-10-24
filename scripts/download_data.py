@@ -26,6 +26,12 @@ def seed_synthetic_data(data_dir: Path) -> None:
     """Generate synthetic climate observation data for raw, real, and forecast stores."""
     logger.info("Seeding synthetic climate data into %s...", data_dir)
 
+    # The raw parquet files and data/real CSV splits are always needed (tests and
+    # the forecast service read them); the seed scripts below only populate
+    # data/processed and the twin store. This used to run only as a fallback,
+    # which went unnoticed while seed_forecast_data.py was crashing.
+    _generate_basic_parquet_and_csv(data_dir)
+
     try:
         # Import seed utilities from scripts if present
         sys.path.insert(0, str(ROOT_DIR))
@@ -36,10 +42,7 @@ def seed_synthetic_data(data_dir: Path) -> None:
         seed_twin()
         logger.info("Successfully seeded synthetic forecast and twin data.")
     except Exception as exc:
-        logger.warning(
-            "Failed to invoke seed scripts directly: %s. Generating basic datasets.", exc
-        )
-        _generate_basic_parquet_and_csv(data_dir)
+        logger.warning("Failed to invoke seed scripts directly: %s.", exc)
 
 
 def _generate_basic_parquet_and_csv(data_dir: Path) -> None:

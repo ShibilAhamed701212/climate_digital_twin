@@ -59,18 +59,21 @@ class GatewayConfig:
 
 
 _config: GatewayConfig | None = None
+_warned_missing_key = False
 
 
 def get_gateway_config() -> GatewayConfig:
-    global _config
+    global _config, _warned_missing_key
     if _config is None:
         _config = GatewayConfig()
-    if _config.api_key_enabled and not _config.api_key:
-        logger.warning(
+    if _config.api_key_enabled and not _config.api_key and not _warned_missing_key:
+        # Fail closed: auth stays enabled and protected routes answer 503 until
+        # a key is configured (previously auth was silently switched off).
+        logger.error(
             "GATEWAY_API_KEY_ENABLED is true but GATEWAY_API_KEY is not set. "
-            "Disabling API key auth."
+            "Protected endpoints will reject requests until a key is configured."
         )
-        _config.api_key_enabled = False
+        _warned_missing_key = True
     return _config
 
 

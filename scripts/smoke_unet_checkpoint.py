@@ -1,18 +1,24 @@
 #!/usr/bin/env python
-"""Direct U-Net inference verification."""
+"""Direct U-Net inference verification against a local Sen1Floods11 checkpoint.
+
+Manual smoke check, not part of the pytest suite. Run from the repository root
+after placing the checkpoint at models/checkpoints/flood/ (git-ignored).
+"""
+
 import os
 import sys
 import time
+
 import numpy as np
 
 # Set environment before imports
-os.environ['MODEL_WEIGHTS_UNET'] = 'models/checkpoints/flood/unet-sen1floods11-resnet34.pt'
-os.environ['MODEL_FLOOD'] = 'unet'
-os.environ['MODEL_FLOOD_FALLBACK'] = 'none'
-os.environ['MODEL_DEVICE'] = 'cpu'
+os.environ["MODEL_WEIGHTS_UNET"] = "models/checkpoints/flood/unet-sen1floods11-resnet34.pt"
+os.environ["MODEL_FLOOD"] = "unet"
+os.environ["MODEL_FLOOD_FALLBACK"] = "none"
+os.environ["MODEL_DEVICE"] = "cpu"
 
 # Add project root to path
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from disaster_intelligence.inference.unet import UNetFloodRunner
 
@@ -38,7 +44,7 @@ start = time.perf_counter()
 mask = runner.mask_from_vv_vh(vv_list, vh_list)
 elapsed = time.perf_counter() - start
 
-print(f"\n=== U-Net Inference Results ===")
+print("\n=== U-Net Inference Results ===")
 print(f"Model ID: {runner.model_id}")
 print(f"Device: {runner.device}")
 print(f"Runtime: {runner.runtime_name}")
@@ -59,7 +65,7 @@ print(f"Total pixels: {total_pixels}")
 print(f"Water fraction: {water_fraction:.4f}")
 
 provenance = runner.provenance()
-print(f"\n=== Provenance ===")
+print("\n=== Provenance ===")
 for k, v in provenance.items():
     print(f"  {k}: {v}")
 
@@ -67,10 +73,12 @@ for k, v in provenance.items():
 expected_sha256 = "45d57e0087f2d3054da8f05cf2a655e2a8f4294417a29334d30addb7950dede9"
 assert runner.checkpoint_sha256 == expected_sha256, f"SHA256 mismatch: {runner.checkpoint_sha256}"
 assert runner.model_id == "unet-sen1floods11-resnet34", f"Model ID mismatch: {runner.model_id}"
-assert runner.fallback_used == False, f"Fallback was used: {runner.fallback_reason}"
-assert provenance['sensor'] == 'sentinel-1', f"Sensor mismatch: {provenance['sensor']}"
-assert provenance['polarization'] == 'VV+VH', f"Polarization mismatch: {provenance['polarization']}"
-assert provenance['fallback_used'] == 'false', f"Fallback used in provenance: {provenance['fallback_used']}"
+assert runner.fallback_used is False, f"Fallback was used: {runner.fallback_reason}"
+assert provenance["sensor"] == "sentinel-1", f"Sensor mismatch: {provenance['sensor']}"
+assert provenance["polarization"] == "VV+VH", f"Polarization mismatch: {provenance['polarization']}"
+assert (
+    provenance["fallback_used"] == "false"
+), f"Fallback used in provenance: {provenance['fallback_used']}"
 
 print("\n=== ALL ASSERTIONS PASSED ===")
 print("U-Net checkpoint verified and inference successful!")

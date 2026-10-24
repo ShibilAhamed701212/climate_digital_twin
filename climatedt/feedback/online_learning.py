@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections import deque
 from datetime import UTC, datetime
 from typing import Any
 
@@ -51,6 +52,10 @@ class OnlineLearner:
         self._lock = threading.Lock()
         self._retrain_queue: dict[str, list[datetime]] = {}
         self._drift_threshold: float = 0.15
+        # Per-model history of absolute errors from earlier feedback, used as
+        # the reference distribution for drift detection.
+        self._error_history: dict[str, deque[float]] = {}
+        self._history_size: int = 500
         _logger.info("OnlineLearner initialized")
 
     async def incorporate_feedback(self, feedback: FeedbackRecord) -> dict[str, Any]:
@@ -78,21 +83,29 @@ class OnlineLearner:
         # Extract prediction errors if available
         errors = feedback.prediction_errors
         if errors:
-            error_values = []
-            for pe in errors:
-                for var_name in pe.absolute_errors:
-                    error_values.append(pe.absolute_errors[var_name])
+            model_name = errors[0].model_name or "unknown"
+            error_values = [
+                float(pe.absolute_errors[var_name])
+                for pe in errors
+                for var_name in pe.absolute_errors
+            ]
 
             if error_values:
-                drift_score = self.compute_drift(
-                    np.array(error_values),
-                    np.array(error_values),  # Simplified: compare to self
-                )
+                with self._lock:
+                    history = self._error_history.setdefault(
+                        model_name, deque(maxlen=self._history_size)
+                    )
+                    historical = np.array(history, dtype=float)
+                    history.extend(error_values)
+
+                # Compare the new errors with this model's earlier errors.
+                # (Previously the errors were compared with themselves, so the
+                # KS statistic was always 0 and drift could never be detected.)
+                drift_score = self.compute_drift(np.array(error_values), historical)
                 drift_detected = drift_score > self._drift_threshold
                 actions.append(f"drift_score={drift_score:.3f}")
 
                 if drift_detected:
-                    model_name = errors[0].model_name if errors else "unknown"
                     self._signal_retrain(model_name)
                     retrain_needed = True
                     actions.append(f"drift_detected={drift_detected}, retrain_signalled")

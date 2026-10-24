@@ -91,7 +91,8 @@ def scan_twin_store(verbose: bool = False) -> dict[str, int]:
                         results["contaminated_states"] += 1
                     if verbose:
                         print(f"NON_REAL: {eid} v{vn} auth={auth}")
-                results["real_states"] += 1
+                else:
+                    results["real_states"] += 1
 
                 obs_id = (
                     str(state_table.column("observation_id")[0].as_py())

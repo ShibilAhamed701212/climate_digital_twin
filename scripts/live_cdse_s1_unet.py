@@ -16,7 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AOI = {
     "type": "Polygon",
-    "coordinates": [[[76.00, 12.95], [76.15, 12.95], [76.15, 13.08], [76.00, 13.08], [76.00, 12.95]]],
+    "coordinates": [
+        [[76.00, 12.95], [76.15, 12.95], [76.15, 13.08], [76.00, 13.08], [76.00, 12.95]]
+    ],
 }
 DT_START = "2018-08-01T00:00:00Z"
 DT_END = "2018-08-31T00:00:00Z"
@@ -221,13 +223,17 @@ def main() -> int:
     if not items:
         print("CDSE search failed:", type(last_err).__name__ if last_err else "empty", last_err)
         report["blockers"].append(f"CDSE search: {last_err}")
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 3
     print("features", len(items))
     report["search_count"] = len(items)
     if not items:
         report["blockers"].append("CDSE search returned no features")
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 3
 
     try:
@@ -235,7 +241,9 @@ def main() -> int:
     except Exception as exc:
         report["blockers"].append(str(exc))
         print(exc)
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 3
     meta = _summarize_item(item)
     report["scene"] = meta
@@ -279,7 +287,9 @@ def main() -> int:
     except Exception as exc:
         print("Download/stack failed:", type(exc).__name__, exc)
         report["blockers"].append(f"download: {type(exc).__name__}: {exc}")
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 4
 
     vv_path = Path(str(dest).replace(".tif", "_vv.tif"))
@@ -303,9 +313,9 @@ def main() -> int:
         "mode": plan.get("mode"),
         "vv_bytes": vv_path.stat().st_size if vv_path.is_file() else 0,
         "vh_bytes": vh_path.stat().st_size if vh_path.is_file() else 0,
-        "product_bytes": zip_path.stat().st_size if zip_path.is_file() else (
-            Path(dest).stat().st_size if Path(dest).is_file() else 0
-        ),
+        "product_bytes": zip_path.stat().st_size
+        if zip_path.is_file()
+        else (Path(dest).stat().st_size if Path(dest).is_file() else 0),
         "stack_bytes": stack_path.stat().st_size if stack_path.is_file() else 0,
         "vv_sha256_sidecar": Path(str(vv_path) + ".sha256").read_text(encoding="utf-8").strip()
         if Path(str(vv_path) + ".sha256").is_file()
@@ -318,13 +328,15 @@ def main() -> int:
     print("download sizes", sizes["vv_bytes"], sizes["vh_bytes"])
     if sizes["vv_bytes"] <= 0 or sizes["vh_bytes"] <= 0:
         report["blockers"].append("downloaded rasters missing or empty")
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 4
     if sizes["vv_bytes"] == sizes["vh_bytes"]:
         import hashlib
 
-        h1 = hashlib.sha256(vv_path.read_bytes()[:1024 * 1024]).hexdigest()
-        h2 = hashlib.sha256(vh_path.read_bytes()[:1024 * 1024]).hexdigest()
+        h1 = hashlib.sha256(vv_path.read_bytes()[: 1024 * 1024]).hexdigest()
+        h2 = hashlib.sha256(vh_path.read_bytes()[: 1024 * 1024]).hexdigest()
         if h1 == h2:
             report["blockers"].append("VV and VH files share the same first-1MB hash")
             print("VV was duplicated into VH — aborting")
@@ -348,7 +360,9 @@ def main() -> int:
     except Exception as exc:
         report["blockers"].append(f"rasterio open failed: {exc}")
         print("Could not open downloaded rasters:", exc)
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 5
 
     from disaster_intelligence.preprocessing.sentinel1 import (
@@ -406,13 +420,17 @@ def main() -> int:
     except Exception as exc:
         report["blockers"].append(f"unet job: {type(exc).__name__}: {exc}")
         print("U-Net job failed:", type(exc).__name__, exc)
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 7
     report["unet"] = unet_job
     print("unet status", unet_job["status"], "assessment", unet_job["assessment_id"])
     if unet_job["status"] != "completed":
         report["blockers"].append(f"unet job {unet_job['status']}: {unet_job['error']}")
-        (live_dir / "live_e2e_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        (live_dir / "live_e2e_report.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
         return 7
 
     from disaster_intelligence.reports.render import (
@@ -451,7 +469,10 @@ def main() -> int:
             "markdown": {"status": 200, "bytes": len(md.encode())},
             "json": {"status": 200, "bytes": len(render_json(LOCATION, unet_assessment))},
             "csv": {"status": 200, "bytes": len(render_csv(unet_assessment))},
-            "geojson": {"status": 200, "bytes": len(str(render_geojson(LOCATION, unet_assessment)))},
+            "geojson": {
+                "status": 200,
+                "bytes": len(str(render_geojson(LOCATION, unet_assessment))),
+            },
             "pdf": {"status": 200, "bytes": len(render_pdf(md))},
         }
     else:
@@ -471,10 +492,25 @@ def main() -> int:
         "processing_time": overlay.get("processing_time"),
         "assessment_id": overlay.get("assessment_id"),
     }
-    print("overlay", json.dumps({k: overlay.get(k) for k in (
-        "available", "assessment_id", "model_id", "sensor", "polarization",
-        "runtime", "confidence_type", "checkpoint_hash",
-    )}, default=str))
+    print(
+        "overlay",
+        json.dumps(
+            {
+                k: overlay.get(k)
+                for k in (
+                    "available",
+                    "assessment_id",
+                    "model_id",
+                    "sensor",
+                    "polarization",
+                    "runtime",
+                    "confidence_type",
+                    "checkpoint_hash",
+                )
+            },
+            default=str,
+        ),
+    )
     report["unet"]["twin_sync_ok"] = unet_job.get("twin_sync_ok")
 
     print("=== PHASE 15 threshold comparison ===")

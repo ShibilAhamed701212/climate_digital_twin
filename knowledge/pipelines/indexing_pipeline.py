@@ -146,7 +146,8 @@ class IndexingPipeline:
         logger.info(
             "Indexed %d of %d files in %s",
             sum(1 for r in results if r.success),
-            len(results), directory,
+            len(results),
+            directory,
         )
         self.vector_store.flush()
         return results
